@@ -5,12 +5,19 @@ import {
   saveIdentityVault, 
   resetIdentityVault, 
   resolveActiveWallet,
+  isLegalNameUniqueOnPlatform,
+  registerLegalNameOnPlatform,
+  unregisterLegalNameOnPlatform,
+  deployAppInstance,
+  getAppInstances,
   VAULT_STORAGE_KEY,
   LEGACY_PROFILE_KEY,
   LEGACY_TRIAL_KEY,
+  SUBSCRIPTIONS_KEY,
   UserIdentityVault
 } from '../stores/identityStore';
 import { WalletEntry } from '../types/profile';
+import { getSubscriptionForDidAndModule } from '../hooks/useMcpClient';
 
 export interface TestResult {
   name: string;
@@ -153,7 +160,6 @@ export function runEdgePlatformTests(): TestResult[] {
 
   // Test 6: Vault Persistence & Legacy Migration
   try {
-    // Test unified vault round-trip
     const testVault: UserIdentityVault = {
       version: 1,
       hasCompletedOnboarding: true,
@@ -269,6 +275,94 @@ export function runEdgePlatformTests(): TestResult[] {
     resetIdentityVault();
   } catch (e: any) {
     assert('Vault Persistence & Legacy Migration', false, `Error: ${e.message}`);
+  }
+
+  // Test 7: Unique Mandatory Legal Name Validation on Platform
+  try {
+    const registeredWallets: WalletEntry[] = [
+      {
+        id: 'w-alpha',
+        type: 'bank',
+        legalName: 'Apex Hydroponics Ltd',
+        bankName: 'Standard Bank',
+        accountNumber: '111111',
+        routingCode: '001',
+        isPrimary: true,
+        createdAt: Date.now()
+      }
+    ];
+
+    registerLegalNameOnPlatform('Apex Hydroponics Ltd');
+    registerLegalNameOnPlatform('Global Grain Silos Corp');
+
+    // Duplicate in local wallets
+    const dupLocal = isLegalNameUniqueOnPlatform('Apex Hydroponics Ltd', registeredWallets);
+    assert(
+      'Duplicate legal name in local wallets is rejected',
+      !dupLocal.isUnique,
+      `Rejection reason: ${dupLocal.reason}`
+    );
+
+    // Case-insensitive duplicate in platform registry
+    const dupPlatform = isLegalNameUniqueOnPlatform('GLOBAL GRAIN SILOS CORP', registeredWallets);
+    assert(
+      'Case-insensitive duplicate legal name in platform registry is rejected',
+      !dupPlatform.isUnique,
+      `Rejection reason: ${dupPlatform.reason}`
+    );
+
+    // Unique name is accepted
+    const uniqueCheck = isLegalNameUniqueOnPlatform('Cape Bio-Manufacturing Enterprise', registeredWallets);
+    assert(
+      'Unique legal name is accepted on DAUP platform',
+      uniqueCheck.isUnique,
+      'Unique name verified successfully.'
+    );
+
+    // Self-edit check (excluding current wallet ID)
+    const selfCheck = isLegalNameUniqueOnPlatform('Apex Hydroponics Ltd', registeredWallets, 'w-alpha');
+    assert(
+      'Editing existing wallet with same legal name is permitted for the owner',
+      selfCheck.isUnique,
+      'Self-update permitted.'
+    );
+
+    unregisterLegalNameOnPlatform('Apex Hydroponics Ltd');
+    unregisterLegalNameOnPlatform('Global Grain Silos Corp');
+  } catch (e: any) {
+    assert('Unique Mandatory Legal Name Validation', false, `Error: ${e.message}`);
+  }
+
+  // Test 8: Marketplace App Instance Deployment & Default 30-Day Active Trial
+  try {
+    const testDid = 'did:daup:test-node-eatery-pub';
+    const testEntity = 'Bistro Decentral Ltd';
+
+    const inst = deployAppInstance('daup-eatery', testEntity, testDid);
+    assert(
+      'Deploying app instance binds active wallet legal name as instance name',
+      inst.instanceName === 'Bistro Decentral Ltd' && inst.moduleKey === 'daup-eatery',
+      `Deployed instance: ${inst.instanceName}`
+    );
+    assert(
+      'Deploying app instance provisions a 30-day active trial by default',
+      inst.trialExpiresAt > Date.now() + 29 * 24 * 60 * 60 * 1000,
+      `Trial expires in: ${Math.round((inst.trialExpiresAt - Date.now()) / (1000 * 60 * 60 * 24))} days`
+    );
+
+    const sub = getSubscriptionForDidAndModule(testDid, 'daup-eatery');
+    assert(
+      'Newly queried/deployed app module is not expired and has active trial license',
+      sub.expirationTimestamp > Date.now(),
+      `Subscription expiration: ${new Date(sub.expirationTimestamp).toISOString()}`
+    );
+
+    // Cleanup
+    const allInst = getAppInstances();
+    delete allInst['daup-eatery'];
+    localStorage.setItem('daup_app_instances_db', JSON.stringify(allInst));
+  } catch (e: any) {
+    assert('Marketplace App Instance Deployment & Default Trial', false, `Error: ${e.message}`);
   }
 
   return results;

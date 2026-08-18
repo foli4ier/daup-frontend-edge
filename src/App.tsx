@@ -17,7 +17,7 @@ import { McpProvider, getSubscriptionForDidAndModule, useMcp } from './hooks/use
 import { FarmerWorkspace, ResellerWorkspace, EateryWorkspace, ManufacturingWorkspace } from './components/VerticalAppWorkspaces';
 import { ProfileModal } from './components/ProfileModal';
 import { MODULE_METADATA } from './components/withLicenseCheck';
-import { deriveSeedNode } from './stores/identityStore';
+import { deriveSeedNode, deployAppInstance } from './stores/identityStore';
 
 const DashboardContent: React.FC = () => {
   const { did, seed, connectWallet, wasmLoaded, isLoadingWasm } = useDIDWallet();
@@ -81,8 +81,11 @@ const DashboardContent: React.FC = () => {
   };
 
   const handleInstallApp = (moduleName: string) => {
+    const targetInstName = activeWallet?.legalName || instanceName || 'Decentralized Operator';
+    deployAppInstance(moduleName, targetInstName, did || 'did:daup:node-primary');
     const updated = { ...installedApps, [moduleName]: true };
     saveInstalled(updated);
+    loadSubscriptions();
   };
 
   const handleUninstallApp = (moduleName: string) => {

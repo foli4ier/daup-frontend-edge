@@ -18,6 +18,9 @@ import {
   resetIdentityVault, 
   deriveSeedNode, 
   resolveActiveWallet,
+  isLegalNameUniqueOnPlatform,
+  registerLegalNameOnPlatform,
+  unregisterLegalNameOnPlatform,
   DEFAULT_PROFILE,
   DEFAULT_TRIAL_STATE,
   DEFAULT_VAULT
@@ -38,6 +41,7 @@ export interface UserProfileContextType {
   formatCurrency: (amount: number) => string;
   isDetectingLocation: boolean;
   trialDaysRemaining: number;
+  validateLegalName: (legalName: string, excludeWalletId?: string | null) => { isUnique: boolean; reason?: string };
   updateDemographics: (demographics: Partial<UserDemographics>) => void;
   updateLocation: (location: Partial<UserLocation>) => void;
   updateSocials: (socials: Partial<SocialLinks>) => void;
@@ -69,7 +73,6 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
     } catch (err) {
       console.error('[UserProfileProvider] Hydration error:', err);
     } finally {
-      // Small tick to ensure smooth transition and allow microtasks to settle
       const timer = setTimeout(() => {
         setIsHydrating(false);
       }, 50);
@@ -110,6 +113,11 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const activeWallet = vault.activeWallet;
   const primaryWallet = vault.activeWallet;
   const identityKeySeedNode = vault.identityKeySeedNode;
+
+  // Real-time unique legal name validation
+  const validateLegalName = useCallback((legalName: string, excludeWalletId?: string | null) => {
+    return isLegalNameUniqueOnPlatform(legalName, vault.registeredWallets, excludeWalletId);
+  }, [vault.registeredWallets]);
 
   // Derive Currency from Country of Peer Profile
   const currency = useMemo(() => {
@@ -191,10 +199,19 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
     });
   }, [commitVault]);
 
-  // Add wallet
+  // Add wallet (Enforces unique legal name)
   const addWallet = useCallback((walletData: Omit<BankWalletConfig, 'id' | 'createdAt'> | Omit<CryptoWalletConfig, 'id' | 'createdAt'>) => {
     const id = `wallet_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
     let createdWallet: WalletEntry | null = null;
+
+    // Check unique legal name
+    const check = isLegalNameUniqueOnPlatform(walletData.legalName, vault.registeredWallets);
+    if (!check.isUnique) {
+      throw new Error(check.reason || 'Legal Name is not unique on the DAUP platform.');
+    }
+
+    // Register name into global platform registry
+    registerLegalNameOnPlatform(walletData.legalName);
 
     commitVault(prev => {
       const isFirst = prev.registeredWallets.length === 0;
@@ -232,10 +249,18 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
     });
 
     return createdWallet!;
-  }, [commitVault]);
+  }, [commitVault, vault.registeredWallets]);
 
   // Update wallet
   const updateWallet = useCallback((id: string, updates: Partial<WalletEntry>) => {
+    if (updates.legalName) {
+      const check = isLegalNameUniqueOnPlatform(updates.legalName, vault.registeredWallets, id);
+      if (!check.isUnique) {
+        throw new Error(check.reason || 'Legal Name is not unique on the DAUP platform.');
+      }
+      registerLegalNameOnPlatform(updates.legalName);
+    }
+
     commitVault(prev => {
       const isMakingPrimary = updates.isPrimary === true;
       const updatedWallets = prev.registeredWallets.map(w => {
@@ -267,10 +292,15 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
         updatedAt: Date.now()
       };
     });
-  }, [commitVault]);
+  }, [commitVault, vault.registeredWallets]);
 
   // Remove wallet
   const removeWallet = useCallback((id: string) => {
+    const targetWallet = vault.registeredWallets.find(w => w.id === id);
+    if (targetWallet?.legalName) {
+      unregisterLegalNameOnPlatform(targetWallet.legalName);
+    }
+
     commitVault(prev => {
       const filtered = prev.registeredWallets.filter(w => w.id !== id);
       let newPrimaryId = prev.activeWallet?.id;
@@ -301,7 +331,7 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
         updatedAt: Date.now()
       };
     });
-  }, [commitVault]);
+  }, [commitVault, vault.registeredWallets]);
 
   // Set primary wallet
   const setPrimaryWallet = useCallback((id: string) => {
@@ -351,7 +381,7 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
       updatedAt: Date.now()
     }));
 
-    // Also update all MCP module subscriptions if any
+    // Also update all MCP module subscriptions
     try {
       const rawSubs = localStorage.getItem('daup_subscriptions_db');
       const allSubs = rawSubs ? JSON.parse(rawSubs) : {};
@@ -361,7 +391,7 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
         allSubs[targetDid][mod] = {
           did: targetDid,
           module: mod,
-          tier: 'Pro',
+          tier: 'Trial',
           expirationTimestamp: trialExpiresAt
         };
       });
@@ -380,6 +410,11 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
       const primaryId = finalProfileData?.primaryWalletId || (prev.activeWallet ? prev.activeWallet.id : (mergedWallets[0]?.id || null));
       const active = resolveActiveWallet(mergedWallets, primaryId);
       const seedNode = active ? deriveSeedNode(active.legalName) : (prev.identityKeySeedNode || deriveSeedNode());
+
+      // Register active wallet in global platform registry
+      if (active?.legalName) {
+        registerLegalNameOnPlatform(active.legalName);
+      }
 
       const updatedProfile: UserProfile = {
         ...prev.profile,
@@ -412,7 +447,7 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
       };
     });
 
-    // Auto-update MCP subscriptions database
+    // Auto-update MCP subscriptions database for all modules
     try {
       const rawSubs = localStorage.getItem('daup_subscriptions_db');
       const allSubs = rawSubs ? JSON.parse(rawSubs) : {};
@@ -422,7 +457,7 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
         allSubs[targetDid][mod] = {
           did: targetDid,
           module: mod,
-          tier: 'Pro',
+          tier: 'Trial',
           expirationTimestamp: trialExpiresAt
         };
       });
@@ -525,9 +560,12 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   // Reset profile and purge vault
   const resetProfile = useCallback(() => {
+    if (activeWallet?.legalName) {
+      unregisterLegalNameOnPlatform(activeWallet.legalName);
+    }
     resetIdentityVault();
     setVault(DEFAULT_VAULT);
-  }, []);
+  }, [activeWallet?.legalName]);
 
   return (
     <UserProfileContext.Provider
@@ -546,6 +584,7 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
         formatCurrency,
         isDetectingLocation,
         trialDaysRemaining,
+        validateLegalName,
         updateDemographics,
         updateLocation,
         updateSocials,

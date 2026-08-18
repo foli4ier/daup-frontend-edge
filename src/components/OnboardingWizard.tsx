@@ -32,7 +32,8 @@ export const OnboardingWizard: React.FC = () => {
     profile, 
     completeOnboarding, 
     detectLocation, 
-    isDetectingLocation 
+    isDetectingLocation,
+    validateLegalName 
   } = useUserProfile();
 
   const [step, setStep] = useState<number>(1);
@@ -123,6 +124,11 @@ export const OnboardingWizard: React.FC = () => {
   const validateStep3 = () => {
     if (!legalName.trim()) {
       setErrorMsg('Legal Name is strictly required for payout/settlement registration and node instance naming.');
+      return false;
+    }
+    const check = validateLegalName(legalName);
+    if (!check.isUnique) {
+      setErrorMsg(check.reason || 'This Legal Name is already registered on the DAUP platform. Legal names must be unique to instantiate a node.');
       return false;
     }
     if (walletType === 'bank') {

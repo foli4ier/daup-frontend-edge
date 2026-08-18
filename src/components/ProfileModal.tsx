@@ -36,6 +36,7 @@ export const ProfileModal: React.FC = () => {
     primaryWallet, 
     instanceName, 
     currency,
+    validateLegalName,
     updateDemographics, 
     updateLocation, 
     updateSocials, 
@@ -116,6 +117,12 @@ export const ProfileModal: React.FC = () => {
     e.preventDefault();
     if (!newLegalName.trim()) {
       setWalletError('Legal Name is mandatory for all settlement wallets.');
+      return;
+    }
+
+    const check = validateLegalName(newLegalName);
+    if (!check.isUnique) {
+      setWalletError(check.reason || 'This Legal Name is already registered on the DAUP platform. Legal names must be unique.');
       return;
     }
 

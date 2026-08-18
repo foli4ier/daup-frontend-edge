@@ -257,21 +257,12 @@ export function getSubscriptionForDidAndModule(did: string, moduleName: string):
   
   if (!all[did][moduleName]) {
     const now = Date.now();
-    if (moduleName === 'daup-farmer') {
-      all[did][moduleName] = {
-        did: did,
-        module: moduleName,
-        tier: 'Pro',
-        expirationTimestamp: now + 30 * 24 * 60 * 60 * 1000 // 30 days
-      };
-    } else {
-      all[did][moduleName] = {
-        did: did,
-        module: moduleName,
-        tier: 'Free',
-        expirationTimestamp: now - 24 * 60 * 60 * 1000 // expired 1 day ago
-      };
-    }
+    all[did][moduleName] = {
+      did: did,
+      module: moduleName,
+      tier: 'Trial',
+      expirationTimestamp: now + 30 * 24 * 60 * 60 * 1000 // 30 days active trial by default
+    };
     saveSubscriptions(all);
   }
   

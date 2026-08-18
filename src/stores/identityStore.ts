@@ -10,6 +10,9 @@ import {
 export const VAULT_STORAGE_KEY = 'daup_user_vault_v1';
 export const LEGACY_PROFILE_KEY = 'daup_user_profile';
 export const LEGACY_TRIAL_KEY = 'daup_trial_state';
+export const PLATFORM_ENTITIES_KEY = 'daup_platform_registered_entities';
+export const APP_INSTANCES_KEY = 'daup_app_instances_db';
+export const SUBSCRIPTIONS_KEY = 'daup_subscriptions_db';
 
 export interface UserIdentityVault {
   version: 1;
@@ -21,6 +24,16 @@ export interface UserIdentityVault {
   activeWallet: WalletEntry | null;
   identityKeySeedNode: string | null;
   trialState: SubscriptionTrialState;
+}
+
+export interface AppInstanceRecord {
+  id: string;
+  moduleKey: string;
+  instanceName: string;
+  did: string;
+  createdAt: number;
+  trialExpiresAt: number;
+  status: 'active' | 'inactive';
 }
 
 export const DEFAULT_DEMOGRAPHICS: UserDemographics = {
@@ -80,6 +93,13 @@ export const DEFAULT_VAULT: UserIdentityVault = {
 };
 
 /**
+ * Normalize legal name for case-insensitive exact comparison
+ */
+export function normalizeLegalName(legalName?: string): string {
+  return (legalName || '').trim().toLowerCase();
+}
+
+/**
  * Deterministic seed derivation pipeline: activeWallet.legalName -> IdentityKeySeedNode
  */
 export function deriveSeedNode(legalName?: string): string {
@@ -110,6 +130,162 @@ export function resolveActiveWallet(wallets: WalletEntry[], primaryWalletId?: st
 }
 
 /**
+ * Get all registered legal names across the platform
+ */
+export function getRegisteredLegalNames(): string[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(PLATFORM_ENTITIES_KEY);
+    if (raw) {
+      return JSON.parse(raw);
+    }
+  } catch (e) {}
+  return [];
+}
+
+/**
+ * Check if a legal name is already taken on the DAUP platform.
+ * Two instances / wallets cannot have the same legal name.
+ */
+export function isLegalNameUniqueOnPlatform(
+  name: string, 
+  currentWallets: WalletEntry[] = [],
+  excludeWalletId?: string | null
+): { isUnique: boolean; reason?: string } {
+  const norm = normalizeLegalName(name);
+  if (!norm) {
+    return { isUnique: false, reason: 'Legal Name is required.' };
+  }
+
+  // 1. Check in currently loaded user wallets
+  const localDuplicate = currentWallets.find(
+    w => w.id !== excludeWalletId && normalizeLegalName(w.legalName) === norm
+  );
+  if (localDuplicate) {
+    return { 
+      isUnique: false, 
+      reason: `A settlement wallet with Legal Name "${name.trim()}" is already registered in your profile.` 
+    };
+  }
+
+  // 2. Check platform global entities registry
+  const platformEntities = getRegisteredLegalNames();
+  const platformDuplicate = platformEntities.some(
+    e => normalizeLegalName(e) === norm
+  );
+
+  // If duplicate in platform registry, check if it belongs to this user's current wallet (being updated)
+  if (platformDuplicate) {
+    const isCurrentWalletOwner = currentWallets.some(
+      w => w.id === excludeWalletId && normalizeLegalName(w.legalName) === norm
+    );
+    if (!isCurrentWalletOwner) {
+      return { 
+        isUnique: false, 
+        reason: `The Legal Name "${name.trim()}" is already in use by another instance on the DAUP platform. Legal names must be unique.` 
+      };
+    }
+  }
+
+  return { isUnique: true };
+}
+
+/**
+ * Register a legal name into the platform registry
+ */
+export function registerLegalNameOnPlatform(name: string): void {
+  if (typeof window === 'undefined' || !name.trim()) return;
+  try {
+    const norm = normalizeLegalName(name);
+    const existing = getRegisteredLegalNames();
+    if (!existing.some(e => normalizeLegalName(e) === norm)) {
+      existing.push(name.trim());
+      localStorage.setItem(PLATFORM_ENTITIES_KEY, JSON.stringify(existing));
+    }
+  } catch (e) {}
+}
+
+/**
+ * Unregister a legal name from the platform registry
+ */
+export function unregisterLegalNameOnPlatform(name: string): void {
+  if (typeof window === 'undefined' || !name.trim()) return;
+  try {
+    const norm = normalizeLegalName(name);
+    const existing = getRegisteredLegalNames();
+    const updated = existing.filter(e => normalizeLegalName(e) !== norm);
+    localStorage.setItem(PLATFORM_ENTITIES_KEY, JSON.stringify(updated));
+  } catch (e) {}
+}
+
+/**
+ * Get all installed app instance records
+ */
+export function getAppInstances(): Record<string, AppInstanceRecord> {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = localStorage.getItem(APP_INSTANCES_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return {};
+}
+
+/**
+ * Deploy & register a new instance of an app with the active wallet's legal name
+ * Automatically provisions a 30-day active trial
+ */
+export function deployAppInstance(
+  moduleKey: string, 
+  instanceName: string, 
+  did: string
+): AppInstanceRecord {
+  const now = Date.now();
+  const trialExpiresAt = now + 30 * 24 * 60 * 60 * 1000; // 30-Day Active Trial
+
+  const instanceRecord: AppInstanceRecord = {
+    id: `inst_${moduleKey}_${Date.now()}`,
+    moduleKey,
+    instanceName: instanceName.trim() || 'Decentralized Operator',
+    did: did || 'did:daup:node-primary',
+    createdAt: now,
+    trialExpiresAt,
+    status: 'active'
+  };
+
+  if (typeof window !== 'undefined') {
+    try {
+      // 1. Save instance to instances database
+      const instances = getAppInstances();
+      instances[moduleKey] = instanceRecord;
+      localStorage.setItem(APP_INSTANCES_KEY, JSON.stringify(instances));
+
+      // 2. Automatically grant 30-day Pro/Trial license in subscriptions database
+      const rawSubs = localStorage.getItem(SUBSCRIPTIONS_KEY);
+      const allSubs = rawSubs ? JSON.parse(rawSubs) : {};
+      const targetDid = did || 'did:daup:node-primary';
+      if (!allSubs[targetDid]) allSubs[targetDid] = {};
+      allSubs[targetDid][moduleKey] = {
+        did: targetDid,
+        module: moduleKey,
+        tier: 'Trial',
+        expirationTimestamp: trialExpiresAt
+      };
+      localStorage.setItem(SUBSCRIPTIONS_KEY, JSON.stringify(allSubs));
+
+      // 3. Mark app installed
+      const rawInstalled = localStorage.getItem('daup_installed_apps');
+      const installed = rawInstalled ? JSON.parse(rawInstalled) : {};
+      installed[moduleKey] = true;
+      localStorage.setItem('daup_installed_apps', JSON.stringify(installed));
+    } catch (e) {
+      console.error('[identityStore] Failed to deploy app instance:', e);
+    }
+  }
+
+  return instanceRecord;
+}
+
+/**
  * Load user identity vault from persistent storage (localStorage)
  * Automatically migrates legacy storage entries if found
  */
@@ -133,6 +309,11 @@ export function loadIdentityVault(): UserIdentityVault {
         parsed.profile?.isOnboarded ??
         (wallets.length > 0 && !!active?.legalName)
       );
+
+      // Register active wallet in platform entities registry
+      if (active?.legalName) {
+        registerLegalNameOnPlatform(active.legalName);
+      }
 
       return {
         version: 1,
@@ -200,6 +381,11 @@ export function loadIdentityVault(): UserIdentityVault {
         trialState: trial
       };
 
+      // Register active wallet in platform entities registry
+      if (active?.legalName) {
+        registerLegalNameOnPlatform(active.legalName);
+      }
+
       // Persist migrated vault to unified key
       saveIdentityVault(migratedVault);
       return migratedVault;
@@ -225,6 +411,7 @@ export function saveIdentityVault(vault: UserIdentityVault): void {
     localStorage.setItem(LEGACY_PROFILE_KEY, JSON.stringify(vault.profile));
     localStorage.setItem(LEGACY_TRIAL_KEY, JSON.stringify(vault.trialState));
     if (vault.activeWallet?.legalName) {
+      registerLegalNameOnPlatform(vault.activeWallet.legalName);
       localStorage.setItem('daup_active_did', `did:daup:${deriveSeedNode(vault.activeWallet.legalName)}-pub`);
     }
   } catch (err) {

@@ -1,1 +1,0 @@
-import{t as e}from"./index-BcKYd0mN.js";async function n(){return Promise.resolve()}const t=e.sign_envelope,s=e.verify_envelope,l=e.dht_lookup;export{n as default,l as dht_lookup,t as sign_envelope,s as verify_envelope};

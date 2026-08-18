@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { withLicenseCheck, MODULE_METADATA } from './withLicenseCheck';
 import { useUserProfile } from '../context/UserProfileContext';
+import { useDIDWallet } from './DIDWalletProvider';
 
 interface WorkspaceHeaderProps {
   title: string;
@@ -19,7 +20,8 @@ interface WorkspaceHeaderProps {
 const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({ 
   title, icon, moduleName, isLiveMode, onToggleMode, onExit 
 }) => {
-  const { instanceName, primaryWallet, currency } = useUserProfile();
+  const { instanceName, activeWallet, primaryWallet, currency } = useUserProfile();
+  const targetEntity = activeWallet?.legalName || primaryWallet?.legalName || instanceName;
 
   return (
     <div className="glass-panel" style={{ padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', borderColor: 'var(--neon-purple)', background: 'rgba(13, 20, 38, 0.85)' }}>
@@ -47,7 +49,7 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
               </span>
             </div>
             <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', marginTop: '2px' }}>
-              Ecosystem Node // {moduleName} &bull; Entity: <span style={{ color: 'var(--neon-purple)' }}>{primaryWallet?.legalName || 'Verified Node Operator'}</span> &bull; Currency: <strong style={{ color: 'var(--neon-green)' }}>{currency.name}</strong>
+              Ecosystem Node // {moduleName} &bull; Entity: <span style={{ color: 'var(--neon-purple)' }}>{targetEntity}</span> &bull; Currency: <strong style={{ color: 'var(--neon-green)' }}>{currency.name}</strong>
             </div>
           </div>
         </div>
@@ -95,6 +97,9 @@ export const WorkspaceContainer: React.FC<WorkspaceContainerProps> = ({
   const metadata = MODULE_METADATA[moduleName];
   const endpoint = metadata?.endpoint || '';
 
+  const { instanceName, activeWallet, currency } = useUserProfile();
+  const { did } = useDIDWallet();
+
   const [healthStatus, setHealthStatus] = useState<'checking' | 'online' | 'offline'>('checking');
   const [latencyMs, setLatencyMs] = useState<number | null>(null);
   const [copiedCmd, setCopiedCmd] = useState(false);
@@ -103,6 +108,23 @@ export const WorkspaceContainer: React.FC<WorkspaceContainerProps> = ({
   const [autoRetryEnabled] = useState<boolean>(true);
   const [iframeKey, setIframeKey] = useState<number>(0);
   const [isSpawning, setIsSpawning] = useState<boolean>(false);
+
+  // Compute correlated instance query string to bind active wallet instance
+  const iframeSrc = React.useMemo(() => {
+    if (!endpoint) return '';
+    const inst = activeWallet?.legalName || instanceName;
+    try {
+      const url = new URL(endpoint);
+      url.searchParams.set('instance', inst);
+      url.searchParams.set('legalName', inst);
+      if (did) url.searchParams.set('did', did);
+      if (currency?.code) url.searchParams.set('currency', currency.code);
+      return url.toString();
+    } catch {
+      const sep = endpoint.includes('?') ? '&' : '?';
+      return `${endpoint}${sep}instance=${encodeURIComponent(inst)}&legalName=${encodeURIComponent(inst)}&did=${encodeURIComponent(did || '')}&currency=${encodeURIComponent(currency?.code || 'USD')}`;
+    }
+  }, [endpoint, activeWallet?.legalName, instanceName, did, currency?.code]);
 
   const triggerLaunch = useCallback(async () => {
     setIsSpawning(true);
@@ -433,7 +455,7 @@ export const WorkspaceContainer: React.FC<WorkspaceContainerProps> = ({
 
               <iframe 
                 key={iframeKey}
-                src={endpoint} 
+                src={iframeSrc} 
                 title={`DAUP ${title} App Container`}
                 style={{ 
                   width: '100%', 
