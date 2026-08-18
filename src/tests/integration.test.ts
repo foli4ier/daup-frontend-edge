@@ -1,6 +1,7 @@
 import { tsFallback, sha256 } from '../utils/cryptoFallback';
 import { 
   deriveSeedNode, 
+  deriveInstanceSlug,
   loadIdentityVault, 
   saveIdentityVault, 
   resetIdentityVault, 
@@ -18,6 +19,7 @@ import {
 } from '../stores/identityStore';
 import { WalletEntry } from '../types/profile';
 import { getSubscriptionForDidAndModule } from '../hooks/useMcpClient';
+import { getModuleEndpoint, buildAppLaunchUrl } from '../utils/envResolver';
 
 export interface TestResult {
   name: string;
@@ -340,8 +342,8 @@ export function runEdgePlatformTests(): TestResult[] {
 
     const inst = deployAppInstance('daup-eatery', testEntity, testDid);
     assert(
-      'Deploying app instance binds active wallet legal name as instance name',
-      inst.instanceName === 'Bistro Decentral Ltd' && inst.moduleKey === 'daup-eatery',
+      'Deploying app instance binds active wallet legal name as instance slug',
+      inst.instanceName === 'bistro-decentral-ltd.daup' && inst.moduleKey === 'daup-eatery',
       `Deployed instance: ${inst.instanceName}`
     );
     assert(
@@ -363,6 +365,42 @@ export function runEdgePlatformTests(): TestResult[] {
     localStorage.setItem('daup_app_instances_db', JSON.stringify(allInst));
   } catch (e: any) {
     assert('Marketplace App Instance Deployment & Default Trial', false, `Error: ${e.message}`);
+  }
+
+  // Test 9: Dynamic Environment URL Resolution & Handshake Launch URL
+  try {
+    const slug1 = deriveInstanceSlug('Cape Bistro Ltd');
+    const slug2 = deriveInstanceSlug('The Eatery @ Stellenbosch!');
+    assert(
+      'Instance slug derives formatted lowercase .daup subdomain format',
+      slug1 === 'cape-bistro-ltd.daup' && slug2 === 'the-eatery-stellenbosch.daup',
+      `Derived slugs: "${slug1}", "${slug2}"`
+    );
+
+    const eateryUrl = getModuleEndpoint('daup-eatery');
+    assert(
+      'Eatery endpoint resolves to valid production or dev URL',
+      eateryUrl.includes('eatery.daup.co.za') || eateryUrl.includes('localhost'),
+      `Resolved endpoint: "${eateryUrl}"`
+    );
+
+    const launchUrl = buildAppLaunchUrl('daup-eatery', {
+      legalName: 'Cape Bistro Ltd',
+      did: 'did:daup:cape-bistro-seed-pub',
+      token: 'test-license-token-123'
+    });
+
+    const parsedUrl = new URL(launchUrl);
+    assert(
+      'Launch URL includes instance, did, token, and walletName query parameters',
+      parsedUrl.searchParams.get('instance') === 'cape-bistro-ltd.daup' &&
+      parsedUrl.searchParams.get('did') === 'did:daup:cape-bistro-seed-pub' &&
+      parsedUrl.searchParams.get('token') === 'test-license-token-123' &&
+      parsedUrl.searchParams.get('walletName') === 'Cape Bistro Ltd',
+      `Constructed URL: ${launchUrl}`
+    );
+  } catch (e: any) {
+    assert('Dynamic Environment URL Resolution & Handshake', false, `Error: ${e.message}`);
   }
 
   return results;

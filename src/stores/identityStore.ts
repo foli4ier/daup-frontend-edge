@@ -30,10 +30,88 @@ export interface AppInstanceRecord {
   id: string;
   moduleKey: string;
   instanceName: string;
+  legalName: string;
   did: string;
+  token: string;
   createdAt: number;
   trialExpiresAt: number;
   status: 'active' | 'inactive';
+}
+
+/**
+ * Format legal name to DAUP instance slug: [name].daup
+ * e.g., "Cape Bistro Ltd" -> "cape-bistro-ltd.daup"
+ */
+export function deriveInstanceSlug(legalName?: string): string {
+  if (!legalName || !legalName.trim()) return 'node.daup';
+  const clean = legalName
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+  return clean ? `${clean}.daup` : 'node.daup';
+}
+
+/**
+ * Deploy & register a new instance of an app with the active wallet's legal name
+ * Automatically provisions a 30-day active trial and token
+ */
+export function deployAppInstance(
+  moduleKey: string, 
+  legalName: string, 
+  did: string,
+  token?: string
+): AppInstanceRecord {
+  const now = Date.now();
+  const trialExpiresAt = now + 30 * 24 * 60 * 60 * 1000; // 30-Day Active Trial
+  const instanceSlug = deriveInstanceSlug(legalName);
+  const sessionToken = token || `daup-token-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+
+  const instanceRecord: AppInstanceRecord = {
+    id: `inst_${moduleKey}_${Date.now()}`,
+    moduleKey,
+    instanceName: instanceSlug,
+    legalName: legalName.trim() || 'Decentralized Operator',
+    did: did || 'did:daup:node-primary',
+    token: sessionToken,
+    createdAt: now,
+    trialExpiresAt,
+    status: 'active'
+  };
+
+  if (typeof window !== 'undefined') {
+    try {
+      // 1. Save instance to instances database
+      const instances = getAppInstances();
+      instances[moduleKey] = instanceRecord;
+      localStorage.setItem(APP_INSTANCES_KEY, JSON.stringify(instances));
+
+      // 2. Automatically grant 30-day Pro/Trial license in subscriptions database
+      const rawSubs = localStorage.getItem(SUBSCRIPTIONS_KEY);
+      const allSubs = rawSubs ? JSON.parse(rawSubs) : {};
+      const targetDid = did || 'did:daup:node-primary';
+      if (!allSubs[targetDid]) allSubs[targetDid] = {};
+      allSubs[targetDid][moduleKey] = {
+        did: targetDid,
+        module: moduleKey,
+        tier: 'Trial',
+        token: sessionToken,
+        expirationTimestamp: trialExpiresAt
+      };
+      localStorage.setItem(SUBSCRIPTIONS_KEY, JSON.stringify(allSubs));
+
+      // 3. Mark app installed
+      const rawInstalled = localStorage.getItem('daup_installed_apps');
+      const installed = rawInstalled ? JSON.parse(rawInstalled) : {};
+      installed[moduleKey] = true;
+      localStorage.setItem('daup_installed_apps', JSON.stringify(installed));
+    } catch (e) {
+      console.error('[identityStore] Failed to deploy app instance:', e);
+    }
+  }
+
+  return instanceRecord;
 }
 
 export const DEFAULT_DEMOGRAPHICS: UserDemographics = {
@@ -228,61 +306,6 @@ export function getAppInstances(): Record<string, AppInstanceRecord> {
     if (raw) return JSON.parse(raw);
   } catch (e) {}
   return {};
-}
-
-/**
- * Deploy & register a new instance of an app with the active wallet's legal name
- * Automatically provisions a 30-day active trial
- */
-export function deployAppInstance(
-  moduleKey: string, 
-  instanceName: string, 
-  did: string
-): AppInstanceRecord {
-  const now = Date.now();
-  const trialExpiresAt = now + 30 * 24 * 60 * 60 * 1000; // 30-Day Active Trial
-
-  const instanceRecord: AppInstanceRecord = {
-    id: `inst_${moduleKey}_${Date.now()}`,
-    moduleKey,
-    instanceName: instanceName.trim() || 'Decentralized Operator',
-    did: did || 'did:daup:node-primary',
-    createdAt: now,
-    trialExpiresAt,
-    status: 'active'
-  };
-
-  if (typeof window !== 'undefined') {
-    try {
-      // 1. Save instance to instances database
-      const instances = getAppInstances();
-      instances[moduleKey] = instanceRecord;
-      localStorage.setItem(APP_INSTANCES_KEY, JSON.stringify(instances));
-
-      // 2. Automatically grant 30-day Pro/Trial license in subscriptions database
-      const rawSubs = localStorage.getItem(SUBSCRIPTIONS_KEY);
-      const allSubs = rawSubs ? JSON.parse(rawSubs) : {};
-      const targetDid = did || 'did:daup:node-primary';
-      if (!allSubs[targetDid]) allSubs[targetDid] = {};
-      allSubs[targetDid][moduleKey] = {
-        did: targetDid,
-        module: moduleKey,
-        tier: 'Trial',
-        expirationTimestamp: trialExpiresAt
-      };
-      localStorage.setItem(SUBSCRIPTIONS_KEY, JSON.stringify(allSubs));
-
-      // 3. Mark app installed
-      const rawInstalled = localStorage.getItem('daup_installed_apps');
-      const installed = rawInstalled ? JSON.parse(rawInstalled) : {};
-      installed[moduleKey] = true;
-      localStorage.setItem('daup_installed_apps', JSON.stringify(installed));
-    } catch (e) {
-      console.error('[identityStore] Failed to deploy app instance:', e);
-    }
-  }
-
-  return instanceRecord;
 }
 
 /**

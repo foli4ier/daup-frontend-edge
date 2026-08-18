@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Shield, ShieldAlert, Key, Loader2, CheckCircle, CreditCard } from 'lucide-react';
 import { useDIDWallet } from './DIDWalletProvider';
 import { useMcp } from '../hooks/useMcpClient';
+import { getModuleEndpoint } from '../utils/envResolver';
 
 // Module configuration metadata and feature lists
 export const MODULE_METADATA: Record<string, {
@@ -23,7 +24,7 @@ export const MODULE_METADATA: Record<string, {
       'Batch supply chain provenance mapping'
     ],
     pricing: { Pro: '0.04 ETH/mo', Developer: '0.06 ETH/mo', Enterprise: '0.15 ETH/mo' },
-    endpoint: import.meta.env.VITE_APP_FARMER_URL || 'http://localhost:3007'
+    endpoint: getModuleEndpoint('daup-farmer')
   },
   'daup-reseller': {
     name: 'DAUP Reseller Engine',
@@ -36,7 +37,7 @@ export const MODULE_METADATA: Record<string, {
       'Wholesale supply catalog ingestion'
     ],
     pricing: { Pro: '0.05 ETH/mo', Developer: '0.08 ETH/mo', Enterprise: '0.20 ETH/mo' },
-    endpoint: import.meta.env.VITE_APP_RESELLER_URL || 'http://localhost:3006'
+    endpoint: getModuleEndpoint('daup-reseller')
   },
   'daup-eatery': {
     name: 'DAUP Eatery Hub',
@@ -49,7 +50,7 @@ export const MODULE_METADATA: Record<string, {
       'Food safety provenance certificates'
     ],
     pricing: { Pro: '0.03 ETH/mo', Developer: '0.05 ETH/mo', Enterprise: '0.12 ETH/mo' },
-    endpoint: import.meta.env.VITE_APP_EATERY_URL || 'https://eatery.daup.co.za/'
+    endpoint: getModuleEndpoint('daup-eatery')
   },
   'daup-manufacturing': {
     name: 'DAUP Manufacturer Portal',
@@ -62,7 +63,7 @@ export const MODULE_METADATA: Record<string, {
       'Assembly line schedule dispatch'
     ],
     pricing: { Pro: '0.08 ETH/mo', Developer: '0.12 ETH/mo', Enterprise: '0.35 ETH/mo' },
-    endpoint: import.meta.env.VITE_APP_MANUFACTURING_URL || import.meta.env.VITE_APP_MANUFACTURER_URL || 'http://localhost:3008'
+    endpoint: getModuleEndpoint('daup-manufacturing')
   }
 };
 

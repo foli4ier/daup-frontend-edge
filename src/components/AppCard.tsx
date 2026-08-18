@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { Wheat, TrendingUp, Utensils, Cpu, Download, Trash2, Play, ChevronDown, ChevronUp, Key } from 'lucide-react';
+import { Wheat, TrendingUp, Utensils, Cpu, Download, Trash2, Play, ChevronDown, ChevronUp, Key, ExternalLink } from 'lucide-react';
 import { MODULE_METADATA } from './withLicenseCheck';
 import { useUserProfile } from '../context/UserProfileContext';
+import { useDIDWallet } from './DIDWalletProvider';
+import { launchExternalApp, deriveInstanceSlug } from '../utils/envResolver';
 
 export interface AppCardProps {
   moduleKey: string;
@@ -43,8 +45,12 @@ export const AppCard: React.FC<AppCardProps> = ({
   viewMode = 'marketplace',
   instanceName
 }) => {
-  const { currency } = useUserProfile();
+  const { currency, activeWallet } = useUserProfile();
+  const { did } = useDIDWallet();
   const [showSignature, setShowSignature] = useState(false);
+  const targetLegalName = activeWallet?.legalName || instanceName;
+  const displayInstanceSlug = deriveInstanceSlug(targetLegalName);
+
   const meta = MODULE_METADATA[moduleKey] || {
     name: moduleKey,
     description: 'Ecosystem edge container application.',
@@ -217,9 +223,9 @@ export const AppCard: React.FC<AppCardProps> = ({
               </span>
             </div>
           )}
-          {instanceName && isInstalled && (
+          {isInstalled && (
             <span style={{ fontSize: '9px', color: 'var(--neon-purple)', fontFamily: 'var(--font-mono)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '140px' }}>
-              Instance: {instanceName}
+              Instance: {displayInstanceSlug}
             </span>
           )}
         </div>
@@ -238,6 +244,19 @@ export const AppCard: React.FC<AppCardProps> = ({
                   <Trash2 size={11} /> Delete
                 </button>
               )}
+              <button
+                className="glass-button"
+                onClick={() => launchExternalApp(moduleKey, {
+                  instanceName: displayInstanceSlug,
+                  legalName: targetLegalName,
+                  did,
+                  token: (licenseSub as any)?.token
+                })}
+                style={{ padding: '4px 7px', fontSize: '11px', borderRadius: '5px' }}
+                title="Launch Subdomain in New Window"
+              >
+                <ExternalLink size={11} />
+              </button>
               {onLaunch && (
                 <button
                   className="glass-button cyan"
@@ -278,6 +297,19 @@ export const AppCard: React.FC<AppCardProps> = ({
                       <Trash2 size={11} />
                     </button>
                   )}
+                  <button
+                    className="glass-button"
+                    onClick={() => launchExternalApp(moduleKey, {
+                      instanceName: displayInstanceSlug,
+                      legalName: targetLegalName,
+                      did,
+                      token: (licenseSub as any)?.token
+                    })}
+                    style={{ padding: '4px 7px', fontSize: '11px', borderRadius: '5px' }}
+                    title="Launch Subdomain in New Window"
+                  >
+                    <ExternalLink size={11} />
+                  </button>
                   {onLaunch && (
                     <button
                       className="glass-button cyan"

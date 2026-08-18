@@ -7,6 +7,7 @@ import {
 import { withLicenseCheck, MODULE_METADATA } from './withLicenseCheck';
 import { useUserProfile } from '../context/UserProfileContext';
 import { useDIDWallet } from './DIDWalletProvider';
+import { getModuleEndpoint, buildAppLaunchUrl, launchExternalApp, deriveInstanceSlug } from '../utils/envResolver';
 
 interface WorkspaceHeaderProps {
   title: string;
@@ -21,7 +22,9 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
   title, icon, moduleName, isLiveMode, onToggleMode, onExit 
 }) => {
   const { instanceName, activeWallet, primaryWallet, currency } = useUserProfile();
+  const { did } = useDIDWallet();
   const targetEntity = activeWallet?.legalName || primaryWallet?.legalName || instanceName;
+  const instanceSlug = deriveInstanceSlug(targetEntity);
 
   return (
     <div className="glass-panel" style={{ padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', borderColor: 'var(--neon-purple)', background: 'rgba(13, 20, 38, 0.85)' }}>
@@ -42,7 +45,7 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <h2 style={{ fontSize: '16px', fontWeight: 'bold', color: '#fff' }}>{title}</h2>
               <span className="badge cyan" style={{ fontSize: '9px', padding: '1px 6px' }}>
-                {instanceName}
+                {instanceSlug}
               </span>
               <span className="badge green" style={{ fontSize: '9px', padding: '1px 6px' }}>
                 {currency.code} ({currency.symbol})
@@ -56,6 +59,18 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <button
+          onClick={() => launchExternalApp(moduleName, {
+            instanceName: instanceSlug,
+            legalName: targetEntity,
+            did
+          })}
+          className="glass-button"
+          style={{ padding: '5px 10px', fontSize: '11px', gap: '5px' }}
+          title="Open Subdomain in New Window"
+        >
+          <ExternalLink size={12} /> Open Subdomain
+        </button>
         {onToggleMode && (
           <button
             onClick={onToggleMode}
@@ -67,7 +82,7 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
             {isLiveMode ? 'Live Server View' : 'Simulation Mode'}
           </button>
         )}
-        <span className="badge purple" style={{ fontSize: '9px' }}>Instance: {instanceName}</span>
+        <span className="badge purple" style={{ fontSize: '9px' }}>Instance: {instanceSlug}</span>
         <span className={`status-dot ${isLiveMode ? 'green' : 'cyan'}`} />
       </div>
     </div>
@@ -95,7 +110,7 @@ export const WorkspaceContainer: React.FC<WorkspaceContainerProps> = ({
   onExit
 }) => {
   const metadata = MODULE_METADATA[moduleName];
-  const endpoint = metadata?.endpoint || '';
+  const endpoint = metadata?.endpoint || getModuleEndpoint(moduleName);
 
   const { instanceName, activeWallet, currency } = useUserProfile();
   const { did } = useDIDWallet();
@@ -111,20 +126,20 @@ export const WorkspaceContainer: React.FC<WorkspaceContainerProps> = ({
 
   // Compute correlated instance query string to bind active wallet instance
   const iframeSrc = React.useMemo(() => {
-    if (!endpoint) return '';
-    const inst = activeWallet?.legalName || instanceName;
+    const targetEntity = activeWallet?.legalName || instanceName;
+    const launchUrl = buildAppLaunchUrl(moduleName, {
+      instanceName: deriveInstanceSlug(targetEntity),
+      legalName: targetEntity,
+      did
+    });
     try {
-      const url = new URL(endpoint);
-      url.searchParams.set('instance', inst);
-      url.searchParams.set('legalName', inst);
-      if (did) url.searchParams.set('did', did);
+      const url = new URL(launchUrl);
       if (currency?.code) url.searchParams.set('currency', currency.code);
       return url.toString();
     } catch {
-      const sep = endpoint.includes('?') ? '&' : '?';
-      return `${endpoint}${sep}instance=${encodeURIComponent(inst)}&legalName=${encodeURIComponent(inst)}&did=${encodeURIComponent(did || '')}&currency=${encodeURIComponent(currency?.code || 'USD')}`;
+      return launchUrl;
     }
-  }, [endpoint, activeWallet?.legalName, instanceName, did, currency?.code]);
+  }, [moduleName, activeWallet?.legalName, instanceName, did, currency?.code]);
 
   const triggerLaunch = useCallback(async () => {
     setIsSpawning(true);
