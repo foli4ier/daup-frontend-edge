@@ -93,7 +93,7 @@ export const WorkspaceContainer: React.FC<WorkspaceContainerProps> = ({
   onExit
 }) => {
   const metadata = MODULE_METADATA[moduleName];
-  const endpoint = metadata?.endpoint || 'http://localhost:3005';
+  const endpoint = metadata?.endpoint || '';
 
   const [healthStatus, setHealthStatus] = useState<'checking' | 'online' | 'offline'>('checking');
   const [latencyMs, setLatencyMs] = useState<number | null>(null);

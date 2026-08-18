@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShoppingBag, Plus, Layers, ArrowRight } from 'lucide-react';
+import { ShoppingBag, ArrowRight } from 'lucide-react';
 import { MODULE_METADATA } from './withLicenseCheck';
 import { AppCard } from './AppCard';
 import { useUserProfile } from '../context/UserProfileContext';
@@ -23,7 +23,7 @@ export const SubscribedAppsView: React.FC<SubscribedAppsViewProps> = ({
   onGoToMarketplace,
   onDeleteInstance
 }) => {
-  const { instanceName, primaryWallet, currency, profile } = useUserProfile();
+  const { instanceName } = useUserProfile();
   const { did } = useDIDWallet();
 
   const [deleteModalState, setDeleteModalState] = useState<{
@@ -75,53 +75,6 @@ export const SubscribedAppsView: React.FC<SubscribedAppsViewProps> = ({
         onClose={() => setDeleteModalState(prev => ({ ...prev, isOpen: false }))}
         onConfirmDelete={handleConfirmDelete}
       />
-
-      {/* Active Instance Header Banner */}
-      <div 
-        className="glass-panel" 
-        style={{ 
-          padding: '16px 20px', 
-          background: 'linear-gradient(90deg, rgba(6, 182, 212, 0.08) 0%, rgba(139, 92, 246, 0.08) 50%, rgba(10, 15, 30, 0.7) 100%)',
-          borderColor: 'rgba(6, 182, 212, 0.25)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '15px'
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ background: 'rgba(6, 182, 212, 0.15)', padding: '8px', borderRadius: '8px' }}>
-            <Layers size={22} color="var(--neon-cyan)" />
-          </div>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <h2 style={{ fontSize: '16px', fontWeight: 'bold', color: '#fff' }}>
-                Subscribed Edge Applications
-              </h2>
-              <span className="badge cyan" style={{ fontSize: '9px', padding: '1px 6px' }}>
-                {subscribedModuleKeys.length} Active
-              </span>
-              <span className="badge green" style={{ fontSize: '9px', padding: '1px 6px' }}>
-                {currency.code} ({currency.symbol})
-              </span>
-            </div>
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
-              Instance Name: <strong style={{ color: 'var(--neon-cyan)' }}>{instanceName}</strong> &bull; Settlement: <span style={{ color: 'var(--neon-purple)' }}>{primaryWallet?.legalName || 'Verified Operator'}</span> ({profile.location.country || 'Global'} &bull; {currency.name})
-            </div>
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <button 
-            className="glass-button" 
-            onClick={onGoToMarketplace}
-            style={{ padding: '6px 14px', fontSize: '12px', borderColor: 'var(--neon-cyan)', color: 'var(--neon-cyan)' }}
-          >
-            <Plus size={14} /> Add Ecosystem App
-          </button>
-        </div>
-      </div>
 
       {/* Grid of Subscribed Apps */}
       {subscribedModuleKeys.length === 0 ? (

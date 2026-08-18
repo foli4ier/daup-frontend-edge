@@ -49,7 +49,7 @@ export const MODULE_METADATA: Record<string, {
       'Food safety provenance certificates'
     ],
     pricing: { Pro: '0.03 ETH/mo', Developer: '0.05 ETH/mo', Enterprise: '0.12 ETH/mo' },
-    endpoint: import.meta.env.VITE_APP_EATERY_URL || 'http://localhost:3005'
+    endpoint: import.meta.env.VITE_APP_EATERY_URL || 'https://eatery.daup.co.za/'
   },
   'daup-manufacturing': {
     name: 'DAUP Manufacturer Portal',
