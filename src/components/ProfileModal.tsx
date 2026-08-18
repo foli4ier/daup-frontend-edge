@@ -72,6 +72,16 @@ export const ProfileModal: React.FC = () => {
   const [newCryptoAddress, setNewCryptoAddress] = useState('');
   const [walletError, setWalletError] = useState<string | null>(null);
 
+  // Sync form states whenever profile updates or modal opens
+  React.useEffect(() => {
+    if (isProfileModalOpen) {
+      setDemographics({ ...profile.demographics });
+      setLocation({ ...profile.location });
+      setSocials({ ...profile.socials });
+      setNewLegalName(primaryWallet?.legalName || '');
+    }
+  }, [isProfileModalOpen, profile, primaryWallet?.legalName]);
+
   if (!isProfileModalOpen) return null;
 
   const showSaveSuccess = (msg: string) => {
@@ -836,24 +846,24 @@ export const ProfileModal: React.FC = () => {
               <div style={{ borderTop: '1px solid var(--border-glass)', paddingTop: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                 <div>
                   <div style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <AlertTriangle size={14} color="var(--neon-amber)" /> Reset Demo Profile
+                    <AlertTriangle size={14} color="var(--neon-amber)" /> Reset Identity / Switch Profile
                   </div>
                   <div style={{ fontSize: '11px', color: 'var(--text-dark)' }}>
-                    Clears local state to re-trigger the first-time launch onboarding wizard.
+                    Clears persistent vault state and triggers the onboarding setup wizard for a new operator or identity.
                   </div>
                 </div>
 
                 <button
                   className="glass-button red"
                   onClick={() => {
-                    if (confirm('Reset your profile and trigger the onboarding wizard on next load?')) {
+                    if (confirm('Are you sure you want to reset your identity vault and switch profiles?')) {
                       resetProfile();
                       setIsProfileModalOpen(false);
                     }
                   }}
                   style={{ padding: '6px 14px', fontSize: '12px' }}
                 >
-                  <RotateCcw size={12} /> Reset Profile State
+                  <RotateCcw size={12} /> Reset Identity / Switch Profile
                 </button>
               </div>
             </div>

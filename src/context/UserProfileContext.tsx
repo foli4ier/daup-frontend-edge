@@ -1,59 +1,38 @@
-import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
-import { UserProfile, WalletEntry, SubscriptionTrialState, UserLocation, UserDemographics, SocialLinks, BankWalletConfig, CryptoWalletConfig } from '../types/profile';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import { 
+  UserProfile, 
+  WalletEntry, 
+  SubscriptionTrialState, 
+  UserLocation, 
+  UserDemographics, 
+  SocialLinks, 
+  BankWalletConfig, 
+  CryptoWalletConfig 
+} from '../types/profile';
 import { getCurrencyForCountry, CurrencyInfo } from '../utils/currency';
-
-const LOCAL_STORAGE_PROFILE_KEY = 'daup_user_profile';
-const LOCAL_STORAGE_TRIAL_KEY = 'daup_trial_state';
-
-const DEFAULT_DEMOGRAPHICS: UserDemographics = {
-  email: '',
-  contactNumber: '',
-  whatsappNumber: '',
-  language: 'en',
-  sex: 'prefer_not_to_say',
-  birthdate: ''
-};
-
-const DEFAULT_LOCATION: UserLocation = {
-  country: '',
-  provinceState: '',
-  city: '',
-  address: '',
-  latitude: undefined,
-  longitude: undefined
-};
-
-const DEFAULT_SOCIALS: SocialLinks = {
-  website: '',
-  instagram: '',
-  facebook: ''
-};
-
-const DEFAULT_PROFILE: UserProfile = {
-  demographics: DEFAULT_DEMOGRAPHICS,
-  location: DEFAULT_LOCATION,
-  socials: DEFAULT_SOCIALS,
-  wallets: [],
-  primaryWalletId: null,
-  isOnboarded: false,
-  createdAt: Date.now(),
-  updatedAt: Date.now()
-};
-
-const DEFAULT_TRIAL_STATE: SubscriptionTrialState = {
-  hasStartedTrial: false,
-  trialStartedAt: null,
-  trialExpiresAt: null,
-  isTrialActive: false,
-  tier: 'Free',
-  isSubscribed: false
-};
+import { 
+  UserIdentityVault, 
+  VAULT_STORAGE_KEY,
+  loadIdentityVault, 
+  saveIdentityVault, 
+  resetIdentityVault, 
+  deriveSeedNode, 
+  resolveActiveWallet,
+  DEFAULT_PROFILE,
+  DEFAULT_TRIAL_STATE,
+  DEFAULT_VAULT
+} from '../stores/identityStore';
 
 export interface UserProfileContextType {
+  vault: UserIdentityVault;
   profile: UserProfile;
   trialState: SubscriptionTrialState;
   isOnboarded: boolean;
+  hasCompletedOnboarding: boolean;
+  isHydrating: boolean;
   primaryWallet: WalletEntry | null;
+  activeWallet: WalletEntry | null;
+  identityKeySeedNode: string | null;
   instanceName: string;
   currency: CurrencyInfo;
   formatCurrency: (amount: number) => string;
@@ -77,77 +56,60 @@ export interface UserProfileContextType {
 const UserProfileContext = createContext<UserProfileContextType | undefined>(undefined);
 
 export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [profile, setProfile] = useState<UserProfile>(() => {
-    try {
-      const saved = localStorage.getItem(LOCAL_STORAGE_PROFILE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        return {
-          ...DEFAULT_PROFILE,
-          ...parsed,
-          demographics: { ...DEFAULT_DEMOGRAPHICS, ...(parsed.demographics || {}) },
-          location: { ...DEFAULT_LOCATION, ...(parsed.location || {}) },
-          socials: { ...DEFAULT_SOCIALS, ...(parsed.socials || {}) },
-          wallets: parsed.wallets || []
-        };
-      }
-    } catch (e) {
-      console.error('Failed to load user profile from storage', e);
-    }
-    return DEFAULT_PROFILE;
-  });
-
-  const [trialState, setTrialState] = useState<SubscriptionTrialState>(() => {
-    try {
-      const saved = localStorage.getItem(LOCAL_STORAGE_TRIAL_KEY);
-      if (saved) {
-        const parsed: SubscriptionTrialState = JSON.parse(saved);
-        const isActive = parsed.hasStartedTrial && parsed.trialExpiresAt !== null && parsed.trialExpiresAt > Date.now();
-        return {
-          ...parsed,
-          isTrialActive: isActive
-        };
-      }
-    } catch (e) {
-      console.error('Failed to load trial state from storage', e);
-    }
-    return DEFAULT_TRIAL_STATE;
-  });
-
+  const [vault, setVault] = useState<UserIdentityVault>(DEFAULT_VAULT);
+  const [isHydrating, setIsHydrating] = useState<boolean>(true);
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
-  // Sync profile to localStorage
-  const saveProfile = useCallback((newProfile: UserProfile) => {
-    setProfile(newProfile);
+  // Initial Vault Hydration on boot
+  useEffect(() => {
     try {
-      localStorage.setItem(LOCAL_STORAGE_PROFILE_KEY, JSON.stringify(newProfile));
-    } catch (e) {
-      console.error('Failed to save profile', e);
+      const initialVault = loadIdentityVault();
+      setVault(initialVault);
+    } catch (err) {
+      console.error('[UserProfileProvider] Hydration error:', err);
+    } finally {
+      // Small tick to ensure smooth transition and allow microtasks to settle
+      const timer = setTimeout(() => {
+        setIsHydrating(false);
+      }, 50);
+      return () => clearTimeout(timer);
     }
   }, []);
 
-  // Sync trial state to localStorage
-  const saveTrial = useCallback((newTrial: SubscriptionTrialState) => {
-    setTrialState(newTrial);
-    try {
-      localStorage.setItem(LOCAL_STORAGE_TRIAL_KEY, JSON.stringify(newTrial));
-    } catch (e) {
-      console.error('Failed to save trial state', e);
-    }
+  // Multi-Tab Storage Synchronization
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === VAULT_STORAGE_KEY || e.key === 'daup_user_profile' || e.key === 'daup_trial_state') {
+        try {
+          const freshVault = loadIdentityVault();
+          setVault(freshVault);
+        } catch (err) {
+          console.warn('[UserProfileProvider] Cross-tab sync warning:', err);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  // Compute Primary Wallet
-  const primaryWallet = useMemo(() => {
-    if (!profile.wallets || profile.wallets.length === 0) return null;
-    if (profile.primaryWalletId) {
-      const found = profile.wallets.find(w => w.id === profile.primaryWalletId);
-      if (found) return found;
-    }
-    const markedPrimary = profile.wallets.find(w => w.isPrimary);
-    if (markedPrimary) return markedPrimary;
-    return profile.wallets[0];
-  }, [profile.wallets, profile.primaryWalletId]);
+  // Sync state mutation helper to keep persistent vault in sync
+  const commitVault = useCallback((mutator: (prev: UserIdentityVault) => UserIdentityVault) => {
+    setVault(prev => {
+      const next = mutator(prev);
+      saveIdentityVault(next);
+      return next;
+    });
+  }, []);
+
+  const profile = vault.profile;
+  const trialState = vault.trialState;
+  const hasCompletedOnboarding = vault.hasCompletedOnboarding;
+  const isOnboarded = vault.hasCompletedOnboarding;
+  const activeWallet = vault.activeWallet;
+  const primaryWallet = vault.activeWallet;
+  const identityKeySeedNode = vault.identityKeySeedNode;
 
   // Derive Currency from Country of Peer Profile
   const currency = useMemo(() => {
@@ -160,8 +122,8 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   // Derive Instance Branding Name (Inherits the name of the active wallet)
   const instanceName = useMemo(() => {
-    if (primaryWallet && primaryWallet.legalName?.trim()) {
-      return primaryWallet.legalName.trim();
+    if (activeWallet && activeWallet.legalName?.trim()) {
+      return activeWallet.legalName.trim();
     }
     if (profile.wallets && profile.wallets.length > 0 && profile.wallets[0].legalName?.trim()) {
       return profile.wallets[0].legalName.trim();
@@ -171,12 +133,7 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
       return prefix.charAt(0).toUpperCase() + prefix.slice(1) + ' Node';
     }
     return 'Decentralized Operator';
-  }, [primaryWallet, profile.wallets, profile.demographics.email]);
-
-  // Compute Onboarding Status
-  const isOnboarded = useMemo(() => {
-    return profile.isOnboarded;
-  }, [profile.isOnboarded]);
+  }, [activeWallet, profile.wallets, profile.demographics.email]);
 
   // Compute trial days remaining
   const trialDaysRemaining = useMemo(() => {
@@ -188,77 +145,100 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   // Update demographics
   const updateDemographics = useCallback((demographics: Partial<UserDemographics>) => {
-    setProfile(prev => {
-      const updated: UserProfile = {
-        ...prev,
-        demographics: { ...prev.demographics, ...demographics },
+    commitVault(prev => {
+      const updatedProfile: UserProfile = {
+        ...prev.profile,
+        demographics: { ...prev.profile.demographics, ...demographics },
         updatedAt: Date.now()
       };
-      saveProfile(updated);
-      return updated;
+      return {
+        ...prev,
+        profile: updatedProfile,
+        updatedAt: Date.now()
+      };
     });
-  }, [saveProfile]);
+  }, [commitVault]);
 
   // Update location
   const updateLocation = useCallback((location: Partial<UserLocation>) => {
-    setProfile(prev => {
-      const updated: UserProfile = {
-        ...prev,
-        location: { ...prev.location, ...location },
+    commitVault(prev => {
+      const updatedProfile: UserProfile = {
+        ...prev.profile,
+        location: { ...prev.profile.location, ...location },
         updatedAt: Date.now()
       };
-      saveProfile(updated);
-      return updated;
+      return {
+        ...prev,
+        profile: updatedProfile,
+        updatedAt: Date.now()
+      };
     });
-  }, [saveProfile]);
+  }, [commitVault]);
 
   // Update socials
   const updateSocials = useCallback((socials: Partial<SocialLinks>) => {
-    setProfile(prev => {
-      const updated: UserProfile = {
-        ...prev,
-        socials: { ...prev.socials, ...socials },
+    commitVault(prev => {
+      const updatedProfile: UserProfile = {
+        ...prev.profile,
+        socials: { ...prev.profile.socials, ...socials },
         updatedAt: Date.now()
       };
-      saveProfile(updated);
-      return updated;
+      return {
+        ...prev,
+        profile: updatedProfile,
+        updatedAt: Date.now()
+      };
     });
-  }, [saveProfile]);
+  }, [commitVault]);
 
   // Add wallet
   const addWallet = useCallback((walletData: Omit<BankWalletConfig, 'id' | 'createdAt'> | Omit<CryptoWalletConfig, 'id' | 'createdAt'>) => {
     const id = `wallet_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-    const isFirst = profile.wallets.length === 0;
-    const shouldBePrimary = walletData.isPrimary || isFirst;
+    let createdWallet: WalletEntry | null = null;
 
-    const newWallet: WalletEntry = {
-      ...walletData,
-      id,
-      isPrimary: shouldBePrimary,
-      createdAt: Date.now()
-    } as WalletEntry;
+    commitVault(prev => {
+      const isFirst = prev.registeredWallets.length === 0;
+      const shouldBePrimary = walletData.isPrimary || isFirst;
 
-    setProfile(prev => {
-      const existingWallets = prev.wallets.map(w => shouldBePrimary ? { ...w, isPrimary: false } : w);
+      const newWallet: WalletEntry = {
+        ...walletData,
+        id,
+        isPrimary: shouldBePrimary,
+        createdAt: Date.now()
+      } as WalletEntry;
+
+      createdWallet = newWallet;
+
+      const existingWallets = prev.registeredWallets.map(w => shouldBePrimary ? { ...w, isPrimary: false } : w);
       const updatedWallets = [...existingWallets, newWallet];
-      const updated: UserProfile = {
-        ...prev,
+      const active = resolveActiveWallet(updatedWallets, shouldBePrimary ? id : (prev.activeWallet?.id || id));
+      const seedNode = active ? deriveSeedNode(active.legalName) : prev.identityKeySeedNode;
+
+      const updatedProfile: UserProfile = {
+        ...prev.profile,
         wallets: updatedWallets,
-        primaryWalletId: shouldBePrimary ? id : (prev.primaryWalletId || id),
+        primaryWalletId: active ? active.id : null,
         updatedAt: Date.now()
       };
-      saveProfile(updated);
-      return updated;
+
+      return {
+        ...prev,
+        registeredWallets: updatedWallets,
+        activeWallet: active,
+        identityKeySeedNode: seedNode,
+        profile: updatedProfile,
+        updatedAt: Date.now()
+      };
     });
 
-    return newWallet;
-  }, [profile.wallets.length, saveProfile]);
+    return createdWallet!;
+  }, [commitVault]);
 
   // Update wallet
   const updateWallet = useCallback((id: string, updates: Partial<WalletEntry>) => {
-    setProfile(prev => {
+    commitVault(prev => {
       const isMakingPrimary = updates.isPrimary === true;
-      const updatedWallets = prev.wallets.map(w => {
+      const updatedWallets = prev.registeredWallets.map(w => {
         if (w.id === id) {
           return { ...w, ...updates } as WalletEntry;
         }
@@ -268,22 +248,32 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
         return w;
       });
 
-      const updated: UserProfile = {
-        ...prev,
+      const active = resolveActiveWallet(updatedWallets, isMakingPrimary ? id : (prev.activeWallet?.id || id));
+      const seedNode = active ? deriveSeedNode(active.legalName) : prev.identityKeySeedNode;
+
+      const updatedProfile: UserProfile = {
+        ...prev.profile,
         wallets: updatedWallets,
-        primaryWalletId: isMakingPrimary ? id : prev.primaryWalletId,
+        primaryWalletId: active ? active.id : null,
         updatedAt: Date.now()
       };
-      saveProfile(updated);
-      return updated;
+
+      return {
+        ...prev,
+        registeredWallets: updatedWallets,
+        activeWallet: active,
+        identityKeySeedNode: seedNode,
+        profile: updatedProfile,
+        updatedAt: Date.now()
+      };
     });
-  }, [saveProfile]);
+  }, [commitVault]);
 
   // Remove wallet
   const removeWallet = useCallback((id: string) => {
-    setProfile(prev => {
-      const filtered = prev.wallets.filter(w => w.id !== id);
-      let newPrimaryId = prev.primaryWalletId;
+    commitVault(prev => {
+      const filtered = prev.registeredWallets.filter(w => w.id !== id);
+      let newPrimaryId = prev.activeWallet?.id;
       if (newPrimaryId === id) {
         newPrimaryId = filtered.length > 0 ? filtered[0].id : null;
       }
@@ -292,35 +282,55 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
         isPrimary: w.id === newPrimaryId
       }));
 
-      const updated: UserProfile = {
-        ...prev,
+      const active = resolveActiveWallet(updatedWallets, newPrimaryId);
+      const seedNode = active ? deriveSeedNode(active.legalName) : null;
+
+      const updatedProfile: UserProfile = {
+        ...prev.profile,
         wallets: updatedWallets,
-        primaryWalletId: newPrimaryId,
+        primaryWalletId: active ? active.id : null,
         updatedAt: Date.now()
       };
-      saveProfile(updated);
-      return updated;
+
+      return {
+        ...prev,
+        registeredWallets: updatedWallets,
+        activeWallet: active,
+        identityKeySeedNode: seedNode,
+        profile: updatedProfile,
+        updatedAt: Date.now()
+      };
     });
-  }, [saveProfile]);
+  }, [commitVault]);
 
   // Set primary wallet
   const setPrimaryWallet = useCallback((id: string) => {
-    setProfile(prev => {
-      const updatedWallets = prev.wallets.map(w => ({
+    commitVault(prev => {
+      const updatedWallets = prev.registeredWallets.map(w => ({
         ...w,
         isPrimary: w.id === id
       }));
 
-      const updated: UserProfile = {
-        ...prev,
+      const active = resolveActiveWallet(updatedWallets, id);
+      const seedNode = active ? deriveSeedNode(active.legalName) : prev.identityKeySeedNode;
+
+      const updatedProfile: UserProfile = {
+        ...prev.profile,
         wallets: updatedWallets,
         primaryWalletId: id,
         updatedAt: Date.now()
       };
-      saveProfile(updated);
-      return updated;
+
+      return {
+        ...prev,
+        registeredWallets: updatedWallets,
+        activeWallet: active,
+        identityKeySeedNode: seedNode,
+        profile: updatedProfile,
+        updatedAt: Date.now()
+      };
     });
-  }, [saveProfile]);
+  }, [commitVault]);
 
   // Start 30-day Free Trial
   const startFreeTrial = useCallback((durationDays = 30) => {
@@ -334,7 +344,12 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
       tier: 'Trial',
       isSubscribed: true
     };
-    saveTrial(newTrial);
+
+    commitVault(prev => ({
+      ...prev,
+      trialState: newTrial,
+      updatedAt: Date.now()
+    }));
 
     // Also update all MCP module subscriptions if any
     try {
@@ -352,32 +367,73 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
       });
       localStorage.setItem('daup_subscriptions_db', JSON.stringify(allSubs));
     } catch (e) {}
-  }, [saveTrial]);
+  }, [commitVault]);
 
   // Complete Onboarding
   const completeOnboarding = useCallback((finalProfileData?: Partial<UserProfile>) => {
-    setProfile(prev => {
-      const merged: UserProfile = {
-        ...prev,
+    const now = Date.now();
+    const trialDurationDays = 30;
+    const trialExpiresAt = now + trialDurationDays * 24 * 60 * 60 * 1000;
+
+    commitVault(prev => {
+      const mergedWallets = finalProfileData?.wallets || prev.registeredWallets;
+      const primaryId = finalProfileData?.primaryWalletId || (prev.activeWallet ? prev.activeWallet.id : (mergedWallets[0]?.id || null));
+      const active = resolveActiveWallet(mergedWallets, primaryId);
+      const seedNode = active ? deriveSeedNode(active.legalName) : (prev.identityKeySeedNode || deriveSeedNode());
+
+      const updatedProfile: UserProfile = {
+        ...prev.profile,
         ...(finalProfileData || {}),
+        wallets: mergedWallets,
+        primaryWalletId: active ? active.id : null,
         isOnboarded: true,
-        updatedAt: Date.now()
+        updatedAt: now
       };
-      saveProfile(merged);
-      return merged;
+
+      const updatedTrial: SubscriptionTrialState = prev.trialState.hasStartedTrial ? prev.trialState : {
+        hasStartedTrial: true,
+        trialStartedAt: now,
+        trialExpiresAt,
+        isTrialActive: true,
+        tier: 'Trial',
+        isSubscribed: true
+      };
+
+      return {
+        ...prev,
+        hasCompletedOnboarding: true,
+        registeredAt: prev.registeredAt || now,
+        updatedAt: now,
+        profile: updatedProfile,
+        registeredWallets: mergedWallets,
+        activeWallet: active,
+        identityKeySeedNode: seedNode,
+        trialState: updatedTrial
+      };
     });
 
-    // Auto-start trial on onboarding completion if not already active
-    if (!trialState.hasStartedTrial) {
-      startFreeTrial(30);
-    }
-  }, [saveProfile, startFreeTrial, trialState.hasStartedTrial]);
+    // Auto-update MCP subscriptions database
+    try {
+      const rawSubs = localStorage.getItem('daup_subscriptions_db');
+      const allSubs = rawSubs ? JSON.parse(rawSubs) : {};
+      const targetDid = localStorage.getItem('daup_active_did') || 'did:daup:node-primary';
+      if (!allSubs[targetDid]) allSubs[targetDid] = {};
+      ['daup-farmer', 'daup-reseller', 'daup-eatery', 'daup-manufacturing'].forEach(mod => {
+        allSubs[targetDid][mod] = {
+          did: targetDid,
+          module: mod,
+          tier: 'Pro',
+          expirationTimestamp: trialExpiresAt
+        };
+      });
+      localStorage.setItem('daup_subscriptions_db', JSON.stringify(allSubs));
+    } catch (e) {}
+  }, [commitVault]);
 
   // Geolocation Auto-Enrichment
   const detectLocation = useCallback(async (): Promise<UserLocation> => {
     setIsDetectingLocation(true);
     
-    // Helper to resolve coordinates to reverse geocoding or fallback
     const resolveFromCoords = async (lat: number, lon: number): Promise<UserLocation> => {
       try {
         const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`, {
@@ -418,7 +474,6 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
             resolve(loc);
           },
           async (_err) => {
-            // Fallback via IP enrichment or realistic defaults
             try {
               const ipRes = await fetch('https://ipapi.co/json/');
               if (ipRes.ok) {
@@ -436,9 +491,7 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
                 resolve(loc);
                 return;
               }
-            } catch (e) {
-              // Simulated realistic default
-            }
+            } catch (e) {}
 
             const fallbackLoc: UserLocation = {
               country: 'United States',
@@ -470,21 +523,24 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
     });
   }, [updateLocation]);
 
-  // Reset profile (for testing/demo)
+  // Reset profile and purge vault
   const resetProfile = useCallback(() => {
-    localStorage.removeItem(LOCAL_STORAGE_PROFILE_KEY);
-    localStorage.removeItem(LOCAL_STORAGE_TRIAL_KEY);
-    setProfile(DEFAULT_PROFILE);
-    setTrialState(DEFAULT_TRIAL_STATE);
+    resetIdentityVault();
+    setVault(DEFAULT_VAULT);
   }, []);
 
   return (
     <UserProfileContext.Provider
       value={{
+        vault,
         profile,
         trialState,
         isOnboarded,
+        hasCompletedOnboarding,
+        isHydrating,
         primaryWallet,
+        activeWallet,
+        identityKeySeedNode,
         instanceName,
         currency,
         formatCurrency,
@@ -517,3 +573,4 @@ export const useUserProfile = () => {
   }
   return context;
 };
+export default UserProfileContext;

@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { DIDWalletProvider, useDIDWallet } from './components/DIDWalletProvider';
 import { UserProfileProvider, useUserProfile } from './context/UserProfileContext';
+import { OnboardingGuard } from './guards/OnboardingGuard';
 import { TelemetryGrid } from './components/TelemetryGrid';
 import { DHTRouterView } from './components/DHTRouterView';
 import { DcdnResolverView } from './components/DcdnResolverView';
@@ -14,13 +15,13 @@ import { SubscribedAppsView } from './components/SubscribedAppsView';
 import { LicenseManagementView } from './components/LicenseManagementView';
 import { McpProvider, getSubscriptionForDidAndModule, useMcp } from './hooks/useMcpClient';
 import { FarmerWorkspace, ResellerWorkspace, EateryWorkspace, ManufacturingWorkspace } from './components/VerticalAppWorkspaces';
-import { OnboardingWizard } from './components/OnboardingWizard';
 import { ProfileModal } from './components/ProfileModal';
 import { MODULE_METADATA } from './components/withLicenseCheck';
+import { deriveSeedNode } from './stores/identityStore';
 
 const DashboardContent: React.FC = () => {
   const { did, seed, connectWallet, wasmLoaded, isLoadingWasm } = useDIDWallet();
-  const { isOnboarded, instanceName, primaryWallet, isProfileModalOpen, setIsProfileModalOpen } = useUserProfile();
+  const { instanceName, activeWallet, identityKeySeedNode, isProfileModalOpen, setIsProfileModalOpen } = useUserProfile();
   const { sendRequest } = useMcp();
   
   // 3 Primary Tabs + Dev Mode Tabs
@@ -42,21 +43,14 @@ const DashboardContent: React.FC = () => {
   const [subsData, setSubsData] = useState<Record<string, any>>({});
   const [currentTime, setCurrentTime] = useState(Date.now());
 
-  // Deterministic seed derivation pipeline: activeWallet.legalName -> IdentityKeySeedNode
-  const deriveSeedFromLegalName = useCallback((legalName?: string) => {
-    if (!legalName || !legalName.trim()) return 'farmer-wallet-seed-1';
-    const clean = legalName.trim().toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
-    return clean ? `${clean}-seed` : 'farmer-wallet-seed-1';
-  }, []);
-
   // Automatic Background Activation of derived Seed Node
   useEffect(() => {
-    const targetLegalName = primaryWallet?.legalName || instanceName;
-    const targetSeed = deriveSeedFromLegalName(targetLegalName);
+    const targetLegalName = activeWallet?.legalName || instanceName;
+    const targetSeed = identityKeySeedNode || deriveSeedNode(targetLegalName);
     if (targetSeed && seed !== targetSeed) {
       connectWallet(targetSeed);
     }
-  }, [primaryWallet?.legalName, instanceName, deriveSeedFromLegalName, seed, connectWallet]);
+  }, [activeWallet?.legalName, instanceName, identityKeySeedNode, seed, connectWallet]);
 
   // Sync clock for countdowns
   useEffect(() => {
@@ -149,9 +143,6 @@ const DashboardContent: React.FC = () => {
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
       
-      {/* First-Run Onboarding Wizard Guard */}
-      {!isOnboarded && <OnboardingWizard />}
-
       {/* User Profile & Multi-Wallet Modal */}
       <ProfileModal />
 
@@ -222,10 +213,10 @@ const DashboardContent: React.FC = () => {
               color: '#fff',
               boxShadow: '0 0 8px rgba(6, 182, 212, 0.3)'
             }}>
-              {primaryWallet?.legalName ? primaryWallet.legalName.charAt(0).toUpperCase() : <User size={12} />}
+              {activeWallet?.legalName ? activeWallet.legalName.charAt(0).toUpperCase() : <User size={12} />}
             </div>
             <span style={{ fontSize: '12px', fontWeight: '500', color: '#fff', maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {primaryWallet?.legalName || 'Profile'}
+              {activeWallet?.legalName || 'Profile'}
             </span>
           </button>
 
@@ -492,7 +483,7 @@ const DashboardContent: React.FC = () => {
 const McpProviderWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { did, signMessage } = useDIDWallet();
   const mockWasmExports = useMemo(() => ({
-    sign_envelope: (msg: string, key: string) => {
+    sign_envelope: (msg: string, _key: string) => {
       try {
         return signMessage(msg);
       } catch {
@@ -511,9 +502,11 @@ export const App: React.FC = () => {
   return (
     <DIDWalletProvider>
       <UserProfileProvider>
-        <McpProviderWrapper>
-          <DashboardContent />
-        </McpProviderWrapper>
+        <OnboardingGuard>
+          <McpProviderWrapper>
+            <DashboardContent />
+          </McpProviderWrapper>
+        </OnboardingGuard>
       </UserProfileProvider>
     </DIDWalletProvider>
   );
