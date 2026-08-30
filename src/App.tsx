@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
-  Layers, Key, ShoppingBag, Activity, Compass, HardDrive, Terminal,
-  Globe, Shield, Settings, User
+  Key, ShoppingBag, Activity, Compass, HardDrive, Terminal,
+  Shield, User
 } from 'lucide-react';
 import { DIDWalletProvider, useDIDWallet } from './components/DIDWalletProvider';
 import { UserProfileProvider, useUserProfile } from './context/UserProfileContext';
@@ -19,21 +19,28 @@ import { ProfileModal } from './components/ProfileModal';
 import { MODULE_METADATA } from './components/withLicenseCheck';
 import { deriveSeedNode, deployAppInstance } from './stores/identityStore';
 
+const EATERY = 'https://eatery.daup.co.za/';
+
+function staffInviteHref(houseName: string) {
+  const text = `You're on tonight's floor at ${houseName}. Open the eatery: ${EATERY}`;
+  return `https://wa.me/?text=${encodeURIComponent(text)}`;
+}
+
 const DashboardContent: React.FC = () => {
   const { did, seed, connectWallet, wasmLoaded, isLoadingWasm } = useDIDWallet();
-  const { instanceName, activeWallet, identityKeySeedNode, isProfileModalOpen, setIsProfileModalOpen } = useUserProfile();
+  const { instanceName, activeWallet, identityKeySeedNode, setIsProfileModalOpen } = useUserProfile();
   const { sendRequest } = useMcp();
 
-  const [activeTab, setActiveTab] = useState<'my-apps' | 'licenses' | 'marketplace' | 'telemetry' | 'dht' | 'dcdn' | 'mcp'>('my-apps');
+  const [activeTab, setActiveTab] = useState<'home' | 'licenses' | 'marketplace' | 'telemetry' | 'dht' | 'dcdn' | 'mcp'>('home');
   const [launchedApp, setLaunchedApp] = useState<string | null>(null);
   const [isAdvanced, setIsAdvanced] = useState(false);
 
   const [installedApps, setInstalledApps] = useState<Record<string, boolean>>(() => {
     try {
       const saved = localStorage.getItem('daup_installed_apps');
-      return saved ? JSON.parse(saved) : { 'daup-farmer': true };
+      return saved ? JSON.parse(saved) : {};
     } catch {
-      return { 'daup-farmer': true };
+      return {};
     }
   });
 
@@ -123,109 +130,94 @@ const DashboardContent: React.FC = () => {
 
   const handleExitApp = () => setLaunchedApp(null);
 
-  const subscribedCount = useMemo(() => {
-    return Object.keys(MODULE_METADATA).filter((mod) => {
-      const isInstalled = installedApps[mod];
-      const sub = subsData[mod];
-      const hasActiveSub = sub && sub.expirationTimestamp > currentTime;
-      return isInstalled || hasActiveSub;
-    }).length;
-  }, [installedApps, subsData, currentTime]);
-
   const houseName = activeWallet?.legalName || instanceName || 'Your hub';
+  const inviteHref = staffInviteHref(houseName);
+
+  const showProtocol = isAdvanced && !launchedApp && activeTab !== 'home';
 
   return (
-    <div className="owner-chrome" style={{ maxWidth: '1120px', margin: '0 auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+    <div className="owner-shell">
       <ProfileModal />
 
-      <header className="card" style={{ padding: '16px 24px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span className="ico-sq"><Globe size={22} /></span>
+      <header className="owner-top">
+        <div className="wrap owner-nav">
           <div>
-            <h1 className="serif" style={{ fontSize: '22px', fontWeight: 700, margin: 0, letterSpacing: '-0.03em' }}>
-              Your hub
-            </h1>
-            <p style={{ margin: '2px 0 0', color: 'var(--muted)', fontSize: '15px' }}>
-              {houseName} · set up the house, invite the floor
-            </p>
+            <div className="logo">DAUP</div>
+            <p className="owner-house">{houseName}</p>
           </div>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <button
-            type="button"
-            className="btn btn-outline"
-            onClick={() => setIsProfileModalOpen(true)}
-          >
-            <User size={16} />
-            {activeWallet?.legalName || 'Profile'}
-          </button>
-          <button
-            type="button"
-            className={isAdvanced ? 'btn btn-primary' : 'btn btn-outline'}
-            onClick={() => {
-              setIsAdvanced(!isAdvanced);
-              if (isAdvanced && ['telemetry', 'dht', 'dcdn', 'mcp'].includes(activeTab)) {
-                setActiveTab('my-apps');
-              }
-            }}
-            title="Advanced network tools — not the home"
-          >
-            <Settings size={16} /> Advanced
-          </button>
+          <div className="owner-nav-actions">
+            <button
+              type="button"
+              className="owner-quiet"
+              aria-pressed={isAdvanced}
+              onClick={() => {
+                const next = !isAdvanced;
+                setIsAdvanced(next);
+                if (!next) {
+                  setActiveTab('home');
+                  setLaunchedApp(null);
+                }
+              }}
+              title="Advanced tools — off by default"
+            >
+              Advanced
+            </button>
+            <button
+              type="button"
+              className="btn btn-outline"
+              onClick={() => setIsProfileModalOpen(true)}
+            >
+              <User size={16} />
+              {activeWallet?.legalName || 'Profile'}
+            </button>
+          </div>
         </div>
       </header>
 
-      <nav style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-        <button
-          type="button"
-          onClick={() => { setActiveTab('my-apps'); setLaunchedApp(null); }}
-          className={activeTab === 'my-apps' && !launchedApp ? 'btn btn-primary' : 'btn btn-outline'}
-        >
-          <Layers size={16} /> My Apps
-          {subscribedCount > 0 && (
-            <span className="chip" style={{ minHeight: 28, padding: '0 8px', pointerEvents: 'none' }}>{subscribedCount}</span>
-          )}
-        </button>
-        <button
-          type="button"
-          onClick={() => { setActiveTab('licenses'); setLaunchedApp(null); }}
-          className={activeTab === 'licenses' && !launchedApp ? 'btn btn-primary' : 'btn btn-outline'}
-        >
-          <Key size={16} /> Licenses
-        </button>
-        <button
-          type="button"
-          onClick={() => { setActiveTab('marketplace'); setLaunchedApp(null); }}
-          className={activeTab === 'marketplace' && !launchedApp ? 'btn btn-primary' : 'btn btn-outline'}
-        >
-          <ShoppingBag size={16} /> Other apps
-        </button>
+      {isAdvanced && (
+        <nav className="wrap owner-advanced-nav" aria-label="Advanced">
+          <button
+            type="button"
+            onClick={() => { setActiveTab('home'); setLaunchedApp(null); }}
+            className={activeTab === 'home' && !launchedApp ? 'btn btn-primary' : 'btn btn-outline'}
+          >
+            Home
+          </button>
+          <button
+            type="button"
+            onClick={() => { setActiveTab('licenses'); setLaunchedApp(null); }}
+            className={activeTab === 'licenses' && !launchedApp ? 'btn btn-primary' : 'btn btn-outline'}
+          >
+            <Key size={16} /> Licenses
+          </button>
+          <button
+            type="button"
+            onClick={() => { setActiveTab('marketplace'); setLaunchedApp(null); }}
+            className={activeTab === 'marketplace' && !launchedApp ? 'btn btn-primary' : 'btn btn-outline'}
+          >
+            <ShoppingBag size={16} /> Other apps
+          </button>
+          <button type="button" onClick={() => { setActiveTab('telemetry'); setLaunchedApp(null); }} className={activeTab === 'telemetry' ? 'btn btn-primary' : 'btn btn-outline'}>
+            <Activity size={14} /> Telemetry
+          </button>
+          <button type="button" onClick={() => { setActiveTab('dht'); setLaunchedApp(null); }} className={activeTab === 'dht' ? 'btn btn-primary' : 'btn btn-outline'}>
+            <Compass size={14} /> DHT
+          </button>
+          <button type="button" onClick={() => { setActiveTab('dcdn'); setLaunchedApp(null); }} className={activeTab === 'dcdn' ? 'btn btn-primary' : 'btn btn-outline'}>
+            <HardDrive size={14} /> dCDN
+          </button>
+          <button type="button" onClick={() => { setActiveTab('mcp'); setLaunchedApp(null); }} className={activeTab === 'mcp' ? 'btn btn-primary' : 'btn btn-outline'}>
+            <Terminal size={14} /> MCP
+          </button>
+          {isLoadingWasm ? <span className="chip" style={{ pointerEvents: 'none' }}>Loading runtime</span> : wasmLoaded ? (
+            <span className="chip" style={{ pointerEvents: 'none' }}><Shield size={12} /> Runtime on</span>
+          ) : null}
+        </nav>
+      )}
 
-        {isAdvanced && (
-          <>
-            <button type="button" onClick={() => { setActiveTab('telemetry'); setLaunchedApp(null); }} className={activeTab === 'telemetry' ? 'btn btn-primary' : 'btn btn-outline'}>
-              <Activity size={14} /> Telemetry
-            </button>
-            <button type="button" onClick={() => { setActiveTab('dht'); setLaunchedApp(null); }} className={activeTab === 'dht' ? 'btn btn-primary' : 'btn btn-outline'}>
-              <Compass size={14} /> DHT
-            </button>
-            <button type="button" onClick={() => { setActiveTab('dcdn'); setLaunchedApp(null); }} className={activeTab === 'dcdn' ? 'btn btn-primary' : 'btn btn-outline'}>
-              <HardDrive size={14} /> dCDN
-            </button>
-            <button type="button" onClick={() => { setActiveTab('mcp'); setLaunchedApp(null); }} className={activeTab === 'mcp' ? 'btn btn-primary' : 'btn btn-outline'}>
-              <Terminal size={14} /> MCP
-            </button>
-            {isLoadingWasm ? <span className="chip" style={{ pointerEvents: 'none' }}>Loading runtime</span> : wasmLoaded ? (
-              <span className="chip" style={{ pointerEvents: 'none' }}><Shield size={12} /> Runtime on</span>
-            ) : null}
-          </>
-        )}
-      </nav>
-
-      <main>
+      <main className="wrap owner-main">
         {launchedApp ? (
-          <div>
+          <div className="protocol-console">
             {launchedApp === 'daup-farmer' && <FarmerWorkspace onExit={handleExitApp} />}
             {launchedApp === 'daup-reseller' && <ResellerWorkspace onExit={handleExitApp} />}
             {launchedApp === 'daup-eatery' && <EateryWorkspace onExit={handleExitApp} />}
@@ -233,17 +225,20 @@ const DashboardContent: React.FC = () => {
           </div>
         ) : (
           <>
-            {activeTab === 'my-apps' && (
+            {(!isAdvanced || activeTab === 'home') && (
               <SubscribedAppsView
                 installedApps={installedApps}
                 subsData={subsData}
                 currentTime={currentTime}
                 onLaunchApp={setLaunchedApp}
-                onGoToMarketplace={() => setActiveTab('marketplace')}
+                onGoToMarketplace={() => {
+                  setIsAdvanced(true);
+                  setActiveTab('marketplace');
+                }}
                 onDeleteInstance={handleDeleteInstance}
               />
             )}
-            {activeTab === 'licenses' && (
+            {showProtocol && activeTab === 'licenses' && (
               <div className="protocol-console">
                 <LicenseManagementView
                   subsData={subsData}
@@ -252,27 +247,31 @@ const DashboardContent: React.FC = () => {
                 />
               </div>
             )}
-            {activeTab === 'marketplace' && (
-              <MarketplaceView
-                installedApps={installedApps}
-                subsData={subsData}
-                currentTime={currentTime}
-                onLaunchApp={setLaunchedApp}
-                onInstallApp={handleInstallApp}
-                onUninstallApp={handleUninstallApp}
-              />
+            {showProtocol && activeTab === 'marketplace' && (
+              <div className="protocol-console">
+                <MarketplaceView
+                  installedApps={installedApps}
+                  subsData={subsData}
+                  currentTime={currentTime}
+                  onLaunchApp={setLaunchedApp}
+                  onInstallApp={handleInstallApp}
+                  onUninstallApp={handleUninstallApp}
+                />
+              </div>
             )}
-            {isAdvanced && activeTab === 'telemetry' && <div className="protocol-console"><TelemetryGrid /></div>}
-            {isAdvanced && activeTab === 'dht' && <div className="protocol-console"><DHTRouterView /></div>}
-            {isAdvanced && activeTab === 'dcdn' && <div className="protocol-console"><DcdnResolverView /></div>}
-            {isAdvanced && activeTab === 'mcp' && <div className="protocol-console"><McpConsole /></div>}
+            {showProtocol && activeTab === 'telemetry' && <div className="protocol-console"><TelemetryGrid /></div>}
+            {showProtocol && activeTab === 'dht' && <div className="protocol-console"><DHTRouterView /></div>}
+            {showProtocol && activeTab === 'dcdn' && <div className="protocol-console"><DcdnResolverView /></div>}
+            {showProtocol && activeTab === 'mcp' && <div className="protocol-console"><McpConsole /></div>}
           </>
         )}
       </main>
 
-      <footer style={{ marginTop: '20px', borderTop: '1px solid var(--line)', paddingTop: '16px', display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: 'var(--muted)' }}>
-        <span>Your hub · {houseName}</span>
-        <span>Staff join with a WhatsApp tap.</span>
+      <footer className="wrap owner-footer">
+        <p className="caption" style={{ margin: 0 }}>Staff join with a WhatsApp tap.</p>
+        <a className="btn btn-primary" href={inviteHref} target="_blank" rel="noreferrer">
+          Invite tonight’s floor
+        </a>
       </footer>
     </div>
   );
