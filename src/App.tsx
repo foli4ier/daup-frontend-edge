@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { 
-  Layers, Key, ShoppingBag, Activity, Compass, HardDrive, Terminal, 
+import {
+  Layers, Key, ShoppingBag, Activity, Compass, HardDrive, Terminal,
   Globe, Shield, Settings, User
 } from 'lucide-react';
 import { DIDWalletProvider, useDIDWallet } from './components/DIDWalletProvider';
@@ -23,13 +23,11 @@ const DashboardContent: React.FC = () => {
   const { did, seed, connectWallet, wasmLoaded, isLoadingWasm } = useDIDWallet();
   const { instanceName, activeWallet, identityKeySeedNode, isProfileModalOpen, setIsProfileModalOpen } = useUserProfile();
   const { sendRequest } = useMcp();
-  
-  // 3 Primary Tabs + Dev Mode Tabs
+
   const [activeTab, setActiveTab] = useState<'my-apps' | 'licenses' | 'marketplace' | 'telemetry' | 'dht' | 'dcdn' | 'mcp'>('my-apps');
   const [launchedApp, setLaunchedApp] = useState<string | null>(null);
-  const [isDevMode, setIsDevMode] = useState(false);
+  const [isAdvanced, setIsAdvanced] = useState(false);
 
-  // Installed apps state (persisted)
   const [installedApps, setInstalledApps] = useState<Record<string, boolean>>(() => {
     try {
       const saved = localStorage.getItem('daup_installed_apps');
@@ -39,11 +37,9 @@ const DashboardContent: React.FC = () => {
     }
   });
 
-  // Active subscriptions data
   const [subsData, setSubsData] = useState<Record<string, any>>({});
   const [currentTime, setCurrentTime] = useState(Date.now());
 
-  // Automatic Background Activation of derived Seed Node
   useEffect(() => {
     const targetLegalName = activeWallet?.legalName || instanceName;
     const targetSeed = identityKeySeedNode || deriveSeedNode(targetLegalName);
@@ -52,13 +48,11 @@ const DashboardContent: React.FC = () => {
     }
   }, [activeWallet?.legalName, instanceName, identityKeySeedNode, seed, connectWallet]);
 
-  // Sync clock for countdowns
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(Date.now()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  // Load subscriptions for active DID
   const loadSubscriptions = useCallback(() => {
     if (did) {
       const data: Record<string, any> = {};
@@ -81,7 +75,7 @@ const DashboardContent: React.FC = () => {
   };
 
   const handleInstallApp = (moduleName: string) => {
-    const targetInstName = activeWallet?.legalName || instanceName || 'Decentralized Operator';
+    const targetInstName = activeWallet?.legalName || instanceName || 'The house';
     deployAppInstance(moduleName, targetInstName, did || 'did:daup:node-primary');
     const updated = { ...installedApps, [moduleName]: true };
     saveInstalled(updated);
@@ -94,7 +88,6 @@ const DashboardContent: React.FC = () => {
   };
 
   const handleDeleteInstance = async (moduleName: string, instName: string) => {
-    // 1. Broadcast decentralized network deletion via MCP JSON-RPC
     if (did) {
       try {
         await sendRequest('instance_delete_from_network', {
@@ -107,11 +100,9 @@ const DashboardContent: React.FC = () => {
       }
     }
 
-    // 2. Unset installed app state in local storage
     const updated = { ...installedApps, [moduleName]: false };
     saveInstalled(updated);
 
-    // 3. Purge/expire active subscription record from subscriptions database
     try {
       const rawSubs = localStorage.getItem('daup_subscriptions_db');
       const allSubs = rawSubs ? JSON.parse(rawSubs) : {};
@@ -127,13 +118,11 @@ const DashboardContent: React.FC = () => {
       }
     } catch (e) {}
 
-    // 4. Force reload subscriptions to update UI
     loadSubscriptions();
   };
 
   const handleExitApp = () => setLaunchedApp(null);
 
-  // Count subscribed apps
   const subscribedCount = useMemo(() => {
     return Object.keys(MODULE_METADATA).filter((mod) => {
       const isInstalled = installedApps[mod];
@@ -143,289 +132,97 @@ const DashboardContent: React.FC = () => {
     }).length;
   }, [installedApps, subsData, currentTime]);
 
+  const houseName = activeWallet?.legalName || instanceName || 'Your hub';
+
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      
-      {/* User Profile & Multi-Wallet Modal */}
+    <div className="owner-chrome" style={{ maxWidth: '1120px', margin: '0 auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
       <ProfileModal />
 
-      {/* Top Header Hub */}
-      <header className="glass-panel" style={{ padding: '16px 24px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{ background: 'rgba(6, 182, 212, 0.1)', padding: '8px', borderRadius: '8px' }}>
-              <Globe size={26} color="var(--neon-cyan)" style={{ animation: 'pulse-glow 3s infinite ease-in-out' }} />
-            </div>
-            <div>
-              <h1 style={{ fontSize: '20px', fontWeight: '800', letterSpacing: '0.04em', color: '#fff', textTransform: 'uppercase', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                <span>DAUP <span style={{ color: 'var(--neon-cyan)' }}>Edge Hub</span></span>
-                <span style={{ fontSize: '13px', color: 'var(--text-dark)', fontWeight: 'normal' }}>//</span>
-                <span style={{ fontSize: '14px', color: 'var(--neon-cyan)', fontWeight: '700', textTransform: 'none', background: 'rgba(6, 182, 212, 0.08)', padding: '2px 10px', borderRadius: '6px', border: '1px solid rgba(6, 182, 212, 0.2)' }}>
-                  {instanceName}
-                </span>
-              </h1>
-              <p style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', marginTop: '2px' }}>
-                Decentralized Autonomic Utility Platform &bull; Node: <span style={{ color: 'var(--neon-cyan)' }}>{did ? `${did.slice(0, 18)}...${did.slice(-6)}` : 'Derived Node'}</span>
-              </p>
-            </div>
+      <header className="card" style={{ padding: '16px 24px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <span className="ico-sq"><Globe size={22} /></span>
+          <div>
+            <h1 className="serif" style={{ fontSize: '22px', fontWeight: 700, margin: 0, letterSpacing: '-0.03em' }}>
+              Your hub
+            </h1>
+            <p style={{ margin: '2px 0 0', color: 'var(--muted)', fontSize: '15px' }}>
+              {houseName} · set up the house, invite the floor
+            </p>
           </div>
         </div>
 
-        {/* Top-Level Navigation: Profile Icon adjacent to Settings Gear & Developer Controls */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          {isDevMode && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              {isLoadingWasm ? (
-                <span className="badge amber" style={{ fontSize: '9px' }}>Loading WASM...</span>
-              ) : wasmLoaded ? (
-                <span className="badge green" style={{ fontSize: '9px' }}>
-                  <Shield size={10} /> WASM Active
-                </span>
-              ) : (
-                <span className="badge amber" style={{ fontSize: '9px' }}>TS Cryptography</span>
-              )}
-              <span className="badge purple" style={{ fontSize: '9px' }}>Dev Mode</span>
-            </div>
-          )}
-
-          {/* User Profile Avatar / Icon UI */}
-          <button 
-            className="glass-button" 
+          <button
+            type="button"
+            className="btn btn-outline"
             onClick={() => setIsProfileModalOpen(true)}
-            style={{ 
-              padding: '6px 12px', 
-              borderRadius: '8px', 
-              borderColor: isProfileModalOpen ? 'var(--neon-cyan)' : 'var(--border-glass)',
-              background: isProfileModalOpen ? 'rgba(6, 182, 212, 0.15)' : 'rgba(255,255,255,0.02)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}
-            title="User Identity Profile, Multi-Wallets & Free Trial"
           >
-            <div style={{
-              width: '24px',
-              height: '24px',
-              borderRadius: '50%',
-              background: 'linear-gradient(135deg, var(--neon-cyan), var(--neon-purple))',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '11px',
-              fontWeight: 'bold',
-              color: '#fff',
-              boxShadow: '0 0 8px rgba(6, 182, 212, 0.3)'
-            }}>
-              {activeWallet?.legalName ? activeWallet.legalName.charAt(0).toUpperCase() : <User size={12} />}
-            </div>
-            <span style={{ fontSize: '12px', fontWeight: '500', color: '#fff', maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {activeWallet?.legalName || 'Profile'}
-            </span>
+            <User size={16} />
+            {activeWallet?.legalName || 'Profile'}
           </button>
-
-          {/* Settings / Developer Mode Button */}
-          <button 
-            className="glass-button" 
-            onClick={() => setIsDevMode(!isDevMode)}
-            style={{ 
-              padding: '8px', 
-              borderRadius: '8px', 
-              borderColor: isDevMode ? 'var(--neon-purple)' : 'var(--border-glass)',
-              background: isDevMode ? 'rgba(139, 92, 246, 0.1)' : 'rgba(255,255,255,0.02)' 
+          <button
+            type="button"
+            className={isAdvanced ? 'btn btn-primary' : 'btn btn-outline'}
+            onClick={() => {
+              setIsAdvanced(!isAdvanced);
+              if (isAdvanced && ['telemetry', 'dht', 'dcdn', 'mcp'].includes(activeTab)) {
+                setActiveTab('my-apps');
+              }
             }}
-            title="Toggle Developer Options"
+            title="Advanced network tools — not the home"
           >
-            <Settings size={18} color={isDevMode ? 'var(--neon-purple)' : 'var(--text-muted)'} style={{ animation: isDevMode ? 'spin 8s linear infinite' : 'none' }} />
+            <Settings size={16} /> Advanced
           </button>
         </div>
       </header>
 
-      {/* Primary 3-Tab Navigation Bar */}
-      <nav style={{ display: 'flex', flexWrap: 'wrap', borderBottom: '1px solid var(--border-glass)', paddingBottom: '2px', gap: '8px' }}>
-        {/* Tab 1: Subscribed Apps */}
+      <nav style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
         <button
-          onClick={() => {
-            setActiveTab('my-apps');
-            setLaunchedApp(null);
-          }}
-          className="glass-button"
-          style={{
-            padding: '10px 18px',
-            borderRadius: '8px 8px 0 0',
-            borderWidth: '1px 1px 0 1px',
-            borderStyle: 'solid',
-            borderTopColor: activeTab === 'my-apps' && !launchedApp ? 'var(--neon-cyan)' : 'transparent',
-            borderLeftColor: activeTab === 'my-apps' && !launchedApp ? 'var(--neon-cyan)' : 'transparent',
-            borderRightColor: activeTab === 'my-apps' && !launchedApp ? 'var(--neon-cyan)' : 'transparent',
-            borderBottomColor: 'transparent',
-            background: activeTab === 'my-apps' && !launchedApp ? 'rgba(6, 182, 212, 0.08)' : 'transparent',
-            color: activeTab === 'my-apps' && !launchedApp ? 'var(--neon-cyan)' : 'var(--text-muted)',
-            fontWeight: 600,
-            fontSize: '13px'
-          }}
+          type="button"
+          onClick={() => { setActiveTab('my-apps'); setLaunchedApp(null); }}
+          className={activeTab === 'my-apps' && !launchedApp ? 'btn btn-primary' : 'btn btn-outline'}
         >
-          <Layers size={16} />
-          My Apps
+          <Layers size={16} /> My Apps
           {subscribedCount > 0 && (
-            <span className="badge cyan" style={{ fontSize: '9px', padding: '0px 6px', marginLeft: '4px' }}>
-              {subscribedCount}
-            </span>
+            <span className="chip" style={{ minHeight: 28, padding: '0 8px', pointerEvents: 'none' }}>{subscribedCount}</span>
           )}
         </button>
-
-        {/* Tab 2: License Management */}
         <button
-          onClick={() => {
-            setActiveTab('licenses');
-            setLaunchedApp(null);
-          }}
-          className="glass-button"
-          style={{
-            padding: '10px 18px',
-            borderRadius: '8px 8px 0 0',
-            borderWidth: '1px 1px 0 1px',
-            borderStyle: 'solid',
-            borderTopColor: activeTab === 'licenses' && !launchedApp ? 'var(--neon-purple)' : 'transparent',
-            borderLeftColor: activeTab === 'licenses' && !launchedApp ? 'var(--neon-purple)' : 'transparent',
-            borderRightColor: activeTab === 'licenses' && !launchedApp ? 'var(--neon-purple)' : 'transparent',
-            borderBottomColor: 'transparent',
-            background: activeTab === 'licenses' && !launchedApp ? 'rgba(139, 92, 246, 0.08)' : 'transparent',
-            color: activeTab === 'licenses' && !launchedApp ? 'var(--neon-purple)' : 'var(--text-muted)',
-            fontWeight: 600,
-            fontSize: '13px'
-          }}
+          type="button"
+          onClick={() => { setActiveTab('licenses'); setLaunchedApp(null); }}
+          className={activeTab === 'licenses' && !launchedApp ? 'btn btn-primary' : 'btn btn-outline'}
         >
-          <Key size={16} />
-          Manage Licenses
+          <Key size={16} /> Licenses
+        </button>
+        <button
+          type="button"
+          onClick={() => { setActiveTab('marketplace'); setLaunchedApp(null); }}
+          className={activeTab === 'marketplace' && !launchedApp ? 'btn btn-primary' : 'btn btn-outline'}
+        >
+          <ShoppingBag size={16} /> Other apps
         </button>
 
-        {/* Tab 3: Marketplace */}
-        <button
-          onClick={() => {
-            setActiveTab('marketplace');
-            setLaunchedApp(null);
-          }}
-          className="glass-button"
-          style={{
-            padding: '10px 18px',
-            borderRadius: '8px 8px 0 0',
-            borderWidth: '1px 1px 0 1px',
-            borderStyle: 'solid',
-            borderTopColor: activeTab === 'marketplace' && !launchedApp ? 'var(--neon-green)' : 'transparent',
-            borderLeftColor: activeTab === 'marketplace' && !launchedApp ? 'var(--neon-green)' : 'transparent',
-            borderRightColor: activeTab === 'marketplace' && !launchedApp ? 'var(--neon-green)' : 'transparent',
-            borderBottomColor: 'transparent',
-            background: activeTab === 'marketplace' && !launchedApp ? 'rgba(16, 185, 129, 0.08)' : 'transparent',
-            color: activeTab === 'marketplace' && !launchedApp ? 'var(--neon-green)' : 'var(--text-muted)',
-            fontWeight: 600,
-            fontSize: '13px'
-          }}
-        >
-          <ShoppingBag size={16} />
-          App Marketplace
-        </button>
-
-        {/* Developer Mode Tabs (Shown only when Dev Mode is active) */}
-        {isDevMode && (
+        {isAdvanced && (
           <>
-            <div style={{ width: '1px', background: 'var(--border-glass)', margin: '4px 4px' }} />
-
-            <button
-              onClick={() => {
-                setActiveTab('telemetry');
-                setLaunchedApp(null);
-              }}
-              className="glass-button"
-              style={{
-                padding: '10px 14px',
-                borderRadius: '8px 8px 0 0',
-                borderWidth: '1px 1px 0 1px',
-                borderStyle: 'solid',
-                borderTopColor: activeTab === 'telemetry' && !launchedApp ? 'var(--neon-cyan)' : 'transparent',
-                borderLeftColor: activeTab === 'telemetry' && !launchedApp ? 'var(--neon-cyan)' : 'transparent',
-                borderRightColor: activeTab === 'telemetry' && !launchedApp ? 'var(--neon-cyan)' : 'transparent',
-                borderBottomColor: 'transparent',
-                background: activeTab === 'telemetry' && !launchedApp ? 'rgba(6, 182, 212, 0.08)' : 'transparent',
-                color: activeTab === 'telemetry' && !launchedApp ? 'var(--neon-cyan)' : 'var(--text-dark)',
-                fontSize: '12px'
-              }}
-            >
+            <button type="button" onClick={() => { setActiveTab('telemetry'); setLaunchedApp(null); }} className={activeTab === 'telemetry' ? 'btn btn-primary' : 'btn btn-outline'}>
               <Activity size={14} /> Telemetry
             </button>
-
-            <button
-              onClick={() => {
-                setActiveTab('dht');
-                setLaunchedApp(null);
-              }}
-              className="glass-button"
-              style={{
-                padding: '10px 14px',
-                borderRadius: '8px 8px 0 0',
-                borderWidth: '1px 1px 0 1px',
-                borderStyle: 'solid',
-                borderTopColor: activeTab === 'dht' && !launchedApp ? 'var(--neon-cyan)' : 'transparent',
-                borderLeftColor: activeTab === 'dht' && !launchedApp ? 'var(--neon-cyan)' : 'transparent',
-                borderRightColor: activeTab === 'dht' && !launchedApp ? 'var(--neon-cyan)' : 'transparent',
-                borderBottomColor: 'transparent',
-                background: activeTab === 'dht' && !launchedApp ? 'rgba(6, 182, 212, 0.08)' : 'transparent',
-                color: activeTab === 'dht' && !launchedApp ? 'var(--neon-cyan)' : 'var(--text-dark)',
-                fontSize: '12px'
-              }}
-            >
+            <button type="button" onClick={() => { setActiveTab('dht'); setLaunchedApp(null); }} className={activeTab === 'dht' ? 'btn btn-primary' : 'btn btn-outline'}>
               <Compass size={14} /> DHT
             </button>
-
-            <button
-              onClick={() => {
-                setActiveTab('dcdn');
-                setLaunchedApp(null);
-              }}
-              className="glass-button"
-              style={{
-                padding: '10px 14px',
-                borderRadius: '8px 8px 0 0',
-                borderWidth: '1px 1px 0 1px',
-                borderStyle: 'solid',
-                borderTopColor: activeTab === 'dcdn' && !launchedApp ? 'var(--neon-cyan)' : 'transparent',
-                borderLeftColor: activeTab === 'dcdn' && !launchedApp ? 'var(--neon-cyan)' : 'transparent',
-                borderRightColor: activeTab === 'dcdn' && !launchedApp ? 'var(--neon-cyan)' : 'transparent',
-                borderBottomColor: 'transparent',
-                background: activeTab === 'dcdn' && !launchedApp ? 'rgba(6, 182, 212, 0.08)' : 'transparent',
-                color: activeTab === 'dcdn' && !launchedApp ? 'var(--neon-cyan)' : 'var(--text-dark)',
-                fontSize: '12px'
-              }}
-            >
+            <button type="button" onClick={() => { setActiveTab('dcdn'); setLaunchedApp(null); }} className={activeTab === 'dcdn' ? 'btn btn-primary' : 'btn btn-outline'}>
               <HardDrive size={14} /> dCDN
             </button>
-
-            <button
-              onClick={() => {
-                setActiveTab('mcp');
-                setLaunchedApp(null);
-              }}
-              className="glass-button"
-              style={{
-                padding: '10px 14px',
-                borderRadius: '8px 8px 0 0',
-                borderWidth: '1px 1px 0 1px',
-                borderStyle: 'solid',
-                borderTopColor: activeTab === 'mcp' && !launchedApp ? 'var(--neon-cyan)' : 'transparent',
-                borderLeftColor: activeTab === 'mcp' && !launchedApp ? 'var(--neon-cyan)' : 'transparent',
-                borderRightColor: activeTab === 'mcp' && !launchedApp ? 'var(--neon-cyan)' : 'transparent',
-                borderBottomColor: 'transparent',
-                background: activeTab === 'mcp' && !launchedApp ? 'rgba(6, 182, 212, 0.08)' : 'transparent',
-                color: activeTab === 'mcp' && !launchedApp ? 'var(--neon-cyan)' : 'var(--text-dark)',
-                fontSize: '12px'
-              }}
-            >
+            <button type="button" onClick={() => { setActiveTab('mcp'); setLaunchedApp(null); }} className={activeTab === 'mcp' ? 'btn btn-primary' : 'btn btn-outline'}>
               <Terminal size={14} /> MCP
             </button>
+            {isLoadingWasm ? <span className="chip" style={{ pointerEvents: 'none' }}>Loading runtime</span> : wasmLoaded ? (
+              <span className="chip" style={{ pointerEvents: 'none' }}><Shield size={12} /> Runtime on</span>
+            ) : null}
           </>
         )}
       </nav>
 
-      {/* Main Workspace & Tab Content */}
       <main>
         {launchedApp ? (
           <div>
@@ -446,15 +243,15 @@ const DashboardContent: React.FC = () => {
                 onDeleteInstance={handleDeleteInstance}
               />
             )}
-
             {activeTab === 'licenses' && (
-              <LicenseManagementView
-                subsData={subsData}
-                currentTime={currentTime}
-                onRefreshSubscriptions={loadSubscriptions}
-              />
+              <div className="protocol-console">
+                <LicenseManagementView
+                  subsData={subsData}
+                  currentTime={currentTime}
+                  onRefreshSubscriptions={loadSubscriptions}
+                />
+              </div>
             )}
-
             {activeTab === 'marketplace' && (
               <MarketplaceView
                 installedApps={installedApps}
@@ -465,20 +262,18 @@ const DashboardContent: React.FC = () => {
                 onUninstallApp={handleUninstallApp}
               />
             )}
-
-            {isDevMode && activeTab === 'telemetry' && <TelemetryGrid />}
-            {isDevMode && activeTab === 'dht' && <DHTRouterView />}
-            {isDevMode && activeTab === 'dcdn' && <DcdnResolverView />}
-            {isDevMode && activeTab === 'mcp' && <McpConsole />}
+            {isAdvanced && activeTab === 'telemetry' && <div className="protocol-console"><TelemetryGrid /></div>}
+            {isAdvanced && activeTab === 'dht' && <div className="protocol-console"><DHTRouterView /></div>}
+            {isAdvanced && activeTab === 'dcdn' && <div className="protocol-console"><DcdnResolverView /></div>}
+            {isAdvanced && activeTab === 'mcp' && <div className="protocol-console"><McpConsole /></div>}
           </>
         )}
       </main>
 
-      <footer style={{ marginTop: '20px', borderTop: '1px solid var(--border-glass)', paddingTop: '16px', display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-dark)' }}>
-        <span>DAUP Edge Platform &bull; Instance: {instanceName}</span>
-        <span>Secured via SHA-256 and asymmetric mathematical sign envelopes</span>
+      <footer style={{ marginTop: '20px', borderTop: '1px solid var(--line)', paddingTop: '16px', display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: 'var(--muted)' }}>
+        <span>Your hub · {houseName}</span>
+        <span>Staff join with a WhatsApp tap.</span>
       </footer>
-
     </div>
   );
 };
