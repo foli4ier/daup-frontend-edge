@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShoppingBag, ArrowRight } from 'lucide-react';
+import { ShoppingBag, ArrowRight, Utensils, TrendingUp, Wheat, Cpu } from 'lucide-react';
 import { MODULE_METADATA } from './withLicenseCheck';
 import { AppCard } from './AppCard';
 import { useUserProfile } from '../context/UserProfileContext';
@@ -15,6 +15,13 @@ interface SubscribedAppsViewProps {
   onDeleteInstance?: (moduleKey: string, instanceName: string) => Promise<void> | void;
 }
 
+const HOME_TILES: { key: string; label: string; hint: string; ico: 'forest' | 'terra'; Icon: typeof Utensils }[] = [
+  { key: 'daup-eatery', label: 'Eatery', hint: 'Tables, tickets, kitchen, stock.', ico: 'forest', Icon: Utensils },
+  { key: 'daup-reseller', label: 'Reseller', hint: 'Kitchens send what they need.', ico: 'terra', Icon: TrendingUp },
+  { key: 'daup-farmer', label: 'Farm', hint: 'Coming.', ico: 'forest', Icon: Wheat },
+  { key: 'daup-manufacturing', label: 'Maker', hint: 'Coming.', ico: 'terra', Icon: Cpu }
+];
+
 export const SubscribedAppsView: React.FC<SubscribedAppsViewProps> = ({
   installedApps,
   subsData,
@@ -26,19 +33,13 @@ export const SubscribedAppsView: React.FC<SubscribedAppsViewProps> = ({
   const { instanceName } = useUserProfile();
   const { did } = useDIDWallet();
 
-  const [deleteModalState, setDeleteModalState] = useState<{
-    isOpen: boolean;
-    moduleKey: string | null;
-    moduleName?: string;
-    instanceName: string;
-  }>({
+  const [deleteModalState, setDeleteModalState] = useState({
     isOpen: false,
-    moduleKey: null,
-    moduleName: undefined,
+    moduleKey: null as string | null,
+    moduleName: undefined as string | undefined,
     instanceName: ''
   });
 
-  // Find all installed/active apps
   const subscribedModuleKeys = Object.keys(MODULE_METADATA).filter((mod) => {
     const isInstalled = installedApps[mod];
     const sub = subsData[mod];
@@ -62,10 +63,10 @@ export const SubscribedAppsView: React.FC<SubscribedAppsViewProps> = ({
     }
   };
 
+  const liveKeys = subscribedModuleKeys.length ? subscribedModuleKeys : ['daup-eatery'];
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      
-      {/* Delete Instance Modal with strict Name Typing Confirmation */}
       <DeleteInstanceModal
         isOpen={deleteModalState.isOpen}
         instanceName={deleteModalState.instanceName}
@@ -76,26 +77,33 @@ export const SubscribedAppsView: React.FC<SubscribedAppsViewProps> = ({
         onConfirmDelete={handleConfirmDelete}
       />
 
-      {/* Grid of Subscribed Apps */}
-      {subscribedModuleKeys.length === 0 ? (
-        <div className="glass-panel" style={{ padding: '40px 20px', textAlign: 'center', maxWidth: '560px', margin: '20px auto' }}>
-          <ShoppingBag size={36} color="var(--neon-cyan)" style={{ marginBottom: '12px' }} />
-          <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: '#fff', marginBottom: '6px' }}>
-            No Applications Subscribed Yet
-          </h3>
-          <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '18px' }}>
-            Explore the ecosystem catalog to deploy and subscribe to vertical workspaces like Farmer, Reseller, Eatery, and Manufacturing.
-          </p>
-          <button 
-            className="glass-button cyan" 
-            onClick={onGoToMarketplace}
-            style={{ padding: '8px 18px', fontSize: '13px' }}
-          >
-            Browse Marketplace <ArrowRight size={14} />
-          </button>
-        </div>
-      ) : (
-        <div className="grid-container two-col" style={{ gap: '14px' }}>
+      <p className="kicker">My apps</p>
+      <h2 className="serif" style={{ margin: 0, fontSize: '1.8rem' }}>Open the house</h2>
+      <p style={{ margin: 0, color: 'var(--muted)' }}>Start with your eatery. Farm, reseller, and maker are next.</p>
+
+      <div className="owner-home-tiles">
+        {HOME_TILES.filter(t => liveKeys.includes(t.key) || t.key === 'daup-eatery').map(tile => {
+          const Icon = tile.Icon;
+          const isLive = subscribedModuleKeys.includes(tile.key) || tile.key === 'daup-eatery';
+          return (
+            <button
+              key={tile.key}
+              type="button"
+              className="tile"
+              onClick={() => isLive ? onLaunchApp(tile.key) : onGoToMarketplace()}
+            >
+              <span className={`ico ${tile.ico}`}><Icon size={16} /></span>
+              <span>
+                {tile.label}
+                <span style={{ display: 'block', color: 'var(--muted)', fontWeight: 500, fontSize: '15px' }}>{tile.hint}</span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {subscribedModuleKeys.length > 0 && (
+        <div className="grid-container two-col" style={{ gap: '14px', marginTop: '8px' }}>
           {subscribedModuleKeys.map((mod) => (
             <AppCard
               key={mod}
@@ -112,6 +120,11 @@ export const SubscribedAppsView: React.FC<SubscribedAppsViewProps> = ({
         </div>
       )}
 
+      {subscribedModuleKeys.length === 0 && (
+        <button type="button" className="btn btn-outline" onClick={onGoToMarketplace}>
+          <ShoppingBag size={16} /> See other apps <ArrowRight size={14} />
+        </button>
+      )}
     </div>
   );
 };
