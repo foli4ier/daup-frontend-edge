@@ -10,6 +10,7 @@ export interface DeleteInstanceModalProps {
   moduleKey?: string | null;
   moduleName?: string;
   did?: string | null;
+  showDid?: boolean;
   onClose: () => void;
   onConfirmDelete: (instanceName: string, moduleKey?: string | null) => Promise<void> | void;
 }
@@ -20,6 +21,7 @@ export const DeleteInstanceModal: React.FC<DeleteInstanceModalProps> = ({
   moduleKey,
   moduleName,
   did,
+  showDid = false,
   onClose,
   onConfirmDelete
 }) => {
@@ -89,6 +91,7 @@ export const DeleteInstanceModal: React.FC<DeleteInstanceModalProps> = ({
 
   return (
     <div 
+      className="protocol-console"
       style={{
         position: 'fixed',
         top: 0,
@@ -201,12 +204,14 @@ export const DeleteInstanceModal: React.FC<DeleteInstanceModalProps> = ({
             </div>
           )}
 
+          {showDid && did ? (
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '10px', color: 'var(--text-dark)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Node DID:</span>
+            <span style={{ fontSize: '10px', color: 'var(--text-dark)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Network id:</span>
             <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-              {did ? `${did.slice(0, 16)}...${did.slice(-6)}` : 'Derived DID Node'}
+              {`${did.slice(0, 16)}...${did.slice(-6)}`}
             </span>
           </div>
+          ) : null}
         </div>
 
         {/* Warning Content */}
