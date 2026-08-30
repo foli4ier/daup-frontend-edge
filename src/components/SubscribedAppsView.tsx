@@ -1,10 +1,15 @@
-import React, { useState } from 'react';
-import { ShoppingBag, ArrowRight, Utensils, TrendingUp, Wheat, Cpu } from 'lucide-react';
-import { MODULE_METADATA } from './withLicenseCheck';
-import { AppCard } from './AppCard';
+import React from 'react';
+import { Wheat, Store, Factory } from 'lucide-react';
 import { useUserProfile } from '../context/UserProfileContext';
-import { useDIDWallet } from './DIDWalletProvider';
-import { DeleteInstanceModal } from './DeleteInstanceModal';
+
+const EATERY = 'https://eatery.daup.co.za/';
+const DOCS_SHIFT = 'https://www.daup.co.za/docs/eatery/tuesday-lunch';
+const DOCS_SETUP = 'https://www.daup.co.za/docs/hub/set-up-eatery';
+
+function staffInviteHref(houseName: string) {
+  const text = `You're on tonight's floor at ${houseName}. Open the eatery: ${EATERY}`;
+  return `https://wa.me/?text=${encodeURIComponent(text)}`;
+}
 
 interface SubscribedAppsViewProps {
   installedApps: Record<string, boolean>;
@@ -15,116 +20,74 @@ interface SubscribedAppsViewProps {
   onDeleteInstance?: (moduleKey: string, instanceName: string) => Promise<void> | void;
 }
 
-const HOME_TILES: { key: string; label: string; hint: string; ico: 'forest' | 'terra'; Icon: typeof Utensils }[] = [
-  { key: 'daup-eatery', label: 'Eatery', hint: 'Tables, tickets, kitchen, stock.', ico: 'forest', Icon: Utensils },
-  { key: 'daup-reseller', label: 'Reseller', hint: 'Kitchens send what they need.', ico: 'terra', Icon: TrendingUp },
-  { key: 'daup-farmer', label: 'Farm', hint: 'Coming.', ico: 'forest', Icon: Wheat },
-  { key: 'daup-manufacturing', label: 'Maker', hint: 'Coming.', ico: 'terra', Icon: Cpu }
-];
-
-export const SubscribedAppsView: React.FC<SubscribedAppsViewProps> = ({
-  installedApps,
-  subsData,
-  currentTime,
-  onLaunchApp,
-  onGoToMarketplace,
-  onDeleteInstance
-}) => {
-  const { instanceName } = useUserProfile();
-  const { did } = useDIDWallet();
-
-  const [deleteModalState, setDeleteModalState] = useState({
-    isOpen: false,
-    moduleKey: null as string | null,
-    moduleName: undefined as string | undefined,
-    instanceName: ''
-  });
-
-  const subscribedModuleKeys = Object.keys(MODULE_METADATA).filter((mod) => {
-    const isInstalled = installedApps[mod];
-    const sub = subsData[mod];
-    const hasActiveSub = sub && sub.expirationTimestamp > currentTime;
-    return isInstalled || hasActiveSub;
-  });
-
-  const handleOpenDeleteModal = (moduleKey: string) => {
-    const meta = MODULE_METADATA[moduleKey];
-    setDeleteModalState({
-      isOpen: true,
-      moduleKey,
-      moduleName: meta?.name || moduleKey,
-      instanceName: instanceName
-    });
-  };
-
-  const handleConfirmDelete = async (confirmedInstanceName: string, targetModuleKey?: string | null) => {
-    if (onDeleteInstance && targetModuleKey) {
-      await onDeleteInstance(targetModuleKey, confirmedInstanceName);
-    }
-  };
-
-  const liveKeys = subscribedModuleKeys.length ? subscribedModuleKeys : ['daup-eatery'];
+export const SubscribedAppsView: React.FC<SubscribedAppsViewProps> = () => {
+  const { activeWallet, instanceName } = useUserProfile();
+  const houseName = activeWallet?.legalName || instanceName || 'the house';
+  const inviteHref = staffInviteHref(houseName);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      <DeleteInstanceModal
-        isOpen={deleteModalState.isOpen}
-        instanceName={deleteModalState.instanceName}
-        moduleKey={deleteModalState.moduleKey}
-        moduleName={deleteModalState.moduleName}
-        did={did}
-        onClose={() => setDeleteModalState(prev => ({ ...prev, isOpen: false }))}
-        onConfirmDelete={handleConfirmDelete}
-      />
-
-      <p className="kicker">My apps</p>
-      <h2 className="serif" style={{ margin: 0, fontSize: '1.8rem' }}>Open the house</h2>
-      <p style={{ margin: 0, color: 'var(--muted)' }}>Start with your eatery. Farm, reseller, and maker are next.</p>
-
-      <div className="owner-home-tiles">
-        {HOME_TILES.filter(t => liveKeys.includes(t.key) || t.key === 'daup-eatery').map(tile => {
-          const Icon = tile.Icon;
-          const isLive = subscribedModuleKeys.includes(tile.key) || tile.key === 'daup-eatery';
-          return (
-            <button
-              key={tile.key}
-              type="button"
-              className="tile"
-              onClick={() => isLive ? onLaunchApp(tile.key) : onGoToMarketplace()}
-            >
-              <span className={`ico ${tile.ico}`}><Icon size={16} /></span>
-              <span>
-                {tile.label}
-                <span style={{ display: 'block', color: 'var(--muted)', fontWeight: 500, fontSize: '15px' }}>{tile.hint}</span>
-              </span>
-            </button>
-          );
-        })}
+    <div className="apps-grid">
+      <div className="section-head live-kicker">
+        <span className="kicker">Live now</span>
+        <span className="rule" />
       </div>
 
-      {subscribedModuleKeys.length > 0 && (
-        <div className="grid-container two-col" style={{ gap: '14px', marginTop: '8px' }}>
-          {subscribedModuleKeys.map((mod) => (
-            <AppCard
-              key={mod}
-              moduleKey={mod}
-              isInstalled={true}
-              licenseSub={subsData[mod]}
-              currentTime={currentTime}
-              onLaunch={onLaunchApp}
-              onDeleteInstance={handleOpenDeleteModal}
-              viewMode="subscribed"
-              instanceName={instanceName}
-            />
-          ))}
+      <article className="card">
+        <div className="card-top">
+          <span className="ico-sq" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 11h18" />
+              <path d="M5 11V7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v4" />
+              <path d="M5 11v8h4v-4h6v4h4v-8" />
+            </svg>
+          </span>
+          <div>
+            <h3>
+              Eatery <span className="live">LIVE</span>
+            </h3>
+            <p>Tables, tickets, kitchen, stock.</p>
+          </div>
         </div>
-      )}
+        <div className="card-links">
+          <a href={EATERY}>Open eatery ›</a>
+          <a href={DOCS_SHIFT}>Walk me through it ›</a>
+        </div>
+      </article>
 
-      {subscribedModuleKeys.length === 0 && (
-        <button type="button" className="btn btn-outline" onClick={onGoToMarketplace}>
-          <ShoppingBag size={16} /> See other apps <ArrowRight size={14} />
-        </button>
-      )}
+      <article className="card">
+        <div className="card-top">
+          <span className="ico-sq" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 10.5 12 3l9 7.5" />
+              <path d="M5 10v10h14V10" />
+              <path d="M9 20v-6h6v6" />
+            </svg>
+          </span>
+          <div>
+            <h3>
+              Your hub <span className="live">LIVE</span>
+            </h3>
+            <p>Where the owner sets up the business and invites staff.</p>
+          </div>
+        </div>
+        <div className="card-links">
+          <a href={inviteHref} target="_blank" rel="noreferrer">Invite tonight’s floor ›</a>
+          <a href={DOCS_SETUP}>Walk me through it ›</a>
+        </div>
+      </article>
+
+      <aside className="coming" aria-label="Coming soon">
+        <div className="coming-head">
+          <span className="kicker">Coming</span>
+          <span className="rule" />
+        </div>
+        <div className="chips">
+          <div className="chip"><Wheat size={16} /> Farm</div>
+          <div className="chip"><Store size={16} /> Reseller</div>
+          <div className="chip"><Factory size={16} /> Maker</div>
+        </div>
+        <p className="caption">Same chain. Not live yet.</p>
+      </aside>
     </div>
   );
 };
