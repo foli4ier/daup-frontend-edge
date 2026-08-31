@@ -14,6 +14,7 @@
     "dev:manufacturing": "npm run dev --prefix ../daup-manufacturing",
     "dev:manufacturer": "npm run dev --prefix ../daup-manufacturing",
     "build": "vite build",
+    "deploy": "npm run build && wrangler deploy",
     "preview": "vite preview",
     "wasm:build": "wasm-pack build ./wasm --out-dir ../src/wasm-pkg --target web"
   },
@@ -29,6 +30,7 @@
     "@vitejs/plugin-react": "^4.2.1",
     "concurrently": "^8.2.2",
     "typescript": "^5.2.2",
-    "vite": "^5.1.6"
+    "vite": "^5.1.6",
+    "wrangler": "^4.28.0"
   }
 }
