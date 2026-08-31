@@ -50,7 +50,7 @@ export const ProfileModal: React.FC = () => {
     isProfileModalOpen, 
     setIsProfileModalOpen 
   } = useUserProfile();
-  const { did, seed } = useDIDWallet();
+  const { did } = useDIDWallet();
 
   const [activeTab, setActiveTab] = useState<'wallets' | 'demographics' | 'location' | 'subscription'>('wallets');
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
@@ -164,186 +164,84 @@ export const ProfileModal: React.FC = () => {
   };
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      background: 'rgba(3, 6, 15, 0.88)',
-      backdropFilter: 'blur(12px)',
-      zIndex: 10000,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '20px'
-    }}>
-      <div className="glass-panel" style={{
-        width: '100%',
-        maxWidth: '860px',
-        maxHeight: '90vh',
-        background: 'rgba(10, 16, 33, 0.96)',
-        border: '1px solid rgba(139, 92, 246, 0.25)',
-        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.8), 0 0 35px rgba(139, 92, 246, 0.1)',
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden'
-      }}>
+    <div className="owner-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setIsProfileModalOpen(false); }}>
+      <div className="owner-modal" role="dialog" aria-modal="true" aria-labelledby="profile-modal-title">
 
-        {/* Modal Header */}
-        <div style={{
-          padding: '20px 25px',
-          borderBottom: '1px solid var(--border-glass)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          background: 'rgba(255, 255, 255, 0.01)'
-        }}>
+        <div className="owner-modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            <div style={{
-              width: '44px',
-              height: '44px',
-              borderRadius: '50%',
-              background: 'linear-gradient(135deg, var(--neon-cyan), var(--neon-purple))',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#fff',
-              fontWeight: 'bold',
-              fontSize: '18px',
-              boxShadow: '0 0 15px rgba(139, 92, 246, 0.3)'
-            }}>
+            <div className="avatar">
               {primaryWallet?.legalName ? primaryWallet.legalName.charAt(0).toUpperCase() : 'U'}
             </div>
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <h2 style={{ fontSize: '18px', fontWeight: 'bold', color: '#fff' }}>
-                  Node Identity Profile & Multi-Wallets
-                </h2>
-                <span className="badge purple" style={{ fontSize: '9px', padding: '1px 7px' }}>
-                  {primaryWallet?.legalName || 'Operator Node'}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <h2 id="profile-modal-title">Profile & wallets</h2>
+                <span className="badge">
+                  {primaryWallet?.legalName || instanceName}
                 </span>
               </div>
-              <p style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-                Instance Header: <span style={{ color: 'var(--neon-cyan)' }}>DAUP Edge Hub // {instanceName}</span>
-              </p>
-              <p style={{ fontSize: '10px', color: 'var(--text-dark)', fontFamily: 'var(--font-mono)', marginTop: '2px' }}>
-                Derived Seed: <span style={{ color: '#a78bfa' }}>"{seed}"</span> &bull; DID: <span style={{ color: 'var(--neon-cyan)' }}>{did ? `${did.slice(0, 18)}...${did.slice(-6)}` : 'Generating...'}</span>
+              <p className="caption">
+                {instanceName} &bull; {did ? `${did.slice(0, 18)}...${did.slice(-6)}` : 'Setting up your hub'}
               </p>
             </div>
           </div>
 
-          <button 
+          <button
+            type="button"
             onClick={() => setIsProfileModalOpen(false)}
-            className="glass-button"
-            style={{ padding: '8px', borderRadius: '8px' }}
-            title="Close modal"
+            className="btn btn-outline"
+            style={{ minHeight: '40px', padding: '0 12px' }}
+            title="Close"
           >
             <X size={18} />
           </button>
         </div>
 
-        {/* Tab Navigation */}
-        <div style={{
-          display: 'flex',
-          borderBottom: '1px solid var(--border-glass)',
-          background: 'rgba(0, 0, 0, 0.2)',
-          padding: '0 25px',
-          gap: '10px'
-        }}>
+        <div className="owner-modal-tabs" role="tablist">
           <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'wallets'}
             onClick={() => setActiveTab('wallets')}
-            className="glass-button"
-            style={{
-              padding: '12px 18px',
-              borderRadius: '0',
-              borderWidth: '0 0 2px 0',
-              borderStyle: 'solid',
-              borderTopColor: 'transparent',
-              borderLeftColor: 'transparent',
-              borderRightColor: 'transparent',
-              borderBottomColor: activeTab === 'wallets' ? 'var(--neon-green)' : 'transparent',
-              background: 'transparent',
-              color: activeTab === 'wallets' ? 'var(--neon-green)' : 'var(--text-muted)'
-            }}
+            className="owner-modal-tab"
           >
-            <Wallet size={16} /> Multi-Wallet Registry ({profile.wallets.length})
+            <Wallet size={16} /> Wallets ({profile.wallets.length})
           </button>
 
           <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'demographics'}
             onClick={() => setActiveTab('demographics')}
-            className="glass-button"
-            style={{
-              padding: '12px 18px',
-              borderRadius: '0',
-              borderWidth: '0 0 2px 0',
-              borderStyle: 'solid',
-              borderTopColor: 'transparent',
-              borderLeftColor: 'transparent',
-              borderRightColor: 'transparent',
-              borderBottomColor: activeTab === 'demographics' ? 'var(--neon-cyan)' : 'transparent',
-              background: 'transparent',
-              color: activeTab === 'demographics' ? 'var(--neon-cyan)' : 'var(--text-muted)'
-            }}
+            className="owner-modal-tab"
           >
-            <User size={16} /> Demographics & Contact
+            <User size={16} /> Contact
           </button>
 
           <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'location'}
             onClick={() => setActiveTab('location')}
-            className="glass-button"
-            style={{
-              padding: '12px 18px',
-              borderRadius: '0',
-              borderWidth: '0 0 2px 0',
-              borderStyle: 'solid',
-              borderTopColor: 'transparent',
-              borderLeftColor: 'transparent',
-              borderRightColor: 'transparent',
-              borderBottomColor: activeTab === 'location' ? 'var(--neon-purple)' : 'transparent',
-              background: 'transparent',
-              color: activeTab === 'location' ? 'var(--neon-purple)' : 'var(--text-muted)'
-            }}
+            className="owner-modal-tab"
           >
-            <MapPin size={16} /> Location & Socials
+            <MapPin size={16} /> Location
           </button>
 
           <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'subscription'}
             onClick={() => setActiveTab('subscription')}
-            className="glass-button"
-            style={{
-              padding: '12px 18px',
-              borderRadius: '0',
-              borderWidth: '0 0 2px 0',
-              borderStyle: 'solid',
-              borderTopColor: 'transparent',
-              borderLeftColor: 'transparent',
-              borderRightColor: 'transparent',
-              borderBottomColor: activeTab === 'subscription' ? 'var(--neon-amber)' : 'transparent',
-              background: 'transparent',
-              color: activeTab === 'subscription' ? 'var(--neon-amber)' : 'var(--text-muted)'
-            }}
+            className="owner-modal-tab"
           >
-            <Sparkles size={16} /> Free Trial & Subscriptions
+            <Sparkles size={16} /> Trial
           </button>
         </div>
 
-        {/* Modal Scrollable Body */}
-        <div style={{ padding: '25px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div className="owner-modal-body">
 
-          {/* Success Banner */}
           {saveSuccessMsg && (
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              padding: '10px 16px',
-              background: 'rgba(16, 185, 129, 0.15)',
-              border: '1px solid rgba(16, 185, 129, 0.3)',
-              borderRadius: '8px',
-              fontSize: '12px',
-              color: '#34d399'
-            }}>
+            <div className="owner-success-banner">
               <CheckCircle2 size={16} />
               <span>{saveSuccessMsg}</span>
             </div>
@@ -354,109 +252,94 @@ export const ProfileModal: React.FC = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                 <div>
-                  <h3 style={{ fontSize: '15px', fontWeight: 'bold', color: '#fff' }}>Registered Payout & Settlement Endpoints</h3>
-                  <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                    New instances inherit the Active Primary Wallet's <strong>Legal Name</strong> &bull; Regional Settlement Currency: <strong style={{ color: 'var(--neon-green)' }}>{currency.code} ({currency.symbol} - {currency.name})</strong>
+                  <h3>Settlement wallets</h3>
+                  <p className="caption" style={{ marginTop: '4px' }}>
+                    Active wallet sets the house name &bull; Currency: <strong>{currency.code} ({currency.symbol})</strong>
                   </p>
                 </div>
 
-                <button 
-                  className="glass-button green"
+                <button
+                  type="button"
+                  className="btn btn-primary"
                   onClick={() => {
                     setIsAddingWallet(true);
                     setWalletError(null);
                   }}
-                  style={{ padding: '8px 14px', fontSize: '12px' }}
                 >
-                  <Plus size={14} /> Add Settlement Wallet
+                  <Plus size={14} /> Add wallet
                 </button>
               </div>
 
               {/* Wallets List */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {profile.wallets.length === 0 ? (
-                  <div style={{ padding: '30px', textAlign: 'center', background: 'rgba(255,255,255,0.01)', border: '1px dashed var(--border-glass)', borderRadius: '8px' }}>
-                    <Wallet size={32} color="var(--text-muted)" style={{ marginBottom: '8px' }} />
-                    <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>No settlement wallets registered yet.</div>
+                  <div className="wizard-card" style={{ textAlign: 'center', padding: '30px' }}>
+                    <Wallet size={32} color="var(--muted)" style={{ marginBottom: '8px' }} />
+                    <p className="caption">No wallets yet.</p>
                   </div>
                 ) : (
                   profile.wallets.map((w: WalletEntry) => {
                     const isPrimary = w.isPrimary || w.id === profile.primaryWalletId;
                     return (
-                      <div 
+                      <div
                         key={w.id}
-                        className="glass-panel"
-                        style={{
-                          padding: '16px 20px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          flexWrap: 'wrap',
-                          gap: '15px',
-                          borderColor: isPrimary ? 'rgba(16, 185, 129, 0.4)' : 'var(--border-glass)',
-                          background: isPrimary ? 'rgba(16, 185, 129, 0.04)' : 'rgba(255, 255, 255, 0.01)'
-                        }}
+                        className={`owner-wallet-row${isPrimary ? ' is-primary' : ''}`}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                          <div style={{
-                            padding: '10px',
-                            borderRadius: '10px',
-                            background: w.type === 'bank' ? 'rgba(6, 182, 212, 0.1)' : 'rgba(139, 92, 246, 0.1)',
-                            border: '1px solid var(--border-glass)'
-                          }}>
+                          <div className="ico-sq" style={{ width: '40px', height: '40px' }}>
                             {w.type === 'bank' ? (
-                              <Landmark size={20} color="var(--neon-cyan)" />
+                              <Landmark size={18} />
                             ) : (
-                              <CreditCard size={20} color="var(--neon-purple)" />
+                              <CreditCard size={18} />
                             )}
                           </div>
 
                           <div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#fff' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                              <span style={{ fontSize: '14px', fontWeight: 700 }}>
                                 {w.legalName}
                               </span>
-                              <span className={`badge ${w.type === 'bank' ? 'cyan' : 'purple'}`} style={{ fontSize: '9px', padding: '1px 6px' }}>
-                                {w.type === 'bank' ? 'Fiat Bank' : 'Web3 Crypto'}
+                              <span className="badge">
+                                {w.type === 'bank' ? 'Bank' : 'Crypto'}
                               </span>
                               {isPrimary && (
-                                <span className="badge green" style={{ fontSize: '9px', padding: '1px 6px' }}>
-                                  Primary / Active Branding
-                                </span>
+                                <span className="badge green">Primary</span>
                               )}
                             </div>
 
-                            <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', marginTop: '4px' }}>
+                            <p className="caption" style={{ marginTop: '4px' }}>
                               {w.type === 'bank' ? (
                                 <>
-                                  <span>Bank: {w.bankName}</span> &bull; <span>IBAN: {w.accountNumber}</span> {w.routingCode && <span>&bull; Routing: {w.routingCode}</span>}
+                                  {w.bankName} &bull; {w.accountNumber}{w.routingCode ? ` &bull; ${w.routingCode}` : ''}
                                 </>
                               ) : (
                                 <>
-                                  <span>Chain: {w.chainId}</span> &bull; <span>Address: {w.address}</span>
+                                  Chain {w.chainId} &bull; {w.address}
                                 </>
                               )}
-                            </div>
+                            </p>
                           </div>
                         </div>
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           {!isPrimary && (
                             <button
-                              className="glass-button"
+                              type="button"
+                              className="btn btn-outline"
                               onClick={() => setPrimaryWallet(w.id)}
-                              style={{ padding: '6px 12px', fontSize: '11px', borderColor: 'var(--neon-green)', color: '#34d399' }}
+                              style={{ minHeight: '40px', fontSize: '13px' }}
                             >
-                              <Check size={12} /> Set as Primary
+                              <Check size={12} /> Set primary
                             </button>
                           )}
                           <button
-                            className="glass-button red"
+                            type="button"
+                            className="btn btn-outline"
                             onClick={() => removeWallet(w.id)}
-                            style={{ padding: '6px 10px', fontSize: '11px' }}
+                            style={{ minHeight: '40px', padding: '0 12px' }}
                             title="Remove wallet"
                           >
-                            <Trash2 size={12} />
+                            <Trash2 size={14} />
                           </button>
                         </div>
                       </div>
@@ -467,9 +350,9 @@ export const ProfileModal: React.FC = () => {
 
               {/* Add New Wallet Sub-Form */}
               {isAddingWallet && (
-                <form onSubmit={handleCreateWallet} className="glass-panel" style={{ padding: '20px', background: 'rgba(255,255,255,0.02)', borderColor: 'var(--neon-green)', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                <form onSubmit={handleCreateWallet} className="wizard-card">
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h4 style={{ fontSize: '13px', fontWeight: 'bold', color: '#fff' }}>Register New Settlement Wallet</h4>
+                    <h4 style={{ margin: 0, fontFamily: 'var(--serif)' }}>Add wallet</h4>
                     <button type="button" onClick={() => setIsAddingWallet(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>🗙</button>
                   </div>
 
@@ -584,9 +467,9 @@ export const ProfileModal: React.FC = () => {
           {activeTab === 'demographics' && (
             <form onSubmit={handleSaveDemographics} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div>
-                <h3 style={{ fontSize: '15px', fontWeight: 'bold', color: '#fff' }}>Operator Demographics & Contact Settings</h3>
-                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                  Update your contact details, UI language, and verified node operator credentials.
+                <h3>Contact details</h3>
+                <p className="caption" style={{ marginTop: '4px' }}>
+                  Phone, email, and language for the house.
                 </p>
               </div>
 
@@ -661,8 +544,8 @@ export const ProfileModal: React.FC = () => {
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '10px' }}>
-                <button type="submit" className="glass-button cyan" style={{ padding: '8px 20px', fontSize: '13px' }}>
-                  Save Demographics
+                <button type="submit" className="btn btn-primary">
+                  Save contact details
                 </button>
               </div>
             </form>
@@ -673,20 +556,20 @@ export const ProfileModal: React.FC = () => {
             <form onSubmit={handleSaveLocationAndSocials} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                 <div>
-                  <h3 style={{ fontSize: '15px', fontWeight: 'bold', color: '#fff' }}>Geolocation Enrichment & Social Presence</h3>
-                  <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                    Node jurisdiction, physical coordinates, and online profiles.
+                  <h3>Location & socials</h3>
+                  <p className="caption" style={{ marginTop: '4px' }}>
+                    Where the house is and how people find you online.
                   </p>
                 </div>
 
-                <button 
-                  type="button" 
-                  className="glass-button cyan" 
+                <button
+                  type="button"
+                  className="btn btn-outline"
                   onClick={handleAutoDetect}
                   disabled={isDetectingLocation}
-                  style={{ padding: '6px 12px', fontSize: '11px' }}
+                  style={{ minHeight: '40px', fontSize: '14px' }}
                 >
-                  <Compass size={13} /> {isDetectingLocation ? 'Locating...' : 'Re-Detect Geolocation'}
+                  <Compass size={13} /> {isDetectingLocation ? 'Locating…' : 'Detect location'}
                 </button>
               </div>
 
@@ -782,8 +665,8 @@ export const ProfileModal: React.FC = () => {
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '10px' }}>
-                <button type="submit" className="glass-button purple" style={{ padding: '8px 20px', fontSize: '13px' }}>
-                  Save Location & Socials
+                <button type="submit" className="btn btn-primary">
+                  Save location
                 </button>
               </div>
             </form>
@@ -793,19 +676,13 @@ export const ProfileModal: React.FC = () => {
           {activeTab === 'subscription' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div>
-                <h3 style={{ fontSize: '15px', fontWeight: 'bold', color: '#fff' }}>Free Trial & License Subscription Gateway</h3>
-                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                  Manage node license leases and verify active cryptographic status.
+                <h3>Free trial</h3>
+                <p className="caption" style={{ marginTop: '4px' }}>
+                  Try the full platform for 30 days.
                 </p>
               </div>
 
-              {/* Status Banner */}
-              <div className="glass-panel" style={{
-                padding: '20px',
-                background: trialState.isTrialActive 
-                  ? 'linear-gradient(90deg, rgba(6, 182, 212, 0.08) 0%, rgba(13, 20, 38, 0.7) 100%)' 
-                  : 'rgba(255, 255, 255, 0.01)',
-                borderColor: trialState.isTrialActive ? 'rgba(6, 182, 212, 0.3)' : 'var(--border-glass)',
+              <div className="wizard-card" style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
@@ -813,13 +690,13 @@ export const ProfileModal: React.FC = () => {
                 gap: '15px'
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                  <div style={{ padding: '12px', borderRadius: '10px', background: 'rgba(6, 182, 212, 0.1)' }}>
-                    <Sparkles size={24} color="var(--neon-cyan)" />
+                  <div className="ico-sq">
+                    <Sparkles size={22} />
                   </div>
                   <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#fff' }}>
-                        {trialState.isTrialActive ? '30-Day Free Trial Active' : 'No Active Free Trial'}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '15px', fontWeight: 700 }}>
+                        {trialState.isTrialActive ? '30-day trial active' : 'No active trial'}
                       </span>
                       <span className={`badge ${trialState.isTrialActive ? 'green' : 'amber'}`} style={{ fontSize: '9px', padding: '1px 6px' }}>
                         {trialState.isTrialActive ? `${trialDaysRemaining} Days Left` : 'Inactive'}
@@ -837,40 +714,38 @@ export const ProfileModal: React.FC = () => {
 
                 {!trialState.isTrialActive && (
                   <button
-                    className="glass-button green"
+                    type="button"
+                    className="btn btn-primary"
                     onClick={() => {
                       startFreeTrial(30);
-                      showSaveSuccess('30-day Free Trial successfully activated!');
+                      showSaveSuccess('30-day trial started.');
                     }}
-                    style={{ padding: '8px 16px', fontSize: '12px' }}
                   >
-                    <Sparkles size={14} /> Start 30-Day Free Trial
+                    <Sparkles size={14} /> Start 30-day trial
                   </button>
                 )}
               </div>
 
-              {/* Developer Testing / Reset Utilities */}
-              <div style={{ borderTop: '1px solid var(--border-glass)', paddingTop: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+              <div style={{ borderTop: '1px solid var(--line)', paddingTop: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                 <div>
-                  <div style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <AlertTriangle size={14} color="var(--neon-amber)" /> Reset Identity / Switch Profile
+                  <div style={{ fontSize: '14px', fontWeight: 650, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <AlertTriangle size={14} color="var(--terracotta)" /> Reset profile
                   </div>
-                  <div style={{ fontSize: '11px', color: 'var(--text-dark)' }}>
-                    Clears persistent vault state and triggers the onboarding setup wizard for a new operator or identity.
-                  </div>
+                  <p className="caption">Clears your setup and runs the wizard again.</p>
                 </div>
 
                 <button
-                  className="glass-button red"
+                  type="button"
+                  className="btn btn-outline"
                   onClick={() => {
-                    if (confirm('Are you sure you want to reset your identity vault and switch profiles?')) {
+                    if (confirm('Reset your profile and start setup again?')) {
                       resetProfile();
                       setIsProfileModalOpen(false);
                     }
                   }}
-                  style={{ padding: '6px 14px', fontSize: '12px' }}
+                  style={{ color: 'var(--terracotta)', borderColor: 'var(--terracotta)' }}
                 >
-                  <RotateCcw size={12} /> Reset Identity / Switch Profile
+                  <RotateCcw size={12} /> Reset profile
                 </button>
               </div>
             </div>
@@ -884,3 +759,4 @@ export const ProfileModal: React.FC = () => {
 };
 
 export default ProfileModal;
+
