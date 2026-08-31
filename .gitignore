@@ -5,3 +5,6 @@ dist
 .wrangler
 .env
 .env.local
+daup-frontend-edge/node_modules
+daup-frontend-edge/dist
+app/dist

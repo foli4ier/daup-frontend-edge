@@ -1,0 +1,8 @@
+{
+  "name": "daup-frontend-edge-app-root",
+  "private": true,
+  "description": "Cloudflare Workers Builds entry when root directory is app",
+  "scripts": {
+    "build": "npm ci --prefix ../daup-frontend-edge && npm run build --prefix ../daup-frontend-edge && rm -rf dist && cp -r ../daup-frontend-edge/dist ./dist"
+  }
+}

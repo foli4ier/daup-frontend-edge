@@ -1,9 +1,36 @@
 {
-  "name": "daup-frontend-edge-build-root",
+  "name": "daup-frontend-edge",
   "private": true,
   "version": "1.0.0",
-  "description": "Cloudflare Workers Builds entry when root directory is daup-frontend-edge",
+  "type": "module",
   "scripts": {
-    "build": "cd .. && npm ci && npm run build && rm -rf daup-frontend-edge/dist && cp -r dist daup-frontend-edge/dist"
+    "dev": "vite",
+    "dev:all": "concurrently -k -n \"MCP,EDGE,EATERY,RESELLER,FARMER,MANUF\" -c \"blue,green,magenta,yellow,cyan,red\" \"npm run dev --prefix ../../daup-mcp-servers\" \"vite\" \"npm run dev --prefix ../../daup-eatery\" \"npm run dev --prefix ../../daup-reseller\" \"npm run dev --prefix ../../daup-farmer\" \"npm run dev --prefix ../../daup-manufacturing\"",
+    "dev:core": "concurrently -k -n \"MCP,EDGE,EATERY\" -c \"blue,green,magenta\" \"npm run dev --prefix ../../daup-mcp-servers\" \"vite\" \"npm run dev --prefix ../../daup-eatery\"",
+    "dev:eatery": "npm run dev --prefix ../../daup-eatery",
+    "dev:mcp": "npm run dev --prefix ../../daup-mcp-servers",
+    "dev:farmer": "npm run dev --prefix ../../daup-farmer",
+    "dev:reseller": "npm run dev --prefix ../../daup-reseller",
+    "dev:manufacturing": "npm run dev --prefix ../../daup-manufacturing",
+    "dev:manufacturer": "npm run dev --prefix ../../daup-manufacturing",
+    "build": "vite build",
+    "deploy": "npm run build && wrangler deploy",
+    "preview": "vite preview",
+    "wasm:build": "wasm-pack build ./wasm --out-dir ./src/wasm-pkg --target web"
+  },
+  "dependencies": {
+    "daup-theme": "github:foli4ier/daup-theme#main",
+    "lucide-react": "^0.344.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.66",
+    "@types/react-dom": "^18.2.22",
+    "@vitejs/plugin-react": "^4.2.1",
+    "concurrently": "^8.2.2",
+    "typescript": "^5.2.2",
+    "vite": "^5.1.6",
+    "wrangler": "^4.28.0"
   }
 }
