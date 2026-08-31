@@ -24,22 +24,27 @@ This repository is **not** a monorepo. `package.json` and `wrangler.json` live a
 |--------|--------|
 | Git repository | `foli4ier/daup-frontend-edge` |
 | Production branch | `main` |
-| **Root directory** | **leave empty** (or `/`) |
+| **Root directory** | **leave empty** (recommended) **or** `daup-frontend-edge` |
 | Build command | `npm run build` |
 | Deploy command | `npx wrangler deploy` |
 | Non-production deploy command | `npx wrangler versions upload` |
 
+If your Worker already has **Root directory** set to `daup-frontend-edge`, leave it — this repo now includes a `daup-frontend-edge/` build entry that runs the root build and copies `dist/` for Wrangler.
+
 ### If you see `Failed: root directory not found`
 
-Cloudflare is looking for a subdirectory that does not exist in this repo. Common misconfigurations:
+Cloudflare is looking for a subdirectory that does not exist. Common misconfigurations:
 
-- `daup-frontend-edge` — wrong for this standalone repo (use empty root)
 - `dist` — that is the **build output**, not the project root
 - `app`, `frontend`, `packages/...` — not used here
+- `/` with a trailing path typo
 
-Fix: open **Settings → Builds → Root directory**, clear the field (or set `/`), save, and retry the build.
+Fix options:
 
-Asset output is configured in `wrangler.json` as `"directory": "./dist"`. Do not put `dist` in the Root directory setting.
+1. **Recommended:** set **Root directory** to empty, save, retry build.
+2. **Also works:** set **Root directory** to `daup-frontend-edge` (supported via the wrapper folder in this repo).
+
+Do not put `dist` in the Root directory setting. Asset output is configured in `wrangler.json` as `"directory": "./dist"`.
 
 ### Custom domain
 
