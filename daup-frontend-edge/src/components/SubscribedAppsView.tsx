@@ -42,15 +42,17 @@ export const SubscribedAppsView: React.FC = () => {
             <p>{eatery.body}</p>
           </div>
         </div>
-        <div className="card-links place-row-action">
+        <div className="place-row-action">
           <a
-            className="btn btn-primary"
+            className="btn btn-primary btn-wide"
             href={eatery.href}
             data-testid="open-the-house"
             onClick={openTheHouse}
           >
             {eatery.actionLabel}
           </a>
+        </div>
+        <div className="card-links">
           <a href={DOCS_SHIFT}>Walk me through it ›</a>
         </div>
       </article>
