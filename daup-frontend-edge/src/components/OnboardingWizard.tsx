@@ -6,6 +6,8 @@ import { useUserProfile } from '../context/UserProfileContext';
 import { BankWalletConfig, CryptoWalletConfig, SexType, UserLocation, UserDemographics, SocialLinks } from '../types/profile';
 import { getCurrencyForCountry } from '../utils/currency';
 
+import { SEE_YOUR_APPS_LABEL, WHERE_IS_THE_EATERY, WHERE_IS_THE_EATERY_SUB } from '../hub/copy';
+
 const EATERY = 'https://eatery.daup.co.za/';
 
 const SUPPORTED_LANGUAGES = [
@@ -28,15 +30,16 @@ const CRYPTO_CHAINS = [
 ];
 
 const STEP_COPY = [
-  { title: 'Where is the eatery?', sub: 'Name the place. Staff join with a WhatsApp tap.' },
-  { title: 'Who should we reach?', sub: 'A phone and email for the house. WhatsApp is how staff join.' },
+  { title: WHERE_IS_THE_EATERY, sub: WHERE_IS_THE_EATERY_SUB },
+  { title: 'Who should we reach?', sub: 'A phone for the house. WhatsApp is how staff join.' },
   { title: 'Invite tonight’s floor', sub: 'You send a WhatsApp. They never join as a new business.' },
-  { title: 'You’re ready', sub: 'Open the eatery. Invite tonight’s floor.' }
+  { title: 'You’re ready', sub: 'See your apps. Then open the house from the hub.' }
 ];
 
 export const OnboardingWizard: React.FC = () => {
   const {
     profile,
+    ownerSession,
     completeOnboarding,
     detectLocation,
     isDetectingLocation,
@@ -65,7 +68,7 @@ export const OnboardingWizard: React.FC = () => {
   });
 
   const [demographicsForm, setDemographicsForm] = useState<UserDemographics>({
-    email: profile.demographics.email || '',
+    email: ownerSession?.email || profile.demographics.email || '',
     contactNumber: profile.demographics.contactNumber || '',
     whatsappNumber: profile.demographics.whatsappNumber || '',
     language: profile.demographics.language || 'en',
@@ -118,10 +121,6 @@ export const OnboardingWizard: React.FC = () => {
   };
 
   const validateStep2 = () => {
-    if (!demographicsForm.email.trim() || !demographicsForm.email.includes('@')) {
-      setErrorMsg('Add an email we can reach.');
-      return false;
-    }
     if (!demographicsForm.contactNumber.trim()) {
       setErrorMsg('Add a phone number.');
       return false;
@@ -188,7 +187,10 @@ export const OnboardingWizard: React.FC = () => {
     completeOnboarding({
       location: locationForm,
       socials: socialsForm,
-      demographics: demographicsForm,
+      demographics: {
+        ...demographicsForm,
+        email: ownerSession?.email || demographicsForm.email
+      },
       wallets: [initialWallet],
       primaryWalletId: newWalletId
     });
@@ -218,7 +220,7 @@ export const OnboardingWizard: React.FC = () => {
         </div>
       </header>
 
-      <div className="wizard-wrap">
+      <div className="wizard-wrap" data-testid="hub-wizard">
         <p className="wizard-progress-label">Step {step} of 4</p>
         <div className="wizard-bar" aria-hidden="true">
           <span style={{ width: `${progress}%` }} />
@@ -343,16 +345,6 @@ export const OnboardingWizard: React.FC = () => {
             <>
               <div className="wizard-grid two">
                 <div className="owner-field">
-                  <label htmlFor="email">Email</label>
-                  <input
-                    id="email"
-                    type="email"
-                    placeholder="you@theolive.co.za"
-                    value={demographicsForm.email}
-                    onChange={(e) => setDemographicsForm({ ...demographicsForm, email: e.target.value })}
-                  />
-                </div>
-                <div className="owner-field">
                   <label htmlFor="phone">Phone</label>
                   <input
                     id="phone"
@@ -360,6 +352,7 @@ export const OnboardingWizard: React.FC = () => {
                     placeholder="+27 82 000 0000"
                     value={demographicsForm.contactNumber}
                     onChange={(e) => setDemographicsForm({ ...demographicsForm, contactNumber: e.target.value })}
+                    autoFocus
                   />
                 </div>
                 <div className="owner-field">
@@ -492,10 +485,10 @@ export const OnboardingWizard: React.FC = () => {
                     .join(', ')}
                 </dd>
                 <dt>Reach you</dt>
-                <dd>{demographicsForm.email} · {demographicsForm.contactNumber}</dd>
+                <dd>{ownerSession?.email || demographicsForm.email} · {demographicsForm.contactNumber}</dd>
               </dl>
               <p className="caption" style={{ margin: 0 }}>
-                After this, open the eatery or invite tonight’s floor. Farm, reseller, and maker are next.
+                After this, open the house from your hub. Invite tonight’s floor when you are ready.
               </p>
               {showAdvanced && (
                 <p className="caption">
@@ -520,8 +513,8 @@ export const OnboardingWizard: React.FC = () => {
                 Continue <ArrowRight size={16} />
               </button>
             ) : (
-              <button type="button" className="btn btn-primary" onClick={handleFinishOnboarding}>
-                <Check size={16} /> Open the house
+              <button type="button" className="btn btn-primary" onClick={handleFinishOnboarding} data-testid="see-your-apps">
+                <Check size={16} /> {SEE_YOUR_APPS_LABEL}
               </button>
             )}
           </div>

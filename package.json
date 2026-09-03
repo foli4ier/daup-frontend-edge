@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "npm run dev --prefix daup-frontend-edge",
     "build": "npm ci --prefix daup-frontend-edge && npm run build --prefix daup-frontend-edge",
+    "test": "npm test --prefix daup-frontend-edge",
     "deploy": "npm run deploy --prefix daup-frontend-edge",
     "preview": "npm run preview --prefix daup-frontend-edge"
   }

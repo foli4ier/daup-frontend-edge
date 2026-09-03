@@ -2,13 +2,15 @@ import React from 'react';
 import { Loader2 } from 'lucide-react';
 import { useUserProfile } from '../context/UserProfileContext';
 import { OnboardingWizard } from '../components/OnboardingWizard';
+import { HubEmailDoor } from '../components/HubEmailDoor';
+import { resolveHubSurface } from '../hub/ownerSession';
 
 interface OnboardingGuardProps {
   children: React.ReactNode;
 }
 
 export const OnboardingGuard: React.FC<OnboardingGuardProps> = ({ children }) => {
-  const { isHydrating, hasCompletedOnboarding, activeWallet } = useUserProfile();
+  const { isHydrating, hasHouse, ownerSession, openHubWithEmail } = useUserProfile();
 
   if (isHydrating) {
     return (
@@ -23,7 +25,13 @@ export const OnboardingGuard: React.FC<OnboardingGuardProps> = ({ children }) =>
     );
   }
 
-  if (!hasCompletedOnboarding || !activeWallet) {
+  const surface = resolveHubSurface({ session: ownerSession, hasHouse });
+
+  if (surface === 'email-door') {
+    return <HubEmailDoor onOpenHub={openHubWithEmail} />;
+  }
+
+  if (surface === 'wizard') {
     return <OnboardingWizard />;
   }
 
