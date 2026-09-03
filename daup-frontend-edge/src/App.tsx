@@ -13,11 +13,12 @@ import { McpConsole } from './components/McpConsole';
 import { MarketplaceView } from './components/MarketplaceView';
 import { SubscribedAppsView } from './components/SubscribedAppsView';
 import { LicenseManagementView } from './components/LicenseManagementView';
-import { McpProvider, getSubscriptionForDidAndModule, useMcp } from './hooks/useMcpClient';
-import { FarmerWorkspace, ResellerWorkspace, EateryWorkspace, ManufacturingWorkspace } from './components/VerticalAppWorkspaces';
+import { McpProvider, getSubscriptionForDidAndModule } from './hooks/useMcpClient';
+import { FarmerWorkspace, ResellerWorkspace, ManufacturingWorkspace } from './components/VerticalAppWorkspaces';
 import { ProfileModal } from './components/ProfileModal';
 import { MODULE_METADATA } from './components/withLicenseCheck';
 import { deriveSeedNode, deployAppInstance } from './stores/identityStore';
+import { navigateToTheHouse } from './hub/ownerArrival';
 
 const EATERY = 'https://eatery.daup.co.za/';
 
@@ -28,8 +29,7 @@ function staffInviteHref(houseName: string) {
 
 const DashboardContent: React.FC = () => {
   const { did, seed, connectWallet, wasmLoaded, isLoadingWasm } = useDIDWallet();
-  const { instanceName, activeWallet, identityKeySeedNode, setIsProfileModalOpen } = useUserProfile();
-  const { sendRequest } = useMcp();
+  const { instanceName, activeWallet, identityKeySeedNode, setIsProfileModalOpen, ownerSession } = useUserProfile();
 
   const [activeTab, setActiveTab] = useState<'home' | 'licenses' | 'marketplace' | 'telemetry' | 'dht' | 'dcdn' | 'mcp'>('home');
   const [launchedApp, setLaunchedApp] = useState<string | null>(null);
@@ -94,38 +94,14 @@ const DashboardContent: React.FC = () => {
     saveInstalled(updated);
   };
 
-  const handleDeleteInstance = async (moduleName: string, instName: string) => {
-    if (did) {
-      try {
-        await sendRequest('instance_delete_from_network', {
-          did,
-          instanceName: instName,
-          module: moduleName
-        });
-      } catch (e) {
-        console.warn('Network deletion broadcast notice:', e);
-      }
+  const handleLaunchApp = (moduleName: string) => {
+    if (moduleName === 'daup-eatery') {
+      const house = activeWallet?.legalName || instanceName || '';
+      const email = ownerSession?.email || '';
+      navigateToTheHouse({ email, house });
+      return;
     }
-
-    const updated = { ...installedApps, [moduleName]: false };
-    saveInstalled(updated);
-
-    try {
-      const rawSubs = localStorage.getItem('daup_subscriptions_db');
-      const allSubs = rawSubs ? JSON.parse(rawSubs) : {};
-      if (did) {
-        if (!allSubs[did]) allSubs[did] = {};
-        allSubs[did][moduleName] = {
-          did,
-          module: moduleName,
-          tier: 'Free',
-          expirationTimestamp: 0
-        };
-        localStorage.setItem('daup_subscriptions_db', JSON.stringify(allSubs));
-      }
-    } catch (e) {}
-
-    loadSubscriptions();
+    setLaunchedApp(moduleName);
   };
 
   const handleExitApp = () => setLaunchedApp(null);
@@ -220,23 +196,12 @@ const DashboardContent: React.FC = () => {
           <div className="protocol-console">
             {launchedApp === 'daup-farmer' && <FarmerWorkspace onExit={handleExitApp} />}
             {launchedApp === 'daup-reseller' && <ResellerWorkspace onExit={handleExitApp} />}
-            {launchedApp === 'daup-eatery' && <EateryWorkspace onExit={handleExitApp} />}
             {launchedApp === 'daup-manufacturing' && <ManufacturingWorkspace onExit={handleExitApp} />}
           </div>
         ) : (
           <>
             {(!isAdvanced || activeTab === 'home') && (
-              <SubscribedAppsView
-                installedApps={installedApps}
-                subsData={subsData}
-                currentTime={currentTime}
-                onLaunchApp={setLaunchedApp}
-                onGoToMarketplace={() => {
-                  setIsAdvanced(true);
-                  setActiveTab('marketplace');
-                }}
-                onDeleteInstance={handleDeleteInstance}
-              />
+              <SubscribedAppsView />
             )}
             {showProtocol && activeTab === 'licenses' && (
               <div className="protocol-console">
@@ -253,7 +218,7 @@ const DashboardContent: React.FC = () => {
                   installedApps={installedApps}
                   subsData={subsData}
                   currentTime={currentTime}
-                  onLaunchApp={setLaunchedApp}
+                  onLaunchApp={handleLaunchApp}
                   onInstallApp={handleInstallApp}
                   onUninstallApp={handleUninstallApp}
                 />

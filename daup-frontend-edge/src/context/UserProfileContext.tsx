@@ -21,10 +21,17 @@ import {
   isLegalNameUniqueOnPlatform,
   registerLegalNameOnPlatform,
   unregisterLegalNameOnPlatform,
-  DEFAULT_PROFILE,
-  DEFAULT_TRIAL_STATE,
   DEFAULT_VAULT
 } from '../stores/identityStore';
+import {
+  OwnerSession,
+  clearOwnerSession,
+  hasNamedHouse,
+  loadOwnerSession,
+  saveOwnerSession,
+  signInWithEmail,
+  writeOwnerCompanionCookie
+} from '../hub/ownerSession';
 
 export interface UserProfileContextType {
   vault: UserIdentityVault;
@@ -32,6 +39,9 @@ export interface UserProfileContextType {
   trialState: SubscriptionTrialState;
   isOnboarded: boolean;
   hasCompletedOnboarding: boolean;
+  hasHouse: boolean;
+  ownerSession: OwnerSession | null;
+  openHubWithEmail: (session: OwnerSession) => void;
   isHydrating: boolean;
   primaryWallet: WalletEntry | null;
   activeWallet: WalletEntry | null;
@@ -61,6 +71,7 @@ const UserProfileContext = createContext<UserProfileContextType | undefined>(und
 
 export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [vault, setVault] = useState<UserIdentityVault>(DEFAULT_VAULT);
+  const [ownerSession, setOwnerSession] = useState<OwnerSession | null>(null);
   const [isHydrating, setIsHydrating] = useState<boolean>(true);
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -70,6 +81,13 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
     try {
       const initialVault = loadIdentityVault();
       setVault(initialVault);
+      const session = loadOwnerSession();
+      if (session) {
+        setOwnerSession(session);
+      } else if (initialVault.profile.demographics.email && initialVault.hasCompletedOnboarding) {
+        const restored = signInWithEmail(initialVault.profile.demographics.email);
+        if (restored.ok) setOwnerSession(restored.session);
+      }
     } catch (err) {
       console.error('[UserProfileProvider] Hydration error:', err);
     } finally {
@@ -111,6 +129,24 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const hasCompletedOnboarding = vault.hasCompletedOnboarding;
   const isOnboarded = vault.hasCompletedOnboarding;
   const activeWallet = vault.activeWallet;
+  const hasHouse = hasNamedHouse(activeWallet?.legalName) && hasCompletedOnboarding;
+
+  const openHubWithEmail = useCallback((session: OwnerSession) => {
+    saveOwnerSession(session);
+    setOwnerSession(session);
+    commitVault(prev => ({
+      ...prev,
+      profile: {
+        ...prev.profile,
+        demographics: {
+          ...prev.profile.demographics,
+          email: session.email
+        },
+        updatedAt: Date.now()
+      },
+      updatedAt: Date.now()
+    }));
+  }, [commitVault]);
   const primaryWallet = vault.activeWallet;
   const identityKeySeedNode = vault.identityKeySeedNode;
 
@@ -136,11 +172,7 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
     if (profile.wallets && profile.wallets.length > 0 && profile.wallets[0].legalName?.trim()) {
       return profile.wallets[0].legalName.trim();
     }
-    if (profile.demographics.email) {
-      const prefix = profile.demographics.email.split('@')[0];
-      return prefix.charAt(0).toUpperCase() + prefix.slice(1) + ' Node';
-    }
-    return 'Decentralized Operator';
+    return 'Your hub';
   }, [activeWallet, profile.wallets, profile.demographics.email]);
 
   // Compute trial days remaining
@@ -463,7 +495,18 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
       });
       localStorage.setItem('daup_subscriptions_db', JSON.stringify(allSubs));
     } catch (e) {}
-  }, [commitVault]);
+
+    const house = (finalProfileData?.wallets?.[0]?.legalName
+      || vault.activeWallet?.legalName
+      || '').trim();
+    const email = (finalProfileData?.demographics?.email
+      || ownerSession?.email
+      || vault.profile.demographics.email
+      || '').trim();
+    if (email && house) {
+      writeOwnerCompanionCookie(email, house);
+    }
+  }, [commitVault, ownerSession?.email, vault.activeWallet?.legalName, vault.profile.demographics.email]);
 
   // Geolocation Auto-Enrichment
   const detectLocation = useCallback(async (): Promise<UserLocation> => {
@@ -564,6 +607,8 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
       unregisterLegalNameOnPlatform(activeWallet.legalName);
     }
     resetIdentityVault();
+    clearOwnerSession();
+    setOwnerSession(null);
     setVault(DEFAULT_VAULT);
   }, [activeWallet?.legalName]);
 
@@ -575,6 +620,9 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
         trialState,
         isOnboarded,
         hasCompletedOnboarding,
+        hasHouse,
+        ownerSession,
+        openHubWithEmail,
         isHydrating,
         primaryWallet,
         activeWallet,

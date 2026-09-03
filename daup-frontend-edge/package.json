@@ -16,6 +16,7 @@
     "build": "vite build",
     "deploy": "npm run build && wrangler deploy",
     "preview": "vite preview",
+    "test": "vitest run",
     "wasm:build": "wasm-pack build ./wasm --out-dir ./src/wasm-pkg --target web"
   },
   "dependencies": {
@@ -31,6 +32,8 @@
     "concurrently": "^8.2.2",
     "typescript": "^5.2.2",
     "vite": "^5.1.6",
+    "vitest": "^1.6.0",
+    "jsdom": "^24.0.0",
     "wrangler": "^4.28.0"
   }
 }

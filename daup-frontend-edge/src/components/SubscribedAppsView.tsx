@@ -1,38 +1,32 @@
 import React from 'react';
 import { Wheat, Store, Factory } from 'lucide-react';
 import { useUserProfile } from '../context/UserProfileContext';
+import { COMING_KICKER, YOUR_APPS_KICKER } from '../hub/copy';
+import { COMING_APPS, listOwnerPlaces } from '../hub/places';
+import { navigateToTheHouse } from '../hub/ownerArrival';
 
-const EATERY = 'https://eatery.daup.co.za/';
 const DOCS_SHIFT = 'https://www.daup.co.za/docs/eatery/tuesday-lunch';
-const DOCS_SETUP = 'https://www.daup.co.za/docs/hub/set-up-eatery';
 
-function staffInviteHref(houseName: string) {
-  const text = `You're on tonight's floor at ${houseName}. Open the eatery: ${EATERY}`;
-  return `https://wa.me/?text=${encodeURIComponent(text)}`;
-}
-
-interface SubscribedAppsViewProps {
-  installedApps: Record<string, boolean>;
-  subsData: Record<string, any>;
-  currentTime: number;
-  onLaunchApp: (moduleName: string) => void;
-  onGoToMarketplace: () => void;
-  onDeleteInstance?: (moduleKey: string, instanceName: string) => Promise<void> | void;
-}
-
-export const SubscribedAppsView: React.FC<SubscribedAppsViewProps> = () => {
-  const { activeWallet, instanceName } = useUserProfile();
+export const SubscribedAppsView: React.FC = () => {
+  const { activeWallet, instanceName, ownerSession } = useUserProfile();
   const houseName = activeWallet?.legalName || instanceName || 'the house';
-  const inviteHref = staffInviteHref(houseName);
+  const email = ownerSession?.email || '';
+  const places = listOwnerPlaces({ email, placeName: houseName });
+  const eatery = places[0];
+
+  const openTheHouse = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    event.preventDefault();
+    navigateToTheHouse({ email, house: houseName });
+  };
 
   return (
-    <div className="apps-grid">
+    <div className="apps-grid" data-testid="hub-home">
       <div className="section-head live-kicker">
-        <span className="kicker">Live now</span>
+        <span className="kicker">{YOUR_APPS_KICKER}</span>
         <span className="rule" />
       </div>
 
-      <article className="card">
+      <article className="card" data-testid="eatery-place-row">
         <div className="card-top">
           <span className="ico-sq" aria-hidden="true">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -42,49 +36,36 @@ export const SubscribedAppsView: React.FC<SubscribedAppsViewProps> = () => {
             </svg>
           </span>
           <div>
-            <h3>
-              Eatery <span className="live">LIVE</span>
+            <h3 data-testid="eatery-place-name">
+              {eatery.title} <span className="live">LIVE</span>
             </h3>
-            <p>Tables, tickets, kitchen, stock.</p>
+            <p>{eatery.body}</p>
           </div>
         </div>
+        <div className="place-row-action">
+          <a
+            className="btn btn-primary btn-wide"
+            href={eatery.href}
+            data-testid="open-the-house"
+            onClick={openTheHouse}
+          >
+            {eatery.actionLabel}
+          </a>
+        </div>
         <div className="card-links">
-          <a href={EATERY}>Open eatery ›</a>
           <a href={DOCS_SHIFT}>Walk me through it ›</a>
-        </div>
-      </article>
-
-      <article className="card">
-        <div className="card-top">
-          <span className="ico-sq" aria-hidden="true">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 10.5 12 3l9 7.5" />
-              <path d="M5 10v10h14V10" />
-              <path d="M9 20v-6h6v6" />
-            </svg>
-          </span>
-          <div>
-            <h3>
-              Your hub <span className="live">LIVE</span>
-            </h3>
-            <p>Where the owner sets up the business and invites staff.</p>
-          </div>
-        </div>
-        <div className="card-links">
-          <a href={inviteHref} target="_blank" rel="noreferrer">Invite tonight’s floor ›</a>
-          <a href={DOCS_SETUP}>Walk me through it ›</a>
         </div>
       </article>
 
       <aside className="coming" aria-label="Coming soon">
         <div className="coming-head">
-          <span className="kicker">Coming</span>
+          <span className="kicker">{COMING_KICKER}</span>
           <span className="rule" />
         </div>
         <div className="chips">
-          <div className="chip"><Wheat size={16} /> Farm</div>
-          <div className="chip"><Store size={16} /> Reseller</div>
-          <div className="chip"><Factory size={16} /> Maker</div>
+          <div className="chip"><Wheat size={16} /> {COMING_APPS[0].title}</div>
+          <div className="chip"><Store size={16} /> {COMING_APPS[1].title}</div>
+          <div className="chip"><Factory size={16} /> {COMING_APPS[2].title}</div>
         </div>
         <p className="caption">Same chain. Not live yet.</p>
       </aside>
