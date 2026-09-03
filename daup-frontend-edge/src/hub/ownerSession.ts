@@ -1,4 +1,4 @@
-import { persistOwnerCookie, mintOwnerArrivalToken, readOwnerArrivalToken, readOwnerCookie } from './ownerArrival';
+import { persistOwnerCookie, mintOwnerArrivalToken, readOwnerArrivalToken, readOwnerCookie, expireOwnerCookie } from './ownerArrival';
 import { INVALID_EMAIL_MESSAGE } from './copy';
 
 export const OWNER_SESSION_STORAGE_KEY = 'daup:hub:owner_session';
@@ -44,6 +44,7 @@ export function clearOwnerSession(): void {
   } catch {
     // ignore
   }
+  expireOwnerCookie();
 }
 
 export function loadOwnerSession(): OwnerSession | null {
@@ -79,7 +80,7 @@ export function signInWithEmail(
 
 export function writeOwnerCompanionCookie(email: string, house = ''): void {
   // Host-only on the hub. Never Domain=.daup.co.za. Handoff is the token URL.
-  if (!house.trim()) return;
+  if (!house.trim() || !isRegisteredOwnerEmail(email)) return;
   const token = mintOwnerArrivalToken({ email, house });
   persistOwnerCookie(token);
 }

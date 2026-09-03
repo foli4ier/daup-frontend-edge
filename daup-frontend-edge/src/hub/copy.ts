@@ -15,9 +15,12 @@ export const INVALID_EMAIL_MESSAGE = 'Add the email we can reach.';
 export const WHERE_IS_THE_EATERY = 'Where is the eatery?';
 export const WHERE_IS_THE_EATERY_SUB = 'Name the place. Staff join with a WhatsApp tap.';
 export const YOUR_APPS_KICKER = 'Your apps';
+export const OTHER_APPS_KICKER = 'Other apps';
 export const COMING_KICKER = 'Coming';
+export const SAME_CHAIN_CAPTION = 'Same chain. Not live yet.';
 export const EATERY_ROW_BODY = 'Tables, tickets, kitchen, stock.';
 export const HUB_HOME_FALLBACK = 'Your hub';
+export const LOG_OFF_LABEL = 'Log off.';
 
 const BANNED_RE = new RegExp(`\\b(${BANNED_DOOR_WORDS.join('|')})\\b`, 'i');
 
@@ -37,7 +40,10 @@ export const HUB_HOME_COPY = [
   YOUR_APPS_KICKER,
   OPEN_THE_HOUSE_LABEL,
   EATERY_ROW_BODY,
+  OTHER_APPS_KICKER,
   COMING_KICKER,
+  SAME_CHAIN_CAPTION,
+  LOG_OFF_LABEL,
   'Farm',
   'Reseller',
   'Maker'

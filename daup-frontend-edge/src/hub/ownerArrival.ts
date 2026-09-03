@@ -63,13 +63,18 @@ export function mintOwnerArrivalToken(args: {
   now?: Date;
   ttlMs?: number;
 }): string {
+  const email = (args.email || '').trim().toLowerCase();
+  const house = (args.house || '').trim();
+  if (!email || !house) {
+    throw new Error('Open the house needs the house email.');
+  }
   const now = args.now ?? new Date();
   const ttl = args.ttlMs ?? OWNER_ARRIVAL_TTL_MS;
   const payload: OwnerArrivalClaims = {
     v: 1,
     role: 'owner',
-    email: (args.email || '').trim().toLowerCase(),
-    house: (args.house || '').trim(),
+    email,
+    house,
     exp: now.getTime() + ttl
   };
   const header = utf8ToB64url(JSON.stringify({ alg: 'DAUP1', typ: 'JWT' }));
@@ -107,7 +112,10 @@ export function buildOpenTheHouseUrl(args: {
   now?: Date;
   origin?: string;
 }): string {
-  const token = mintOwnerArrivalToken({ email: args.email, house: args.house, now: args.now });
+  const email = (args.email || '').trim();
+  const house = (args.house || '').trim();
+  if (!email || !house) return '';
+  const token = mintOwnerArrivalToken({ email, house, now: args.now });
   const origin = eateryOwnerOrigin(args.origin);
   return `${origin}/owner?token=${encodeURIComponent(token)}`;
 }
@@ -167,6 +175,35 @@ export function persistOwnerCookie(token: string, hostname?: string): void {
   document.cookie = header;
 }
 
+/**
+ * Expire the host-only hub cookie. Max-Age=0, Path=/, never Domain.
+ * Must match how it was written so the browser actually drops it.
+ */
+export function buildExpireOwnerCookie(hostname?: string): string {
+  const host = hostname ?? (typeof window !== 'undefined' ? window.location.hostname : '');
+  const parts = [
+    `${OWNER_COOKIE_NAME}=`,
+    'Path=/',
+    'Max-Age=0',
+    'SameSite=Lax'
+  ];
+  if (host === 'app.daup.co.za') {
+    parts.push('Secure');
+  }
+  const header = parts.join('; ');
+  if (cookieSetsParentDomain(header)) {
+    return `${OWNER_COOKIE_NAME}=; Path=/; Max-Age=0`;
+  }
+  return header;
+}
+
+export function expireOwnerCookie(hostname?: string): void {
+  if (typeof document === 'undefined') return;
+  const header = buildExpireOwnerCookie(hostname);
+  if (cookieSetsParentDomain(header)) return;
+  document.cookie = header;
+}
+
 export function readOwnerCookie(cookieHeader?: string): string | null {
   const raw = cookieHeader ?? (typeof document !== 'undefined' ? document.cookie : '');
   if (!raw) return null;
@@ -182,6 +219,7 @@ export function readOwnerCookie(cookieHeader?: string): string | null {
 /** Full navigation. Token URL is the handoff — no cookie write. */
 export function navigateToTheHouse(args: { email: string; house: string; origin?: string }): string {
   const url = buildOpenTheHouseUrl(args);
+  if (!url) return '';
   if (typeof window !== 'undefined') {
     try {
       window.location.assign(url);

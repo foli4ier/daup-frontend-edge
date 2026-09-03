@@ -21,6 +21,14 @@ export function listOwnerPlaces(args: {
   origin?: string;
 }): HubPlaceRow[] {
   const title = eateryRowTitle(args.placeName);
+  const email = (args.email || '').trim();
+  const href = email
+    ? buildOpenTheHouseUrl({
+        email,
+        house: title,
+        origin: args.origin
+      })
+    : undefined;
   return [
     {
       id: 'eatery',
@@ -28,17 +36,13 @@ export function listOwnerPlaces(args: {
       body: EATERY_ROW_BODY,
       live: true,
       actionLabel: OPEN_THE_HOUSE_LABEL,
-      href: buildOpenTheHouseUrl({
-        email: args.email,
-        house: title,
-        origin: args.origin
-      })
+      href
     }
   ];
 }
 
 export const COMING_APPS: HubPlaceRow[] = [
-  { id: 'farm', title: 'Farm', body: 'Same chain. Not live yet.', live: false },
-  { id: 'reseller', title: 'Reseller', body: 'Same chain. Not live yet.', live: false },
-  { id: 'maker', title: 'Maker', body: 'Same chain. Not live yet.', live: false }
+  { id: 'farm', title: 'Farm', body: '', live: false },
+  { id: 'reseller', title: 'Reseller', body: '', live: false },
+  { id: 'maker', title: 'Maker', body: '', live: false }
 ];

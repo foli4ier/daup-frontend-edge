@@ -124,6 +124,12 @@ body {
   background: var(--line);
 }
 
+.apps-home {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
 .apps-grid {
   display: grid;
   grid-template-columns: 1fr minmax(200px, 0.72fr);
@@ -174,6 +180,32 @@ body {
   font-weight: 750;
   letter-spacing: 0.08em;
   font-family: var(--sans);
+}
+
+.coming-flag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--chip);
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  font-family: var(--sans);
+}
+
+.other-apps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.coming-card {
+  box-shadow: none;
+  background: transparent;
+  border: 1.5px solid var(--line);
 }
 
 .card-links {
@@ -425,6 +457,10 @@ body {
   .apps-grid .coming {
     grid-column: auto;
     grid-row: auto;
+  }
+
+  .other-apps {
+    grid-template-columns: 1fr;
   }
 
   .chips {

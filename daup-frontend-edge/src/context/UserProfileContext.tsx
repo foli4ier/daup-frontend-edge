@@ -29,7 +29,6 @@ import {
   hasNamedHouse,
   loadOwnerSession,
   saveOwnerSession,
-  signInWithEmail,
   writeOwnerCompanionCookie
 } from '../hub/ownerSession';
 
@@ -42,6 +41,7 @@ export interface UserProfileContextType {
   hasHouse: boolean;
   ownerSession: OwnerSession | null;
   openHubWithEmail: (session: OwnerSession) => void;
+  logOffHub: () => void;
   isHydrating: boolean;
   primaryWallet: WalletEntry | null;
   activeWallet: WalletEntry | null;
@@ -84,9 +84,6 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
       const session = loadOwnerSession();
       if (session) {
         setOwnerSession(session);
-      } else if (initialVault.profile.demographics.email && initialVault.hasCompletedOnboarding) {
-        const restored = signInWithEmail(initialVault.profile.demographics.email);
-        if (restored.ok) setOwnerSession(restored.session);
       }
     } catch (err) {
       console.error('[UserProfileProvider] Hydration error:', err);
@@ -147,6 +144,12 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
       updatedAt: Date.now()
     }));
   }, [commitVault]);
+
+  const logOffHub = useCallback(() => {
+    clearOwnerSession();
+    setOwnerSession(null);
+  }, []);
+
   const primaryWallet = vault.activeWallet;
   const identityKeySeedNode = vault.identityKeySeedNode;
 
@@ -623,6 +626,7 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
         hasHouse,
         ownerSession,
         openHubWithEmail,
+        logOffHub,
         isHydrating,
         primaryWallet,
         activeWallet,

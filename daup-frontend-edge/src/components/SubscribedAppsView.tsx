@@ -1,11 +1,22 @@
 import React from 'react';
 import { Wheat, Store, Factory } from 'lucide-react';
 import { useUserProfile } from '../context/UserProfileContext';
-import { COMING_KICKER, YOUR_APPS_KICKER } from '../hub/copy';
+import {
+  COMING_KICKER,
+  OTHER_APPS_KICKER,
+  SAME_CHAIN_CAPTION,
+  YOUR_APPS_KICKER
+} from '../hub/copy';
 import { COMING_APPS, listOwnerPlaces } from '../hub/places';
 import { navigateToTheHouse } from '../hub/ownerArrival';
 
 const DOCS_SHIFT = 'https://www.daup.co.za/docs/eatery/tuesday-lunch';
+
+const COMING_ICONS = {
+  farm: Wheat,
+  reseller: Store,
+  maker: Factory
+} as const;
 
 export const SubscribedAppsView: React.FC = () => {
   const { activeWallet, instanceName, ownerSession } = useUserProfile();
@@ -16,12 +27,13 @@ export const SubscribedAppsView: React.FC = () => {
 
   const openTheHouse = (event: React.MouseEvent<HTMLAnchorElement>) => {
     event.preventDefault();
+    if (!email.trim() || !houseName.trim()) return;
     navigateToTheHouse({ email, house: houseName });
   };
 
   return (
-    <div className="apps-grid" data-testid="hub-home">
-      <div className="section-head live-kicker">
+    <div className="apps-home" data-testid="hub-home">
+      <div className="section-head">
         <span className="kicker">{YOUR_APPS_KICKER}</span>
         <span className="rule" />
       </div>
@@ -45,7 +57,7 @@ export const SubscribedAppsView: React.FC = () => {
         <div className="place-row-action">
           <a
             className="btn btn-primary btn-wide"
-            href={eatery.href}
+            href={eatery.href || undefined}
             data-testid="open-the-house"
             onClick={openTheHouse}
           >
@@ -57,18 +69,35 @@ export const SubscribedAppsView: React.FC = () => {
         </div>
       </article>
 
-      <aside className="coming" aria-label="Coming soon">
-        <div className="coming-head">
-          <span className="kicker">{COMING_KICKER}</span>
-          <span className="rule" />
-        </div>
-        <div className="chips">
-          <div className="chip"><Wheat size={16} /> {COMING_APPS[0].title}</div>
-          <div className="chip"><Store size={16} /> {COMING_APPS[1].title}</div>
-          <div className="chip"><Factory size={16} /> {COMING_APPS[2].title}</div>
-        </div>
-        <p className="caption">Same chain. Not live yet.</p>
-      </aside>
+      <div className="section-head">
+        <span className="kicker">{OTHER_APPS_KICKER}</span>
+        <span className="rule" />
+      </div>
+
+      <div className="other-apps" data-testid="other-apps">
+        {COMING_APPS.map((app) => {
+          const Icon = COMING_ICONS[app.id as keyof typeof COMING_ICONS];
+          return (
+            <article
+              className="card coming-card"
+              key={app.id}
+              data-testid={`coming-app-${app.id}`}
+            >
+              <div className="card-top">
+                <span className="ico-sq" aria-hidden="true">
+                  {Icon ? <Icon size={22} /> : null}
+                </span>
+                <div>
+                  <h3>
+                    {app.title} <span className="coming-flag">{COMING_KICKER}</span>
+                  </h3>
+                </div>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+      <p className="caption" data-testid="same-chain-caption">{SAME_CHAIN_CAPTION}</p>
     </div>
   );
 };
