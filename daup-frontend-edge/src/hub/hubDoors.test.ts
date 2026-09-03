@@ -11,6 +11,8 @@ import {
 } from './copy';
 import {
   buildOpenTheHouseUrl,
+  buildOwnerHubCookie,
+  cookieSetsParentDomain,
   mintOwnerArrivalToken,
   ownerArrivalExposesBannedQuery,
   persistOwnerCookie,
@@ -119,15 +121,24 @@ describe('Open the house arrival', () => {
     expect(readOwnerArrivalToken(token.slice(0, -2) + 'xx')).toBeNull();
   });
 
-  it('writes a companion cookie the eatery origin can read', () => {
+  it('writes a host-only hub cookie, never Domain=.daup.co.za', () => {
     const token = mintOwnerArrivalToken({ email: 'owner@theolive.co.za', house: 'The Olive' });
     persistOwnerCookie(token, 'localhost');
     expect(document.cookie).toContain('daup_owner=');
     expect(readOwnerCookie()).toBe(token);
+
+    const live = buildOwnerHubCookie(token, 'app.daup.co.za');
+    expect(live).toBeTruthy();
+    expect(live).toContain('Secure');
+    expect(cookieSetsParentDomain(live || '')).toBe(false);
+    expect(live).not.toMatch(/Domain=/i);
+
+    expect(buildOwnerHubCookie(token, 'www.daup.co.za')).toBeNull();
+    expect(buildOwnerHubCookie(token, 'eatery.daup.co.za')).toBeNull();
+    expect(cookieSetsParentDomain('daup_owner=x; Domain=.daup.co.za; Path=/')).toBe(true);
   });
 
-  it('scopes the companion cookie to .daup.co.za on the live hub', () => {
-    const token = mintOwnerArrivalToken({ email: 'owner@theolive.co.za', house: 'The Olive' });
+  it('does not write a cookie to build Open the house; the token URL is the handoff', () => {
     const writes: string[] = [];
     Object.defineProperty(document, 'cookie', {
       configurable: true,
@@ -135,13 +146,27 @@ describe('Open the house arrival', () => {
         writes.push(value);
       },
       get() {
-        return writes[writes.length - 1] || '';
+        return '';
       }
     });
-    persistOwnerCookie(token, 'app.daup.co.za');
-    expect(writes[0]).toContain('Domain=.daup.co.za');
-    expect(writes[0]).toContain('Secure');
-    expect(writes[0]).toContain(`daup_owner=${encodeURIComponent(token)}`);
+    const url = buildOpenTheHouseUrl({
+      email: 'owner@theolive.co.za',
+      house: 'The Olive',
+      origin: 'https://eatery.daup.co.za'
+    });
+    expect(writes).toEqual([]);
+    const parsed = new URL(url);
+    expect(parsed.origin).toBe('https://eatery.daup.co.za');
+    expect(parsed.pathname).toBe('/owner');
+    expect([...parsed.searchParams.keys()]).toEqual(['token']);
+  });
+
+  it('Open the house navigation does not persist a cookie', async () => {
+    const { navigateToTheHouse: go } = await import('./ownerArrival');
+    const src = go.toString();
+    expect(src).not.toContain('persistOwnerCookie');
+    expect(src).not.toContain('document.cookie');
+    expect(src).not.toContain('Domain=');
   });
 });
 

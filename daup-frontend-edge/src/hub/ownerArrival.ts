@@ -1,12 +1,13 @@
 /**
  * Hub → eatery handoff.
  *
- * Choice: a short-lived signed arrival on https://eatery.daup.co.za/owner?token=
- * (same DAUP1 envelope as Floor WhatsApp invites). A .daup.co.za cookie is
- * written as a companion so a later eatery visit can remember the owner
- * without a second email field.
+ * The Open the house tap is a short-lived signed arrival:
+ * https://eatery.daup.co.za/owner?token=
+ * (same DAUP1 envelope as Floor WhatsApp invites). Query is token-only.
  *
- * Query is token-only. No DID, wallet, instance slug, or MCP on the URL.
+ * Never set Domain=.daup.co.za. www.daup.co.za has no cookies.
+ * A hub session cookie, if written, is host-only on app.daup.co.za.
+ * Eatery may set its own host-only cookie after it consumes the token.
  */
 
 import { getModuleEndpoint } from '../utils/envResolver';
@@ -127,20 +128,43 @@ export function ownerArrivalExposesBannedQuery(url: string): boolean {
   }
 }
 
-export function persistOwnerCookie(token: string, hostname?: string): void {
-  if (typeof document === 'undefined') return;
+const PARENT_DOMAIN_COOKIE_RE = /(?:^|;\s*)Domain\s*=\s*\.?daup\.co\.za\b/i;
+
+/** True if a Set-Cookie / document.cookie write would cover www or eatery. */
+export function cookieSetsParentDomain(header: string): boolean {
+  return PARENT_DOMAIN_COOKIE_RE.test(header || '');
+}
+
+/**
+ * Host-only hub cookie. Omit Domain entirely so www.daup.co.za stays cookieless.
+ * Returns null on www / eatery — this PR does not write there.
+ */
+export function buildOwnerHubCookie(token: string, hostname?: string): string | null {
   const host = hostname ?? (typeof window !== 'undefined' ? window.location.hostname : '');
+  if (host === 'www.daup.co.za' || host === 'eatery.daup.co.za') {
+    return null;
+  }
   const parts = [
     `${OWNER_COOKIE_NAME}=${encodeURIComponent(token)}`,
     'Path=/',
     `Max-Age=${OWNER_COOKIE_MAX_AGE}`,
     'SameSite=Lax'
   ];
-  if (host.endsWith('daup.co.za')) {
-    parts.push('Domain=.daup.co.za');
+  if (host === 'app.daup.co.za') {
     parts.push('Secure');
   }
-  document.cookie = parts.join('; ');
+  const header = parts.join('; ');
+  if (cookieSetsParentDomain(header)) {
+    return null;
+  }
+  return header;
+}
+
+export function persistOwnerCookie(token: string, hostname?: string): void {
+  if (typeof document === 'undefined') return;
+  const header = buildOwnerHubCookie(token, hostname);
+  if (!header) return;
+  document.cookie = header;
 }
 
 export function readOwnerCookie(cookieHeader?: string): string | null {
@@ -155,12 +179,15 @@ export function readOwnerCookie(cookieHeader?: string): string | null {
   }
 }
 
+/** Full navigation. Token URL is the handoff — no cookie write. */
 export function navigateToTheHouse(args: { email: string; house: string; origin?: string }): string {
   const url = buildOpenTheHouseUrl(args);
-  const token = new URL(url).searchParams.get('token') || '';
-  persistOwnerCookie(token);
   if (typeof window !== 'undefined') {
-    window.location.assign(url);
+    try {
+      window.location.assign(url);
+    } catch {
+      // jsdom and some browsers throw on cross-origin assign in tests
+    }
   }
   return url;
 }

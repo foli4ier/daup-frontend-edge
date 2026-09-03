@@ -78,6 +78,7 @@ export function signInWithEmail(
 }
 
 export function writeOwnerCompanionCookie(email: string, house = ''): void {
+  // Host-only on the hub. Never Domain=.daup.co.za. Handoff is the token URL.
   if (!house.trim()) return;
   const token = mintOwnerArrivalToken({ email, house });
   persistOwnerCookie(token);
