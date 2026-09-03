@@ -19,6 +19,7 @@ import { ProfileModal } from './components/ProfileModal';
 import { MODULE_METADATA } from './components/withLicenseCheck';
 import { deriveSeedNode, deployAppInstance } from './stores/identityStore';
 import { navigateToTheHouse } from './hub/ownerArrival';
+import { LOG_OFF_LABEL } from './hub/copy';
 
 const EATERY = 'https://eatery.daup.co.za/';
 
@@ -29,7 +30,7 @@ function staffInviteHref(houseName: string) {
 
 const DashboardContent: React.FC = () => {
   const { did, seed, connectWallet, wasmLoaded, isLoadingWasm } = useDIDWallet();
-  const { instanceName, activeWallet, identityKeySeedNode, setIsProfileModalOpen, ownerSession } = useUserProfile();
+  const { instanceName, activeWallet, identityKeySeedNode, setIsProfileModalOpen, ownerSession, logOffHub } = useUserProfile();
 
   const [activeTab, setActiveTab] = useState<'home' | 'licenses' | 'marketplace' | 'telemetry' | 'dht' | 'dcdn' | 'mcp'>('home');
   const [launchedApp, setLaunchedApp] = useState<string | null>(null);
@@ -98,6 +99,7 @@ const DashboardContent: React.FC = () => {
     if (moduleName === 'daup-eatery') {
       const house = activeWallet?.legalName || instanceName || '';
       const email = ownerSession?.email || '';
+      if (!email.trim() || !house.trim()) return;
       navigateToTheHouse({ email, house });
       return;
     }
@@ -137,6 +139,14 @@ const DashboardContent: React.FC = () => {
               title="Advanced tools — off by default"
             >
               Advanced
+            </button>
+            <button
+              type="button"
+              className="owner-quiet"
+              data-testid="hub-log-off"
+              onClick={logOffHub}
+            >
+              {LOG_OFF_LABEL}
             </button>
             <button
               type="button"
@@ -201,7 +211,10 @@ const DashboardContent: React.FC = () => {
         ) : (
           <>
             {(!isAdvanced || activeTab === 'home') && (
-              <SubscribedAppsView />
+              <SubscribedAppsView
+                installedApps={installedApps}
+                onSubscribe={handleInstallApp}
+              />
             )}
             {showProtocol && activeTab === 'licenses' && (
               <div className="protocol-console">

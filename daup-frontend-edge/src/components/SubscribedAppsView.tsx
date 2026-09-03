@@ -1,13 +1,34 @@
 import React from 'react';
 import { Wheat, Store, Factory } from 'lucide-react';
 import { useUserProfile } from '../context/UserProfileContext';
-import { COMING_KICKER, YOUR_APPS_KICKER } from '../hub/copy';
-import { COMING_APPS, listOwnerPlaces } from '../hub/places';
+import {
+  COMING_KICKER,
+  OTHER_APPS_KICKER,
+  SAME_CHAIN_CAPTION,
+  SUBSCRIBE_LABEL,
+  SUBSCRIBED_LABEL,
+  YOUR_APPS_KICKER
+} from '../hub/copy';
+import { COMING_APP_MODULES, COMING_APPS, listOwnerPlaces } from '../hub/places';
 import { navigateToTheHouse } from '../hub/ownerArrival';
 
 const DOCS_SHIFT = 'https://www.daup.co.za/docs/eatery/tuesday-lunch';
 
-export const SubscribedAppsView: React.FC = () => {
+const COMING_ICONS = {
+  farm: Wheat,
+  reseller: Store,
+  maker: Factory
+} as const;
+
+interface SubscribedAppsViewProps {
+  installedApps?: Record<string, boolean>;
+  onSubscribe?: (moduleName: string) => void;
+}
+
+export const SubscribedAppsView: React.FC<SubscribedAppsViewProps> = ({
+  installedApps = {},
+  onSubscribe
+}) => {
   const { activeWallet, instanceName, ownerSession } = useUserProfile();
   const houseName = activeWallet?.legalName || instanceName || 'the house';
   const email = ownerSession?.email || '';
@@ -16,12 +37,13 @@ export const SubscribedAppsView: React.FC = () => {
 
   const openTheHouse = (event: React.MouseEvent<HTMLAnchorElement>) => {
     event.preventDefault();
+    if (!email.trim() || !houseName.trim()) return;
     navigateToTheHouse({ email, house: houseName });
   };
 
   return (
-    <div className="apps-grid" data-testid="hub-home">
-      <div className="section-head live-kicker">
+    <div className="apps-home" data-testid="hub-home">
+      <div className="section-head">
         <span className="kicker">{YOUR_APPS_KICKER}</span>
         <span className="rule" />
       </div>
@@ -45,7 +67,7 @@ export const SubscribedAppsView: React.FC = () => {
         <div className="place-row-action">
           <a
             className="btn btn-primary btn-wide"
-            href={eatery.href}
+            href={eatery.href || undefined}
             data-testid="open-the-house"
             onClick={openTheHouse}
           >
@@ -57,18 +79,50 @@ export const SubscribedAppsView: React.FC = () => {
         </div>
       </article>
 
-      <aside className="coming" aria-label="Coming soon">
-        <div className="coming-head">
-          <span className="kicker">{COMING_KICKER}</span>
-          <span className="rule" />
-        </div>
-        <div className="chips">
-          <div className="chip"><Wheat size={16} /> {COMING_APPS[0].title}</div>
-          <div className="chip"><Store size={16} /> {COMING_APPS[1].title}</div>
-          <div className="chip"><Factory size={16} /> {COMING_APPS[2].title}</div>
-        </div>
-        <p className="caption">Same chain. Not live yet.</p>
-      </aside>
+      <div className="section-head">
+        <span className="kicker">{OTHER_APPS_KICKER}</span>
+        <span className="rule" />
+      </div>
+
+      <div className="other-apps" data-testid="other-apps">
+        {COMING_APPS.map((app) => {
+          const Icon = COMING_ICONS[app.id as keyof typeof COMING_ICONS];
+          const moduleName = COMING_APP_MODULES[app.id];
+          const subscribed = Boolean(moduleName && installedApps[moduleName]);
+          return (
+            <article
+              className="card"
+              key={app.id}
+              data-testid={`coming-app-${app.id}`}
+            >
+              <div className="card-top">
+                <span className="ico-sq" aria-hidden="true">
+                  {Icon ? <Icon size={22} /> : null}
+                </span>
+                <div>
+                  <h3>
+                    {app.title} <span className="coming-flag">{COMING_KICKER}</span>
+                  </h3>
+                </div>
+              </div>
+              <div className="place-row-action">
+                <button
+                  type="button"
+                  className={subscribed ? 'btn btn-outline btn-wide' : 'btn btn-primary btn-wide'}
+                  data-testid={`subscribe-${app.id}`}
+                  disabled={subscribed || !onSubscribe || !moduleName}
+                  onClick={() => {
+                    if (!subscribed && moduleName && onSubscribe) onSubscribe(moduleName);
+                  }}
+                >
+                  {subscribed ? SUBSCRIBED_LABEL : SUBSCRIBE_LABEL}
+                </button>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+      <p className="caption" data-testid="same-chain-caption">{SAME_CHAIN_CAPTION}</p>
     </div>
   );
 };

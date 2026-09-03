@@ -6,8 +6,9 @@ import { SubscribedAppsView } from './SubscribedAppsView';
 import { UserProfileProvider } from '../context/UserProfileContext';
 import { saveIdentityVault, resetIdentityVault, UserIdentityVault } from '../stores/identityStore';
 import { OWNER_SESSION_STORAGE_KEY } from '../hub/ownerSession';
-import { OPEN_THE_HOUSE_LABEL } from '../hub/copy';
-import { readOwnerArrivalToken } from '../hub/ownerArrival';
+import { OPEN_THE_HOUSE_LABEL, SAME_CHAIN_CAPTION } from '../hub/copy';
+import { App } from '../App';
+import { persistOwnerCookie, mintOwnerArrivalToken, readOwnerArrivalToken } from '../hub/ownerArrival';
 
 const houseVault: UserIdentityVault = {
   version: 1,
@@ -126,6 +127,41 @@ describe('hub home after email', () => {
     const claims = readOwnerArrivalToken(token);
     expect(claims?.house).toBe('The Olive');
     expect(claims?.email).toBe('owner@theolive.co.za');
+
+    const other = container.querySelector('[data-testid="other-apps"]');
+    expect(other?.textContent).toContain('Farm');
+    expect(other?.textContent).toContain('Reseller');
+    expect(other?.textContent).toContain('Maker');
+    expect(other?.textContent).toContain('Coming');
+    expect(container.querySelector('[data-testid="same-chain-caption"]')?.textContent).toBe(SAME_CHAIN_CAPTION);
+    expect(container.textContent).not.toContain('Decentralized Edge App Registry');
+    unmount();
+  });
+
+  it('Log off. returns to the email door and expires the hub cookie', async () => {
+    persistOwnerCookie(
+      mintOwnerArrivalToken({ email: 'owner@theolive.co.za', house: 'The Olive' }),
+      'localhost'
+    );
+    const { container, unmount } = render(<App />);
+
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 80));
+    });
+
+    expect(container.querySelector('[data-testid="hub-home"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="other-apps"]')?.textContent).toContain('Farm');
+    const logOff = container.querySelector('[data-testid="hub-log-off"]') as HTMLButtonElement | null;
+    expect(logOff?.textContent).toBe('Log off.');
+
+    act(() => {
+      logOff?.click();
+    });
+
+    expect(container.querySelector('[data-testid="hub-email-door"]')).toBeTruthy();
+    expect(container.querySelector('label[for="hub-email"]')?.textContent).toBe('Your email.');
+    expect(container.querySelector('[data-testid="open-your-hub"]')?.textContent).toContain('Open your hub.');
+    expect(localStorage.getItem(OWNER_SESSION_STORAGE_KEY)).toBeNull();
     unmount();
   });
 });
