@@ -211,10 +211,7 @@ const DashboardContent: React.FC = () => {
         ) : (
           <>
             {(!isAdvanced || activeTab === 'home') && (
-              <SubscribedAppsView
-                installedApps={installedApps}
-                onSubscribe={handleInstallApp}
-              />
+              <SubscribedAppsView />
             )}
             {showProtocol && activeTab === 'licenses' && (
               <div className="protocol-console">

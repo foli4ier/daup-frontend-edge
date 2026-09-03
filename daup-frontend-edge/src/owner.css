@@ -202,6 +202,12 @@ body {
   gap: 16px;
 }
 
+.coming-card {
+  box-shadow: none;
+  background: transparent;
+  border: 1.5px solid var(--line);
+}
+
 .card-links {
   display: flex;
   flex-wrap: wrap;

@@ -21,8 +21,6 @@ export const SAME_CHAIN_CAPTION = 'Same chain. Not live yet.';
 export const EATERY_ROW_BODY = 'Tables, tickets, kitchen, stock.';
 export const HUB_HOME_FALLBACK = 'Your hub';
 export const LOG_OFF_LABEL = 'Log off.';
-export const SUBSCRIBE_LABEL = 'Subscribe';
-export const SUBSCRIBED_LABEL = 'Subscribed';
 
 const BANNED_RE = new RegExp(`\\b(${BANNED_DOOR_WORDS.join('|')})\\b`, 'i');
 
@@ -46,7 +44,6 @@ export const HUB_HOME_COPY = [
   COMING_KICKER,
   SAME_CHAIN_CAPTION,
   LOG_OFF_LABEL,
-  SUBSCRIBE_LABEL,
   'Farm',
   'Reseller',
   'Maker'

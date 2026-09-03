@@ -133,8 +133,25 @@ describe('hub home after email', () => {
     expect(other?.textContent).toContain('Reseller');
     expect(other?.textContent).toContain('Maker');
     expect(other?.textContent).toContain('Coming');
+    expect(other?.textContent).not.toMatch(/Subscribe/i);
     expect(container.querySelector('[data-testid="same-chain-caption"]')?.textContent).toBe(SAME_CHAIN_CAPTION);
     expect(container.textContent).not.toContain('Decentralized Edge App Registry');
+    unmount();
+  });
+
+  it('does not put Marketplace installs or Subscribe on Coming cards', async () => {
+    localStorage.setItem('daup_installed_apps', JSON.stringify({ 'daup-farmer': true }));
+    const { container, unmount } = render(<App />);
+
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 80));
+    });
+
+    const other = container.querySelector('[data-testid="other-apps"]');
+    expect(other?.textContent).toContain('Farm');
+    expect(other?.textContent).toContain('Coming');
+    expect(other?.textContent).not.toMatch(/Subscribe/i);
+    expect(container.textContent).not.toMatch(/Subscribed/i);
     unmount();
   });
 

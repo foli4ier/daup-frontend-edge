@@ -5,11 +5,9 @@ import {
   COMING_KICKER,
   OTHER_APPS_KICKER,
   SAME_CHAIN_CAPTION,
-  SUBSCRIBE_LABEL,
-  SUBSCRIBED_LABEL,
   YOUR_APPS_KICKER
 } from '../hub/copy';
-import { COMING_APP_MODULES, COMING_APPS, listOwnerPlaces } from '../hub/places';
+import { COMING_APPS, listOwnerPlaces } from '../hub/places';
 import { navigateToTheHouse } from '../hub/ownerArrival';
 
 const DOCS_SHIFT = 'https://www.daup.co.za/docs/eatery/tuesday-lunch';
@@ -20,15 +18,7 @@ const COMING_ICONS = {
   maker: Factory
 } as const;
 
-interface SubscribedAppsViewProps {
-  installedApps?: Record<string, boolean>;
-  onSubscribe?: (moduleName: string) => void;
-}
-
-export const SubscribedAppsView: React.FC<SubscribedAppsViewProps> = ({
-  installedApps = {},
-  onSubscribe
-}) => {
+export const SubscribedAppsView: React.FC = () => {
   const { activeWallet, instanceName, ownerSession } = useUserProfile();
   const houseName = activeWallet?.legalName || instanceName || 'the house';
   const email = ownerSession?.email || '';
@@ -87,11 +77,9 @@ export const SubscribedAppsView: React.FC<SubscribedAppsViewProps> = ({
       <div className="other-apps" data-testid="other-apps">
         {COMING_APPS.map((app) => {
           const Icon = COMING_ICONS[app.id as keyof typeof COMING_ICONS];
-          const moduleName = COMING_APP_MODULES[app.id];
-          const subscribed = Boolean(moduleName && installedApps[moduleName]);
           return (
             <article
-              className="card"
+              className="card coming-card"
               key={app.id}
               data-testid={`coming-app-${app.id}`}
             >
@@ -104,19 +92,6 @@ export const SubscribedAppsView: React.FC<SubscribedAppsViewProps> = ({
                     {app.title} <span className="coming-flag">{COMING_KICKER}</span>
                   </h3>
                 </div>
-              </div>
-              <div className="place-row-action">
-                <button
-                  type="button"
-                  className={subscribed ? 'btn btn-outline btn-wide' : 'btn btn-primary btn-wide'}
-                  data-testid={`subscribe-${app.id}`}
-                  disabled={subscribed || !onSubscribe || !moduleName}
-                  onClick={() => {
-                    if (!subscribed && moduleName && onSubscribe) onSubscribe(moduleName);
-                  }}
-                >
-                  {subscribed ? SUBSCRIBED_LABEL : SUBSCRIBE_LABEL}
-                </button>
               </div>
             </article>
           );

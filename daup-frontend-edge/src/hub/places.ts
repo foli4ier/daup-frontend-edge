@@ -46,10 +46,3 @@ export const COMING_APPS: HubPlaceRow[] = [
   { id: 'reseller', title: 'Reseller', body: '', live: false },
   { id: 'maker', title: 'Maker', body: '', live: false }
 ];
-
-export const COMING_APP_MODULES: Record<HubPlaceRow['id'], string | null> = {
-  eatery: null,
-  farm: 'daup-farmer',
-  reseller: 'daup-reseller',
-  maker: 'daup-manufacturing'
-};
