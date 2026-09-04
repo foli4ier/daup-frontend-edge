@@ -25,3 +25,5 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: daup-frontend-edge
           command: deploy
+          # Use the repo wrangler (v4, assets-only). Do not fall back to wrangler 3.
+          packageManager: npm
