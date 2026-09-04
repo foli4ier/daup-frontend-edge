@@ -15,22 +15,26 @@ import {
   VAULT_STORAGE_KEY,
   loadIdentityVault, 
   saveIdentityVault, 
-  resetIdentityVault, 
+  resetIdentityVault,
+  clearHouseFromVault,
   deriveSeedNode, 
   resolveActiveWallet,
   isLegalNameUniqueOnPlatform,
   registerLegalNameOnPlatform,
   unregisterLegalNameOnPlatform,
+  normalizeLegalName,
   DEFAULT_VAULT
 } from '../stores/identityStore';
 import {
   OwnerSession,
+  clearHouseCompanionCookie,
   clearOwnerSession,
   hasNamedHouse,
   loadOwnerSession,
   saveOwnerSession,
   writeOwnerCompanionCookie
 } from '../hub/ownerSession';
+
 
 export interface UserProfileContextType {
   vault: UserIdentityVault;
@@ -42,6 +46,10 @@ export interface UserProfileContextType {
   ownerSession: OwnerSession | null;
   openHubWithEmail: (session: OwnerSession) => void;
   logOffHub: () => void;
+  isNamingPlace: boolean;
+  beginNamingPlace: () => void;
+  cancelNamingPlace: () => void;
+  clearHouse: () => void;
   isHydrating: boolean;
   primaryWallet: WalletEntry | null;
   activeWallet: WalletEntry | null;
@@ -72,6 +80,7 @@ const UserProfileContext = createContext<UserProfileContextType | undefined>(und
 export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [vault, setVault] = useState<UserIdentityVault>(DEFAULT_VAULT);
   const [ownerSession, setOwnerSession] = useState<OwnerSession | null>(null);
+  const [isNamingPlace, setIsNamingPlace] = useState(false);
   const [isHydrating, setIsHydrating] = useState<boolean>(true);
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -148,7 +157,30 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const logOffHub = useCallback(() => {
     clearOwnerSession();
     setOwnerSession(null);
+    setIsNamingPlace(false);
   }, []);
+
+  const beginNamingPlace = useCallback(() => {
+    setIsNamingPlace(true);
+  }, []);
+
+  const cancelNamingPlace = useCallback(() => {
+    setIsNamingPlace(false);
+  }, []);
+
+  const clearHouse = useCallback(() => {
+    const names = [
+      vault.activeWallet?.legalName,
+      ...vault.registeredWallets.map(wallet => wallet.legalName)
+    ].filter((name): name is string => Boolean(name && name.trim()));
+    names.forEach(name => unregisterLegalNameOnPlatform(name));
+
+    const email = ownerSession?.email || vault.profile.demographics.email || '';
+    const next = clearHouseFromVault(email);
+    setVault(next);
+    setIsNamingPlace(false);
+    clearHouseCompanionCookie();
+  }, [ownerSession?.email, vault.activeWallet?.legalName, vault.profile.demographics.email, vault.registeredWallets]);
 
   const primaryWallet = vault.activeWallet;
   const identityKeySeedNode = vault.identityKeySeedNode;
@@ -445,6 +477,13 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
       const primaryId = finalProfileData?.primaryWalletId || (prev.activeWallet ? prev.activeWallet.id : (mergedWallets[0]?.id || null));
       const active = resolveActiveWallet(mergedWallets, primaryId);
       const seedNode = active ? deriveSeedNode(active.legalName) : (prev.identityKeySeedNode || deriveSeedNode());
+      const nextName = normalizeLegalName(active?.legalName);
+
+      prev.registeredWallets.forEach(wallet => {
+        if (wallet.legalName && normalizeLegalName(wallet.legalName) !== nextName) {
+          unregisterLegalNameOnPlatform(wallet.legalName);
+        }
+      });
 
       // Register active wallet in global platform registry
       if (active?.legalName) {
@@ -509,6 +548,7 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
     if (email && house) {
       writeOwnerCompanionCookie(email, house);
     }
+    setIsNamingPlace(false);
   }, [commitVault, ownerSession?.email, vault.activeWallet?.legalName, vault.profile.demographics.email]);
 
   // Geolocation Auto-Enrichment
@@ -612,6 +652,7 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
     resetIdentityVault();
     clearOwnerSession();
     setOwnerSession(null);
+    setIsNamingPlace(false);
     setVault(DEFAULT_VAULT);
   }, [activeWallet?.legalName]);
 
@@ -627,6 +668,10 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
         ownerSession,
         openHubWithEmail,
         logOffHub,
+        isNamingPlace,
+        beginNamingPlace,
+        cancelNamingPlace,
+        clearHouse,
         isHydrating,
         primaryWallet,
         activeWallet,

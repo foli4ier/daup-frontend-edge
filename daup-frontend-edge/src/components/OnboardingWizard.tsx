@@ -6,7 +6,12 @@ import { useUserProfile } from '../context/UserProfileContext';
 import { BankWalletConfig, CryptoWalletConfig, SexType, UserLocation, UserDemographics, SocialLinks } from '../types/profile';
 import { getCurrencyForCountry } from '../utils/currency';
 
-import { SEE_YOUR_APPS_LABEL, WHERE_IS_THE_EATERY, WHERE_IS_THE_EATERY_SUB } from '../hub/copy';
+import {
+  SEE_YOUR_APPS_LABEL,
+  STAY_WITH_THE_HOUSE_LABEL,
+  WHERE_IS_THE_EATERY,
+  WHERE_IS_THE_EATERY_SUB
+} from '../hub/copy';
 
 const EATERY = 'https://eatery.daup.co.za/';
 
@@ -43,7 +48,9 @@ export const OnboardingWizard: React.FC = () => {
     completeOnboarding,
     detectLocation,
     isDetectingLocation,
-    validateLegalName
+    validateLegalName,
+    hasHouse,
+    cancelNamingPlace
   } = useUserProfile();
 
   const [step, setStep] = useState<number>(1);
@@ -208,6 +215,16 @@ export const OnboardingWizard: React.FC = () => {
             <p className="owner-house">{placeName.trim() || 'Set up the house'}</p>
           </div>
           <div className="owner-nav-actions">
+            {hasHouse ? (
+              <button
+                type="button"
+                className="owner-quiet"
+                data-testid="stay-with-this-house"
+                onClick={cancelNamingPlace}
+              >
+                {STAY_WITH_THE_HOUSE_LABEL}
+              </button>
+            ) : null}
             <button
               type="button"
               className="owner-quiet"

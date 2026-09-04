@@ -10,7 +10,7 @@ interface OnboardingGuardProps {
 }
 
 export const OnboardingGuard: React.FC<OnboardingGuardProps> = ({ children }) => {
-  const { isHydrating, hasHouse, ownerSession, openHubWithEmail } = useUserProfile();
+  const { isHydrating, hasHouse, ownerSession, openHubWithEmail, isNamingPlace } = useUserProfile();
 
   if (isHydrating) {
     return (
@@ -25,7 +25,11 @@ export const OnboardingGuard: React.FC<OnboardingGuardProps> = ({ children }) =>
     );
   }
 
-  const surface = resolveHubSurface({ session: ownerSession, hasHouse });
+  const surface = resolveHubSurface({
+    session: ownerSession,
+    hasHouse,
+    namingPlace: isNamingPlace
+  });
 
   if (surface === 'email-door') {
     return <HubEmailDoor onOpenHub={openHubWithEmail} />;

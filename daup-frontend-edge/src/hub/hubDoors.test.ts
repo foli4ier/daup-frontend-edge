@@ -1,15 +1,19 @@
 import { describe, expect, it, beforeEach } from 'vitest';
 import {
   BANNED_DOOR_WORDS,
+  DELETE_HOUSE_MODAL_COPY,
+  DELETE_THE_HOUSE_LABEL,
   HUB_EMAIL_DOOR_COPY,
   HUB_HOME_COPY,
   LOG_OFF_LABEL,
   OPEN_THE_HOUSE_LABEL,
   OPEN_YOUR_HUB_LABEL,
+  REGISTER_A_NEW_HOUSE_LABEL,
   SAME_CHAIN_CAPTION,
   YOUR_EMAIL_LABEL,
   WHERE_IS_THE_EATERY,
-  hasBannedDoorCopy
+  hasBannedDoorCopy,
+  houseNameMatchesConfirm
 } from './copy';
 import {
   buildExpireOwnerCookie,
@@ -52,6 +56,11 @@ describe('hub email door copy', () => {
     }
     expect(LOG_OFF_LABEL).toBe('Log off.');
     expect(SAME_CHAIN_CAPTION).toBe('Same chain. Not live yet.');
+    expect(DELETE_THE_HOUSE_LABEL).toBe('Delete the house.');
+    expect(REGISTER_A_NEW_HOUSE_LABEL).toBe('Register a new house.');
+    for (const line of DELETE_HOUSE_MODAL_COPY) {
+      expect(hasBannedDoorCopy(line), `banned word in "${line}"`).toBe(false);
+    }
   });
 });
 
@@ -78,6 +87,18 @@ describe('hub surface', () => {
     const signedIn = signInWithEmail('owner@theolive.co.za');
     if (!signedIn.ok) return;
     expect(resolveHubSurface({ session: signedIn.session, hasHouse: true })).toBe('home');
+    expect(resolveHubSurface({
+      session: signedIn.session,
+      hasHouse: true,
+      namingPlace: true
+    })).toBe('wizard');
+  });
+
+  it('returns to naming a place when the house is gone but email stays', () => {
+    const signedIn = signInWithEmail('owner@theolive.co.za');
+    if (!signedIn.ok) return;
+    expect(resolveHubSurface({ session: signedIn.session, hasHouse: false })).toBe('wizard');
+    expect(resolveHubSurface({ session: signedIn.session, hasHouse: false })).not.toBe('email-door');
   });
 
   it('rejects a blank email in kitchen English', () => {
@@ -231,5 +252,15 @@ describe('eatery row on hub home', () => {
     expect(rows[0].actionLabel).toBe(OPEN_THE_HOUSE_LABEL);
     expect(rows[0].href).toMatch(/^https:\/\/eatery\.daup\.co\.za\/owner\?token=/);
     expect(hasBannedDoorCopy(rows[0].title + rows[0].body + (rows[0].actionLabel || ''))).toBe(false);
+  });
+});
+
+describe('type-the-name delete confirm', () => {
+  it('matches only the exact house name', () => {
+    expect(houseNameMatchesConfirm('Kortrijk', 'Kortrijk')).toBe(true);
+    expect(houseNameMatchesConfirm('kortrijk', 'Kortrijk')).toBe(false);
+    expect(houseNameMatchesConfirm('Kortrijk ', 'Kortrijk')).toBe(false);
+    expect(houseNameMatchesConfirm('The Olive', 'Kortrijk')).toBe(false);
+    expect(houseNameMatchesConfirm('', 'Kortrijk')).toBe(false);
   });
 });

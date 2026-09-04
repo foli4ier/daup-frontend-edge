@@ -21,6 +21,20 @@ export const SAME_CHAIN_CAPTION = 'Same chain. Not live yet.';
 export const EATERY_ROW_BODY = 'Tables, tickets, kitchen, stock.';
 export const HUB_HOME_FALLBACK = 'Your hub';
 export const LOG_OFF_LABEL = 'Log off.';
+export const DELETE_THE_HOUSE_LABEL = 'Delete the house.';
+export const REGISTER_A_NEW_HOUSE_LABEL = 'Register a new house.';
+export const DELETE_HOUSE_TITLE = 'Delete the house.';
+export const DELETE_HOUSE_BODY = 'This takes the place off your hub. Type the exact place name to confirm.';
+export const DELETE_HOUSE_CONFIRM_LABEL = 'Delete';
+export const DELETE_HOUSE_CANCEL_LABEL = 'Cancel';
+export const TYPE_THE_PLACE_NAME = 'Type the place name.';
+export const STAY_WITH_THE_HOUSE_LABEL = 'Stay with this house.';
+
+/** Exact match — extra spaces or a different case keep Delete quiet. */
+export function houseNameMatchesConfirm(typedName: string, houseName: string): boolean {
+  const target = (houseName || '').trim();
+  return Boolean(target) && typedName === target;
+}
 
 const BANNED_RE = new RegExp(`\\b(${BANNED_DOOR_WORDS.join('|')})\\b`, 'i');
 
@@ -44,7 +58,17 @@ export const HUB_HOME_COPY = [
   COMING_KICKER,
   SAME_CHAIN_CAPTION,
   LOG_OFF_LABEL,
+  DELETE_THE_HOUSE_LABEL,
+  REGISTER_A_NEW_HOUSE_LABEL,
   'Farm',
   'Reseller',
   'Maker'
+];
+
+export const DELETE_HOUSE_MODAL_COPY = [
+  DELETE_HOUSE_TITLE,
+  DELETE_HOUSE_BODY,
+  TYPE_THE_PLACE_NAME,
+  DELETE_HOUSE_CONFIRM_LABEL,
+  DELETE_HOUSE_CANCEL_LABEL
 ];

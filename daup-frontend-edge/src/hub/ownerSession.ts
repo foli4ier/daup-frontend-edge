@@ -90,10 +90,16 @@ export type HubSurface = 'email-door' | 'wizard' | 'home';
 export function resolveHubSurface(args: {
   session: OwnerSession | null;
   hasHouse: boolean;
+  namingPlace?: boolean;
 }): HubSurface {
   if (!args.session) return 'email-door';
-  if (!args.hasHouse) return 'wizard';
+  if (args.namingPlace || !args.hasHouse) return 'wizard';
   return 'home';
+}
+
+/** Drop the host-only house cookie. Keep the signed-in email session. */
+export function clearHouseCompanionCookie(): void {
+  expireOwnerCookie();
 }
 
 export function hasNamedHouse(placeName?: string | null): boolean {

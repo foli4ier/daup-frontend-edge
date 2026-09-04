@@ -2,13 +2,14 @@ import { describe, expect, it, beforeEach } from 'vitest';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { act } from 'react';
+import { Simulate } from 'react-dom/test-utils';
 import { SubscribedAppsView } from './SubscribedAppsView';
 import { UserProfileProvider } from '../context/UserProfileContext';
 import { saveIdentityVault, resetIdentityVault, UserIdentityVault } from '../stores/identityStore';
 import { OWNER_SESSION_STORAGE_KEY } from '../hub/ownerSession';
-import { OPEN_THE_HOUSE_LABEL, SAME_CHAIN_CAPTION } from '../hub/copy';
+import { OPEN_THE_HOUSE_LABEL, SAME_CHAIN_CAPTION, WHERE_IS_THE_EATERY } from '../hub/copy';
 import { App } from '../App';
-import { persistOwnerCookie, mintOwnerArrivalToken, readOwnerArrivalToken } from '../hub/ownerArrival';
+import { persistOwnerCookie, mintOwnerArrivalToken, readOwnerArrivalToken, buildOpenTheHouseUrl, cookieSetsParentDomain } from '../hub/ownerArrival';
 
 const houseVault: UserIdentityVault = {
   version: 1,
@@ -93,6 +94,14 @@ function render(ui: React.ReactElement) {
   };
 }
 
+function typeInto(input: HTMLInputElement, value: string) {
+  act(() => {
+    input.focus();
+    input.value = value;
+    Simulate.change(input);
+  });
+}
+
 describe('hub home after email', () => {
   beforeEach(() => {
     resetIdentityVault();
@@ -136,6 +145,9 @@ describe('hub home after email', () => {
     expect(other?.textContent).not.toMatch(/Subscribe/i);
     expect(container.querySelector('[data-testid="same-chain-caption"]')?.textContent).toBe(SAME_CHAIN_CAPTION);
     expect(container.textContent).not.toContain('Decentralized Edge App Registry');
+    expect(container.querySelector('[data-testid="delete-the-house"]')?.textContent).toBe('Delete the house.');
+    expect(container.querySelector('[data-testid="register-new-house"]')?.textContent).toBe('Register a new house.');
+    expect(container.textContent).not.toMatch(/\b(node|DID|wallet|MCP|npm)\b/i);
     unmount();
   });
 
@@ -179,6 +191,126 @@ describe('hub home after email', () => {
     expect(container.querySelector('label[for="hub-email"]')?.textContent).toBe('Your email.');
     expect(container.querySelector('[data-testid="open-your-hub"]')?.textContent).toContain('Open your hub.');
     expect(localStorage.getItem(OWNER_SESSION_STORAGE_KEY)).toBeNull();
+    unmount();
+  });
+});
+
+describe('delete and register a house from hub home', () => {
+  beforeEach(() => {
+    resetIdentityVault();
+    localStorage.clear();
+    saveIdentityVault(houseVault);
+    localStorage.setItem(OWNER_SESSION_STORAGE_KEY, JSON.stringify({
+      email: 'owner@theolive.co.za',
+      signedInAt: Date.now()
+    }));
+  });
+
+  it('keeps Delete quiet until the typed name matches, then clears the house', async () => {
+    const cookieWrites: string[] = [];
+    const cookieDesc = Object.getOwnPropertyDescriptor(Document.prototype, 'cookie')
+      || Object.getOwnPropertyDescriptor(document, 'cookie');
+    Object.defineProperty(document, 'cookie', {
+      configurable: true,
+      set(value: string) {
+        cookieWrites.push(value);
+      },
+      get() {
+        return '';
+      }
+    });
+
+    persistOwnerCookie(
+      mintOwnerArrivalToken({ email: 'owner@theolive.co.za', house: 'The Olive' }),
+      'localhost'
+    );
+
+    const { container, unmount } = render(<App />);
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 80));
+    });
+
+    expect(container.querySelector('[data-testid="hub-home"]')).toBeTruthy();
+    const openDelete = container.querySelector('[data-testid="delete-the-house"]') as HTMLButtonElement;
+    act(() => {
+      openDelete.click();
+    });
+
+    const confirm = container.querySelector('[data-testid="delete-house-confirm"]') as HTMLButtonElement;
+    const nameInput = container.querySelector('[data-testid="delete-house-name"]') as HTMLInputElement;
+    expect(confirm).toBeTruthy();
+    expect(confirm.disabled).toBe(true);
+
+    typeInto(nameInput, 'the olive');
+    expect(confirm.disabled).toBe(true);
+
+    typeInto(nameInput, 'The Olive');
+    expect(confirm.disabled).toBe(false);
+
+    act(() => {
+      confirm.click();
+    });
+
+    expect(container.querySelector('[data-testid="hub-home"]')).toBeNull();
+    expect(container.querySelector('[data-testid="eatery-place-row"]')).toBeNull();
+    expect(container.querySelector('[data-testid="hub-email-door"]')).toBeNull();
+    expect(container.querySelector('[data-testid="hub-wizard"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="hub-wizard"]')?.textContent).toContain(WHERE_IS_THE_EATERY);
+    expect(container.textContent).not.toMatch(/\bLIVE\b/);
+    expect(localStorage.getItem(OWNER_SESSION_STORAGE_KEY)).toContain('owner@theolive.co.za');
+    expect(cookieWrites.some(write =>
+      write.includes('Max-Age=0') && write.startsWith('daup_owner=') && !/Domain=/i.test(write)
+    )).toBe(true);
+    expect(cookieWrites.every(write => !cookieSetsParentDomain(write))).toBe(true);
+
+    if (cookieDesc) Object.defineProperty(document, 'cookie', cookieDesc);
+    unmount();
+  });
+
+  it('Register a new house opens the naming flow without Advanced', async () => {
+    const { container, unmount } = render(<App />);
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 80));
+    });
+
+    expect(container.querySelector('[data-testid="hub-home"]')).toBeTruthy();
+    const register = container.querySelector('[data-testid="register-new-house"]') as HTMLButtonElement;
+    expect(register).toBeTruthy();
+
+    act(() => {
+      register.click();
+    });
+
+    expect(container.querySelector('[data-testid="hub-wizard"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="hub-wizard"]')?.textContent).toContain(WHERE_IS_THE_EATERY);
+    expect(container.querySelector('#place-name')).toBeTruthy();
+    expect(container.querySelector('[data-testid="stay-with-this-house"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="hub-home"]')).toBeNull();
+    unmount();
+  });
+
+  it('Open the house still needs email and house', async () => {
+    const { container, unmount } = render(<App />);
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 80));
+    });
+
+    const open = container.querySelector('[data-testid="open-the-house"]') as HTMLAnchorElement;
+    const href = open?.getAttribute('href') || '';
+    const token = new URL(href, 'https://eatery.daup.co.za').searchParams.get('token') || '';
+    const claims = readOwnerArrivalToken(token);
+    expect(claims?.email).toBe('owner@theolive.co.za');
+    expect(claims?.house).toBe('The Olive');
+    expect(buildOpenTheHouseUrl({
+      email: 'owner@theolive.co.za',
+      house: '',
+      origin: 'https://eatery.daup.co.za'
+    })).toBe('');
+    expect(buildOpenTheHouseUrl({
+      email: '',
+      house: 'The Olive',
+      origin: 'https://eatery.daup.co.za'
+    })).toBe('');
     unmount();
   });
 });

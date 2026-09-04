@@ -789,3 +789,34 @@ body {
   margin-top: auto;
   padding-top: 8px;
 }
+
+.place-row-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  padding-top: 2px;
+}
+
+.owner-modal-narrow {
+  max-width: 440px;
+}
+
+.owner-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.btn.btn-danger {
+  background: var(--terracotta);
+  color: #fff;
+  border-color: var(--terracotta);
+}
+
+.btn.btn-danger:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
