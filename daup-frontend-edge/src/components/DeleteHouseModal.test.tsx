@@ -31,25 +31,27 @@ function render(ui: React.ReactElement) {
 }
 
 describe('DeleteHouseModal', () => {
-  it('keeps Delete quiet until the typed name matches exactly', () => {
+  it('keeps Delete quiet when empty or wrong, and enables only on exact match', () => {
     const { container, unmount } = render(
       <DeleteHouseModal isOpen houseName="Kortrijk" onClose={() => {}} onConfirm={() => {}} />
     );
 
     const confirm = container.querySelector('[data-testid="delete-house-confirm"]') as HTMLButtonElement;
     const input = container.querySelector('[data-testid="delete-house-name"]') as HTMLInputElement;
+    expect(input.value).toBe('');
     expect(confirm.disabled).toBe(true);
 
     typeInto(input, 'kortrijk');
     expect(confirm.disabled).toBe(true);
 
-    typeInto(input, 'Kortrijk ');
+    typeInto(input, 'The Olive');
     expect(confirm.disabled).toBe(true);
 
     typeInto(input, 'Kortrijk');
     expect(confirm.disabled).toBe(false);
 
     const text = container.textContent || '';
+    expect(text).toContain('This takes Kortrijk off your hub.');
     for (const word of BANNED_DOOR_WORDS) {
       expect(new RegExp(`\\b${word}\\b`, 'i').test(text), `banned "${word}" on delete modal`).toBe(false);
     }

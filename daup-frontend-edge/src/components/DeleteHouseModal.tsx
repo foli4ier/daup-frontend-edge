@@ -54,7 +54,9 @@ export const DeleteHouseModal: React.FC<DeleteHouseModalProps> = ({
         <div className="owner-modal-header">
           <div>
             <h2 id="delete-house-title">{DELETE_HOUSE_TITLE}</h2>
-            <p className="caption">{DELETE_HOUSE_BODY}</p>
+            <p className="caption">
+              This takes {targetName} off your hub. Type the exact place name to confirm.
+            </p>
           </div>
         </div>
 
@@ -67,7 +69,6 @@ export const DeleteHouseModal: React.FC<DeleteHouseModalProps> = ({
               type="text"
               value={typedName}
               onChange={(event) => setTypedName(event.target.value)}
-              placeholder={targetName}
               autoFocus
               autoComplete="off"
             />
