@@ -816,7 +816,10 @@ body {
 }
 
 .btn.btn-danger:disabled {
-  opacity: 0.4;
+  background: transparent;
+  color: var(--muted);
+  border-color: var(--line);
+  opacity: 1;
   cursor: not-allowed;
   transform: none;
 }
