@@ -456,3 +456,44 @@ export function resetIdentityVault(): void {
     console.error('[identityStore] Failed to reset identity vault:', err);
   }
 }
+
+/**
+ * Clear the named house so they can register again.
+ * Keeps the owner's email. Does not touch the hub email session.
+ */
+export function clearHouseFromVault(keepEmail = ''): UserIdentityVault {
+  const now = Date.now();
+  const email = (keepEmail || '').trim().toLowerCase();
+  const next: UserIdentityVault = {
+    version: 1,
+    hasCompletedOnboarding: false,
+    registeredAt: null,
+    updatedAt: now,
+    profile: {
+      ...DEFAULT_PROFILE,
+      demographics: {
+        ...DEFAULT_DEMOGRAPHICS,
+        email
+      },
+      createdAt: now,
+      updatedAt: now
+    },
+    registeredWallets: [],
+    activeWallet: null,
+    identityKeySeedNode: null,
+    trialState: { ...DEFAULT_TRIAL_STATE }
+  };
+
+  saveIdentityVault(next);
+
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.removeItem(APP_INSTANCES_KEY);
+      localStorage.removeItem('daup_installed_apps');
+    } catch {
+      // ignore quota
+    }
+  }
+
+  return next;
+}

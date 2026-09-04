@@ -1,14 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Wheat, Store, Factory } from 'lucide-react';
 import { useUserProfile } from '../context/UserProfileContext';
 import {
   COMING_KICKER,
+  DELETE_THE_HOUSE_LABEL,
   OTHER_APPS_KICKER,
+  REGISTER_A_NEW_HOUSE_LABEL,
   SAME_CHAIN_CAPTION,
   YOUR_APPS_KICKER
 } from '../hub/copy';
 import { COMING_APPS, listOwnerPlaces } from '../hub/places';
 import { navigateToTheHouse } from '../hub/ownerArrival';
+import { DeleteHouseModal } from './DeleteHouseModal';
 
 const DOCS_SHIFT = 'https://www.daup.co.za/docs/eatery/tuesday-lunch';
 
@@ -19,11 +22,18 @@ const COMING_ICONS = {
 } as const;
 
 export const SubscribedAppsView: React.FC = () => {
-  const { activeWallet, instanceName, ownerSession } = useUserProfile();
-  const houseName = activeWallet?.legalName || instanceName || 'the house';
+  const {
+    activeWallet,
+    instanceName,
+    ownerSession,
+    beginNamingPlace,
+    clearHouse
+  } = useUserProfile();
+  const houseName = (activeWallet?.legalName || instanceName || '').trim();
   const email = ownerSession?.email || '';
   const places = listOwnerPlaces({ email, placeName: houseName });
   const eatery = places[0];
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   const openTheHouse = (event: React.MouseEvent<HTMLAnchorElement>) => {
     event.preventDefault();
@@ -64,10 +74,38 @@ export const SubscribedAppsView: React.FC = () => {
             {eatery.actionLabel}
           </a>
         </div>
+        <div className="place-row-controls">
+          <button
+            type="button"
+            className="owner-quiet"
+            data-testid="delete-the-house"
+            onClick={() => setDeleteOpen(true)}
+          >
+            {DELETE_THE_HOUSE_LABEL}
+          </button>
+          <button
+            type="button"
+            className="owner-quiet"
+            data-testid="register-new-house"
+            onClick={beginNamingPlace}
+          >
+            {REGISTER_A_NEW_HOUSE_LABEL}
+          </button>
+        </div>
         <div className="card-links">
           <a href={DOCS_SHIFT}>Walk me through it ›</a>
         </div>
       </article>
+
+      <DeleteHouseModal
+        isOpen={deleteOpen}
+        houseName={eatery.title}
+        onClose={() => setDeleteOpen(false)}
+        onConfirm={() => {
+          setDeleteOpen(false);
+          clearHouse();
+        }}
+      />
 
       <div className="section-head">
         <span className="kicker">{OTHER_APPS_KICKER}</span>
