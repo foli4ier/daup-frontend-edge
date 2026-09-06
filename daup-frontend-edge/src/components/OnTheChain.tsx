@@ -8,7 +8,7 @@ import {
   SAME_CHAIN_CAPTION,
   SEE_THE_MENU_LABEL
 } from '../hub/copy';
-import { buildEatOutPlaceUrl } from '../hub/eatoutUrls';
+import { eatoutPlaceHrefs } from '../hub/eatoutUrls';
 import {
   chainAppLabel,
   chainPlaceWhere,
@@ -105,8 +105,9 @@ function PublicPlaceCard({
   onBack: () => void;
 }) {
   const isEatery = place.app === 'eatery';
-  const menuHref = isEatery ? buildEatOutPlaceUrl({ placeName: place.placeName, focus: 'menu' }) : '';
-  const reserveHref = isEatery ? buildEatOutPlaceUrl({ placeName: place.placeName, focus: 'book' }) : '';
+  const hrefs = isEatery ? eatoutPlaceHrefs(place.placeName) : null;
+  const menuHref = hrefs?.menu || '';
+  const reserveHref = hrefs?.book || '';
 
   return (
     <article className="card place-public-card" data-testid="place-public-card" data-place-name={place.placeName}>
@@ -123,6 +124,8 @@ function PublicPlaceCard({
               className="btn btn-primary btn-wide"
               href={menuHref}
               data-testid="see-the-menu"
+              data-eatout-id={hrefs?.id}
+              title={menuHref}
             >
               {SEE_THE_MENU_LABEL}
             </a>
@@ -130,6 +133,8 @@ function PublicPlaceCard({
               className="btn btn-outline btn-wide"
               href={reserveHref}
               data-testid="reserve-a-table"
+              data-eatout-id={hrefs?.id}
+              title={reserveHref}
             >
               {RESERVE_A_TABLE_LABEL}
             </a>

@@ -216,6 +216,13 @@ describe('hub home after email', () => {
       region: 'Western Cape',
       city: 'Cape Town'
     });
+    registerPlaceOnPlatform({
+      placeName: 'Kortrijk',
+      app: 'eatery',
+      country: 'South Africa',
+      region: 'Western Cape',
+      city: 'Stellenbosch'
+    });
 
     const { container, unmount } = render(
       <UserProfileProvider>
@@ -231,7 +238,7 @@ describe('hub home after email', () => {
     expect(chain?.querySelector('[data-testid="on-the-chain-empty"]')).toBeNull();
     const names = Array.from(chain?.querySelectorAll('[data-testid="on-the-chain-place"]') || [])
       .map(row => row.getAttribute('data-place-name'));
-    expect(names).toEqual(['Salt', 'The Olive', 'Green Field', 'Press']);
+    expect(names).toEqual(['Salt', 'Kortrijk', 'The Olive', 'Green Field', 'Press']);
 
     const text = chain?.textContent || '';
     expect(text.indexOf('Eatery')).toBeLessThan(text.indexOf('Farm'));
@@ -249,7 +256,7 @@ describe('hub home after email', () => {
     });
     const eateryPlaces = Array.from(container.querySelectorAll('[data-testid="on-the-chain-place"]'))
       .map(row => row.getAttribute('data-place-name'));
-    expect(eateryPlaces).toEqual(['Salt', 'The Olive']);
+    expect(eateryPlaces).toEqual(['Salt', 'Kortrijk', 'The Olive']);
 
     const olive = Array.from(container.querySelectorAll('[data-testid="on-the-chain-place"]'))
       .find(row => row.getAttribute('data-place-name') === 'The Olive')
@@ -265,9 +272,25 @@ describe('hub home after email', () => {
     expect(reserve?.textContent).toBe(RESERVE_A_TABLE_LABEL);
     expect(menu?.getAttribute('href')).toBe('https://eatout.daup.co.za/place/the-olive#menu');
     expect(reserve?.getAttribute('href')).toBe('https://eatout.daup.co.za/place/the-olive#book');
+    expect(menu?.getAttribute('data-eatout-id')).toBe('the-olive');
     expect(menu?.getAttribute('href') || '').not.toMatch(/eatery\.daup\.co\.za/);
     expect(menu?.getAttribute('href') || '').not.toMatch(/\/owner/);
-    expect(reserve?.getAttribute('href') || '').not.toMatch(/eatery\.daup\.co\.za/);
+    expect(reserve?.getAttribute('href') || '').not.toMatch(/eatery\.daup\.co\.za|#reserve/);
+
+    act(() => {
+      (container.querySelector('[data-testid="chain-back"]') as HTMLButtonElement).click();
+    });
+    const kortrijkRow = Array.from(container.querySelectorAll('[data-testid="on-the-chain-place"]'))
+      .find(row => row.getAttribute('data-place-name') === 'Kortrijk')
+      ?.querySelector('button') as HTMLButtonElement;
+    act(() => {
+      kortrijkRow.click();
+    });
+    const kortrijkMenu = container.querySelector('[data-testid="see-the-menu"]') as HTMLAnchorElement | null;
+    const kortrijkBook = container.querySelector('[data-testid="reserve-a-table"]') as HTMLAnchorElement | null;
+    expect(kortrijkMenu?.getAttribute('href')).toBe('https://eatout.daup.co.za/place/kortrijk#menu');
+    expect(kortrijkBook?.getAttribute('href')).toBe('https://eatout.daup.co.za/place/kortrijk#book');
+    expect(kortrijkMenu?.getAttribute('data-eatout-id')).toBe('kortrijk');
     expect(container.querySelector('[data-testid="get-apps"]')?.textContent).not.toMatch(/Subscribe/i);
     unmount();
   });

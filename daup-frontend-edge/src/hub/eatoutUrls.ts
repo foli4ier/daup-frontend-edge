@@ -27,13 +27,31 @@ export function eatoutOrigin(origin?: string): string {
   return raw.replace(/\/+$/, '') || DEFAULT_EATOUT_ORIGIN;
 }
 
+/**
+ * EatOut /place/:id values live today. Map common house names onto those ids
+ * so the hub publishes the same {id} EatOut resolves.
+ */
+const EATOUT_RESOLVED_IDS: Record<string, string> = {
+  kortrijk: 'kortrijk',
+  'kortrijk-bistro': 'kortrijk',
+  'kortrijk-bistro-grill': 'kortrijk',
+  genesis: 'genesis',
+  'genesis-bistro': 'genesis',
+  noop: 'noop',
+  'noop-restaurant': 'noop'
+};
+
 export function placePublicSlug(placeName: string): string {
   const slug = (placeName || '')
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
-  return slug || 'place';
+  if (!slug) return 'place';
+  if (EATOUT_RESOLVED_IDS[slug]) return EATOUT_RESOLVED_IDS[slug];
+  const first = slug.split('-')[0];
+  if (first && EATOUT_RESOLVED_IDS[first]) return EATOUT_RESOLVED_IDS[first];
+  return slug;
 }
 
 export type EatOutPlaceFocus = 'menu' | 'book' | 'reserve';
@@ -49,6 +67,21 @@ export function buildEatOutPlaceUrl(args: {
   if (args.focus === 'menu') return `${url}#${EATOUT_MENU_HASH}`;
   if (args.focus === 'book' || args.focus === 'reserve') return `${url}#${EATOUT_BOOK_HASH}`;
   return url;
+}
+
+/** One helper for public card menu / book hrefs. */
+export function eatoutPlaceHrefs(placeName: string, origin?: string): {
+  id: string;
+  place: string;
+  menu: string;
+  book: string;
+} {
+  return {
+    id: placePublicSlug(placeName),
+    place: buildEatOutPlaceUrl({ placeName, origin }),
+    menu: buildEatOutPlaceUrl({ placeName, focus: 'menu', origin }),
+    book: buildEatOutPlaceUrl({ placeName, focus: 'book', origin })
+  };
 }
 
 export function publicPlaceUrlHitsOwnerFloor(url: string): boolean {
