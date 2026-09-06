@@ -198,9 +198,73 @@ body {
   font-family: var(--sans);
 }
 
+.get-apps {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.get-apps-live {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+.shop-app-actions,
+.place-public-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 8px;
+}
+
+.shop-app-actions .btn,
+.place-public-actions .btn {
+  flex: 1 1 160px;
+}
+
+.place-public-card {
+  gap: 10px;
+}
+
+.chain-group-door {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  color: var(--forest);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 750;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-align: left;
+  min-height: var(--tap);
+  cursor: pointer;
+}
+
+.chain-place-door {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: var(--tap);
+}
+
 .other-apps {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
 }
 
@@ -462,7 +526,7 @@ body {
   }
 
   .other-apps {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
   }
 
   .chips {

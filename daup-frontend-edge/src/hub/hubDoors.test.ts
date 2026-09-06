@@ -8,16 +8,23 @@ import {
   ASK_PATH_LABEL,
   ASK_PICK_AN_APP,
   ASK_WHICH_APP_LABEL,
+  GET_APPS_KICKER,
+  GET_LABEL,
   HUB_EMAIL_DOOR_COPY,
   HUB_HOME_COPY,
   LOG_OFF_LABEL,
+  OPEN_LABEL,
   OPEN_THE_HOUSE_LABEL,
   OPEN_YOUR_HUB_LABEL,
   REGISTER_A_NEW_HOUSE_LABEL,
+  RESERVE_A_TABLE_LABEL,
   SAME_CHAIN_CAPTION,
+  SEE_THE_MENU_LABEL,
   YOUR_EMAIL_LABEL,
+  YOUR_PLACES_KICKER,
   WHERE_IS_THE_EATERY,
   hasBannedDoorCopy,
+  hasBannedDoorName,
   houseNameMatchesConfirm
 } from './copy';
 import {
@@ -63,9 +70,18 @@ describe('hub email door copy', () => {
     expect(SAME_CHAIN_CAPTION).toBe('Same chain. Not live yet.');
     expect(DELETE_THE_HOUSE_LABEL).toBe('Delete the house.');
     expect(REGISTER_A_NEW_HOUSE_LABEL).toBe('Register a new house.');
+    expect(YOUR_PLACES_KICKER).toBe('Your places.');
+    expect(GET_APPS_KICKER).toBe('Get apps.');
+    expect(GET_LABEL).toBe('Get.');
+    expect(OPEN_LABEL).toBe('Open.');
+    expect(SEE_THE_MENU_LABEL).toBe('See the menu.');
+    expect(RESERVE_A_TABLE_LABEL).toBe('Reserve a table.');
+    expect(hasBannedDoorName(HUB_HOME_COPY.join('\n'))).toBe(false);
+    expect(HUB_HOME_COPY).not.toContain('Marketplace');
     expect(HUB_HOME_COPY).toContain('On the chain.');
     expect(HUB_HOME_COPY).toContain('No other places on the chain yet.');
     expect(HUB_HOME_COPY).toContain(ASK_FOR_ENHANCEMENT_LABEL);
+    expect(HUB_HOME_COPY).toContain('Chat');
     for (const line of DELETE_HOUSE_MODAL_COPY) {
       expect(hasBannedDoorCopy(line), `banned word in "${line}"`).toBe(false);
     }

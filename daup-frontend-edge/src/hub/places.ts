@@ -1,4 +1,13 @@
-import { EATERY_ROW_BODY, HUB_HOME_FALLBACK, OPEN_THE_HOUSE_LABEL } from './copy';
+import {
+  CHAIN_APP_CHAT,
+  CHAIN_APP_EATERY,
+  CHAIN_APP_FARM,
+  CHAIN_APP_MAKER,
+  CHAIN_APP_RESELLER,
+  EATERY_ROW_BODY,
+  HUB_HOME_FALLBACK,
+  OPEN_THE_HOUSE_LABEL
+} from './copy';
 import { buildOpenTheHouseUrl } from './ownerArrival';
 
 export interface HubPlaceRow {
@@ -8,6 +17,15 @@ export interface HubPlaceRow {
   live: boolean;
   actionLabel?: string;
   href?: string;
+}
+
+export type ShopAppId = 'eatery' | 'farm' | 'reseller' | 'maker' | 'chat';
+
+export interface ShopApp {
+  id: ShopAppId;
+  title: string;
+  live: boolean;
+  moduleKey?: string;
 }
 
 export function eateryRowTitle(placeName?: string | null): string {
@@ -42,7 +60,29 @@ export function listOwnerPlaces(args: {
 }
 
 export const COMING_APPS: HubPlaceRow[] = [
-  { id: 'farm', title: 'Farm', body: '', live: false },
-  { id: 'reseller', title: 'Reseller', body: '', live: false },
-  { id: 'maker', title: 'Maker', body: '', live: false }
+  { id: 'farm', title: CHAIN_APP_FARM, body: '', live: false },
+  { id: 'reseller', title: CHAIN_APP_RESELLER, body: '', live: false },
+  { id: 'maker', title: CHAIN_APP_MAKER, body: '', live: false }
 ];
+
+/** Shop catalog for Get apps. Live first. Coming never Subscribe. */
+export const SHOP_APPS: ShopApp[] = [
+  { id: 'eatery', title: CHAIN_APP_EATERY, live: true, moduleKey: 'daup-eatery' },
+  { id: 'farm', title: CHAIN_APP_FARM, live: false, moduleKey: 'daup-farmer' },
+  { id: 'reseller', title: CHAIN_APP_RESELLER, live: false, moduleKey: 'daup-reseller' },
+  { id: 'maker', title: CHAIN_APP_MAKER, live: false, moduleKey: 'daup-manufacturing' },
+  { id: 'chat', title: CHAIN_APP_CHAT, live: false }
+];
+
+export const LIVE_SHOP_APPS = SHOP_APPS.filter(app => app.live);
+export const COMING_SHOP_APPS = SHOP_APPS.filter(app => !app.live);
+
+export function shopAppIsHeld(app: ShopApp, held: {
+  hasHouse?: boolean;
+  installed?: Record<string, boolean>;
+}): boolean {
+  if (!app.live) return false;
+  if (app.id === 'eatery') return Boolean(held.hasHouse);
+  if (!app.moduleKey) return false;
+  return Boolean(held.installed?.[app.moduleKey]);
+}
