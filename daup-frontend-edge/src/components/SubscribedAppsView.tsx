@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Wheat, Store, Factory } from 'lucide-react';
 import { useUserProfile } from '../context/UserProfileContext';
 import {
+  ASK_FOR_ENHANCEMENT_LABEL,
   COMING_KICKER,
   DELETE_THE_HOUSE_LABEL,
   OTHER_APPS_KICKER,
@@ -23,7 +24,7 @@ const COMING_ICONS = {
   maker: Factory
 } as const;
 
-export const SubscribedAppsView: React.FC = () => {
+export const SubscribedAppsView: React.FC<{ onOpenAsk?: () => void }> = ({ onOpenAsk }) => {
   const {
     activeWallet,
     instanceName,
@@ -141,6 +142,17 @@ export const SubscribedAppsView: React.FC = () => {
         })}
       </div>
       <p className="caption" data-testid="same-chain-caption">{SAME_CHAIN_CAPTION}</p>
+
+      <div className="ask-door">
+        <button
+          type="button"
+          className="owner-quiet"
+          data-testid="ask-for-enhancement"
+          onClick={onOpenAsk}
+        >
+          {ASK_FOR_ENHANCEMENT_LABEL}
+        </button>
+      </div>
     </div>
   );
 };

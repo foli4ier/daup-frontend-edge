@@ -161,6 +161,8 @@ describe('hub home after email', () => {
     expect(container.querySelector('[data-testid="register-new-house"]')?.textContent).toBe('Register a new house.');
     expect(container.querySelector('[data-testid="on-the-chain"]')?.textContent).toContain(ON_THE_CHAIN_KICKER);
     expect(container.querySelector('[data-testid="on-the-chain-empty"]')?.textContent).toBe(ON_THE_CHAIN_EMPTY);
+    expect(container.querySelector('[data-testid="ask-for-enhancement"]')?.textContent).toBe('Ask for an enhancement.');
+    expect(container.querySelector('[data-testid="ask-page"]')).toBeNull();
     expect(container.textContent).not.toMatch(/\b(peer|node|DID|DHT|wallet|MCP|npm)\b/i);
     unmount();
   });
@@ -219,6 +221,7 @@ describe('hub home after email', () => {
     expect(text).toContain('The Olive');
     expect(text).not.toMatch(/\b(peer|node|DID|DHT|wallet|MCP|npm)\b/i);
     expect(container.querySelector('[data-testid="hub-home"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="ask-for-enhancement"]')?.textContent).toBe('Ask for an enhancement.');
     unmount();
   });
 
@@ -262,6 +265,73 @@ describe('hub home after email', () => {
     expect(container.querySelector('label[for="hub-email"]')?.textContent).toBe('Your email.');
     expect(container.querySelector('[data-testid="open-your-hub"]')?.textContent).toContain('Open your hub.');
     expect(localStorage.getItem(OWNER_SESSION_STORAGE_KEY)).toBeNull();
+    unmount();
+  });
+
+  it('opens Ask for an enhancement. as its own page, not a home section', async () => {
+    const { container, unmount } = render(<App />);
+
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 80));
+    });
+
+    expect(container.querySelector('[data-testid="hub-home"]')).toBeTruthy();
+    const door = container.querySelector('[data-testid="ask-for-enhancement"]') as HTMLButtonElement;
+    expect(door).toBeTruthy();
+
+    act(() => {
+      door.click();
+    });
+
+    expect(container.querySelector('[data-testid="ask-page"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="ask-which-app"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="hub-home"]')).toBeNull();
+    expect(container.querySelector('[data-testid="eatery-place-row"]')).toBeNull();
+    expect(container.querySelector('[data-testid="other-apps"]')).toBeNull();
+    expect(container.textContent).toContain('Ask for an enhancement.');
+    expect(container.textContent).not.toMatch(/\b(peer|node|DID|DHT|wallet|MCP|npm|GossipSub|CRDT|mesh)\b/i);
+
+    act(() => {
+      (container.querySelector('[data-testid="ask-back"]') as HTMLButtonElement).click();
+    });
+
+    expect(container.querySelector('[data-testid="hub-home"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="ask-page"]')).toBeNull();
+    expect(container.querySelector('[data-testid="ask-for-enhancement"]')).toBeTruthy();
+    unmount();
+  });
+});
+
+describe('ask door only on signed home', () => {
+  beforeEach(() => {
+    resetIdentityVault();
+    localStorage.clear();
+  });
+
+  it('hides the ask door on the email door', async () => {
+    const { container, unmount } = render(<App />);
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 80));
+    });
+    expect(container.querySelector('[data-testid="hub-email-door"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="ask-for-enhancement"]')).toBeNull();
+    expect(container.querySelector('[data-testid="ask-page"]')).toBeNull();
+    unmount();
+  });
+
+  it('hides the ask door while naming the house', async () => {
+    localStorage.setItem(OWNER_SESSION_STORAGE_KEY, JSON.stringify({
+      email: 'owner@theolive.co.za',
+      signedInAt: Date.now()
+    }));
+    const { container, unmount } = render(<App />);
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 80));
+    });
+    expect(container.querySelector('[data-testid="hub-wizard"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="hub-home"]')).toBeNull();
+    expect(container.querySelector('[data-testid="ask-for-enhancement"]')).toBeNull();
+    expect(container.querySelector('[data-testid="ask-page"]')).toBeNull();
     unmount();
   });
 });
