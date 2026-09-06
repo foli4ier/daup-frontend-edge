@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client';
 import { act } from 'react';
 import { Simulate } from 'react-dom/test-utils';
 import { SubscribedAppsView } from './SubscribedAppsView';
+import { GetAppsSection } from './GetApps';
 import { UserProfileProvider } from '../context/UserProfileContext';
 import {
   saveIdentityVault,
@@ -159,9 +160,10 @@ describe('hub home after email', () => {
     expect(container.textContent).toContain(YOUR_PLACES_KICKER);
     const shop = container.querySelector('[data-testid="get-apps"]');
     expect(shop?.textContent).toContain(GET_APPS_KICKER);
-    expect(shop?.textContent).toContain(GET_LABEL);
     expect(shop?.textContent).toContain(OPEN_LABEL);
     expect(shop?.querySelector('[data-testid="shop-app-eatery"]')?.textContent).toContain('Eatery');
+    expect(shop?.querySelector('[data-testid="get-app-eatery"]')).toBeNull();
+    expect(shop?.querySelector('[data-testid="open-app-eatery"]')?.textContent).toBe(OPEN_LABEL);
     expect(shop?.querySelector('[data-testid="subscribe-app-eatery"]')).toBeNull();
     const other = container.querySelector('[data-testid="other-apps"]');
     expect(other?.textContent).toContain('Farm');
@@ -268,8 +270,13 @@ describe('hub home after email', () => {
     const menu = container.querySelector('[data-testid="see-the-menu"]') as HTMLAnchorElement | null;
     const reserve = container.querySelector('[data-testid="reserve-a-table"]') as HTMLAnchorElement | null;
     expect(card?.textContent).toContain('The Olive');
+    expect(card?.textContent).toContain('Stellenbosch, Western Cape, South Africa · Eatery');
+    expect(card?.textContent).toContain('Back.');
+    expect(card?.textContent).not.toContain('Open the public card.');
+    expect(card?.textContent).not.toContain('Pay at the table.');
     expect(menu?.textContent).toBe(SEE_THE_MENU_LABEL);
     expect(reserve?.textContent).toBe(RESERVE_A_TABLE_LABEL);
+    expect(menu?.className).toContain('btn-primary');
     expect(menu?.getAttribute('href')).toBe('https://eatout.daup.co.za/place/the-olive#menu');
     expect(reserve?.getAttribute('href')).toBe('https://eatout.daup.co.za/place/the-olive#book');
     expect(menu?.getAttribute('data-eatout-id')).toBe('the-olive');
@@ -310,11 +317,34 @@ describe('hub home after email', () => {
     expect(other?.textContent).not.toMatch(/Subscribe/i);
     expect(other?.textContent).not.toMatch(/Subscribed/i);
     expect(container.querySelector('[data-testid="coming-app-farm"]')?.textContent).not.toMatch(/Subscribe/i);
-    expect(container.querySelector('[data-testid="shop-app-eatery"]')?.textContent).toContain(GET_LABEL);
+    expect(container.querySelector('[data-testid="coming-app-farm"]')?.textContent).not.toContain(SAME_CHAIN_CAPTION);
     expect(container.querySelector('[data-testid="shop-app-eatery"]')?.textContent).toContain(OPEN_LABEL);
+    expect(container.querySelector('[data-testid="shop-app-eatery"]')?.textContent).not.toContain(GET_LABEL);
+    expect(container.querySelector('[data-testid="get-app-eatery"]')).toBeNull();
     expect(container.querySelector('[data-testid="subscribe-app-eatery"]')).toBeNull();
     expect(container.textContent).not.toMatch(/Subscribed/i);
     expect(container.textContent).not.toContain('Marketplace');
+    const captions = Array.from(container.querySelectorAll('[data-testid="get-apps"] .caption, [data-testid="coming-app-farm"] .caption'))
+      .map(node => node.textContent)
+      .filter(text => text === SAME_CHAIN_CAPTION);
+    expect(container.querySelectorAll('[data-testid="same-chain-caption"]').length).toBe(1);
+    expect(captions.length).toBeLessThanOrEqual(1);
+    unmount();
+  });
+
+  it('shows Get. only when a live app is not held', () => {
+    const { container, unmount } = render(
+      <GetAppsSection
+        hasHouse={false}
+        installedApps={{}}
+        onGet={() => undefined}
+        onOpen={() => undefined}
+        onSubscribe={() => undefined}
+      />
+    );
+    expect(container.querySelector('[data-testid="get-app-eatery"]')?.textContent).toBe(GET_LABEL);
+    expect(container.querySelector('[data-testid="open-app-eatery"]')).toBeNull();
+    expect(container.querySelector('[data-testid="subscribe-app-eatery"]')?.textContent).toBe('Subscribe');
     unmount();
   });
 

@@ -3,7 +3,6 @@ import {
   CHAIN_BACK_LABEL,
   ON_THE_CHAIN_EMPTY,
   ON_THE_CHAIN_KICKER,
-  PUBLIC_PLACE_BODY,
   RESERVE_A_TABLE_LABEL,
   SAME_CHAIN_CAPTION,
   SEE_THE_MENU_LABEL
@@ -118,7 +117,6 @@ function PublicPlaceCard({
       <p>{[chainPlaceWhere(place), chainAppLabel(place.app)].filter(Boolean).join(' · ')}</p>
       {isEatery ? (
         <>
-          <p className="caption">{PUBLIC_PLACE_BODY}</p>
           <div className="place-public-actions">
             <a
               className="btn btn-primary btn-wide"

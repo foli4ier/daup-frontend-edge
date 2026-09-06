@@ -35,6 +35,13 @@ body {
   text-decoration: none;
 }
 
+.owner-shell a.btn-primary,
+.owner-wizard a.btn-primary,
+.owner-hydrate a.btn-primary,
+.hub-door a.btn-primary {
+  color: #fff;
+}
+
 .wrap {
   width: min(var(--max), calc(100% - 40px));
   margin: 0 auto;

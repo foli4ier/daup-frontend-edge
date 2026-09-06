@@ -65,24 +65,25 @@ export function GetAppsSection({
               </div>
               <div className="shop-app-actions">
                 {!held ? (
-                  <button
-                    type="button"
-                    className="btn btn-outline btn-wide"
-                    data-testid={`subscribe-app-${app.id}`}
-                    onClick={() => onSubscribe(app)}
-                  >
-                    {SUBSCRIBE_LABEL}
-                  </button>
-                ) : null}
-                <button
-                  type="button"
-                  className="btn btn-outline btn-wide"
-                  data-testid={`get-app-${app.id}`}
-                  onClick={() => onGet(app)}
-                >
-                  {GET_LABEL}
-                </button>
-                {held ? (
+                  <>
+                    <button
+                      type="button"
+                      className="btn btn-outline btn-wide"
+                      data-testid={`subscribe-app-${app.id}`}
+                      onClick={() => onSubscribe(app)}
+                    >
+                      {SUBSCRIBE_LABEL}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-wide"
+                      data-testid={`get-app-${app.id}`}
+                      onClick={() => onGet(app)}
+                    >
+                      {GET_LABEL}
+                    </button>
+                  </>
+                ) : (
                   <button
                     type="button"
                     className="btn btn-primary btn-wide"
@@ -91,7 +92,7 @@ export function GetAppsSection({
                   >
                     {OPEN_LABEL}
                   </button>
-                ) : null}
+                )}
               </div>
             </article>
           );
@@ -115,7 +116,6 @@ export function GetAppsSection({
                   <h3>
                     {app.title} <span className="coming-flag">{COMING_KICKER}</span>
                   </h3>
-                  <p className="caption">{SAME_CHAIN_CAPTION}</p>
                 </div>
               </div>
             </article>

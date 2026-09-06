@@ -40,7 +40,6 @@ export const SEE_THE_MENU_LABEL = 'See the menu.';
 export const RESERVE_A_TABLE_LABEL = 'Reserve a table.';
 export const CHAIN_BACK_LABEL = 'Back.';
 export const CHAIN_APP_CHAT = 'Chat';
-export const PUBLIC_PLACE_BODY = 'Open the public card. Pay at the table.';
 export const EATERY_ROW_BODY = 'Tables, tickets, kitchen, stock.';
 export const HUB_HOME_FALLBACK = 'Your hub';
 export const LOG_OFF_LABEL = 'Log off.';
@@ -115,7 +114,6 @@ export const HUB_HOME_COPY = [
   SEE_THE_MENU_LABEL,
   RESERVE_A_TABLE_LABEL,
   CHAIN_BACK_LABEL,
-  PUBLIC_PLACE_BODY,
   LOG_OFF_LABEL,
   DELETE_THE_HOUSE_LABEL,
   REGISTER_A_NEW_HOUSE_LABEL,
