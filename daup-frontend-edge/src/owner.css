@@ -213,7 +213,7 @@ body {
 
 .get-apps-live {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: 1fr 1fr;
   gap: 16px;
 }
 
@@ -532,6 +532,7 @@ body {
     grid-row: auto;
   }
 
+  .get-apps-live,
   .other-apps {
     grid-template-columns: 1fr 1fr;
   }
@@ -547,6 +548,10 @@ body {
 }
 
 @media (max-width: 760px) {
+  .get-apps-live {
+    grid-template-columns: 1fr;
+  }
+
   .wrap,
   .wizard-wrap {
     width: min(var(--max), calc(100% - 28px));

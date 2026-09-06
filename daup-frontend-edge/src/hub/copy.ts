@@ -40,6 +40,7 @@ export const SEE_THE_MENU_LABEL = 'See the menu.';
 export const RESERVE_A_TABLE_LABEL = 'Reserve a table.';
 export const CHAIN_BACK_LABEL = 'Back.';
 export const CHAIN_APP_CHAT = 'Chat';
+export const CHAIN_APP_EATOUT = 'EatOut';
 export const EATERY_ROW_BODY = 'Tables, tickets, kitchen, stock.';
 export const HUB_HOME_FALLBACK = 'Your hub';
 export const LOG_OFF_LABEL = 'Log off.';
@@ -108,7 +109,6 @@ export const HUB_HOME_COPY = [
   GET_APPS_KICKER,
   GET_LABEL,
   OPEN_LABEL,
-  SUBSCRIBE_LABEL,
   COMING_KICKER,
   SAME_CHAIN_CAPTION,
   SEE_THE_MENU_LABEL,
@@ -120,6 +120,7 @@ export const HUB_HOME_COPY = [
   ON_THE_CHAIN_KICKER,
   ON_THE_CHAIN_EMPTY,
   CHAIN_APP_EATERY,
+  CHAIN_APP_EATOUT,
   CHAIN_APP_FARM,
   CHAIN_APP_RESELLER,
   CHAIN_APP_MAKER,

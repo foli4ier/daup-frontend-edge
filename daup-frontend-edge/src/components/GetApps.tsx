@@ -1,17 +1,23 @@
 import React from 'react';
-import { Factory, MessageCircle, Store, Utensils, Wheat } from 'lucide-react';
+import { Factory, MessageCircle, Store, Utensils, UtensilsCrossed, Wheat } from 'lucide-react';
 import {
   COMING_KICKER,
   GET_APPS_KICKER,
   GET_LABEL,
   OPEN_LABEL,
-  SAME_CHAIN_CAPTION,
-  SUBSCRIBE_LABEL
+  SAME_CHAIN_CAPTION
 } from '../hub/copy';
-import { COMING_SHOP_APPS, LIVE_SHOP_APPS, ShopApp, shopAppIsHeld } from '../hub/places';
+import {
+  COMING_SHOP_APPS,
+  LIVE_SHOP_APPS,
+  ShopApp,
+  shopAppIsHeld,
+  shopAppOpenHref
+} from '../hub/places';
 
 const SHOP_ICONS = {
   eatery: Utensils,
+  eatout: UtensilsCrossed,
   farm: Wheat,
   reseller: Store,
   maker: Factory,
@@ -23,15 +29,45 @@ export interface GetAppsProps {
   installedApps: Record<string, boolean>;
   onGet: (app: ShopApp) => void;
   onOpen: (app: ShopApp) => void;
-  onSubscribe: (app: ShopApp) => void;
+}
+
+function OpenControl({
+  app,
+  onOpen
+}: {
+  app: ShopApp;
+  onOpen: (app: ShopApp) => void;
+}) {
+  const openHref = shopAppOpenHref(app);
+  if (openHref) {
+    return (
+      <a
+        className="btn btn-primary btn-wide"
+        href={openHref}
+        target="_self"
+        data-testid={`open-app-${app.id}`}
+      >
+        {OPEN_LABEL}
+      </a>
+    );
+  }
+  return (
+    <button
+      type="button"
+      className="btn btn-primary btn-wide"
+      data-testid={`open-app-${app.id}`}
+      onClick={() => onOpen(app)}
+    >
+      {OPEN_LABEL}
+    </button>
+  );
 }
 
 export function GetAppsSection({
   hasHouse,
   installedApps,
   onGet,
-  onOpen,
-  onSubscribe
+  onOpen
 }: GetAppsProps) {
   const heldOf = (app: ShopApp) => shopAppIsHeld(app, { hasHouse, installed: installedApps });
 
@@ -69,29 +105,15 @@ export function GetAppsSection({
                     <button
                       type="button"
                       className="btn btn-outline btn-wide"
-                      data-testid={`subscribe-app-${app.id}`}
-                      onClick={() => onSubscribe(app)}
-                    >
-                      {SUBSCRIBE_LABEL}
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-primary btn-wide"
                       data-testid={`get-app-${app.id}`}
                       onClick={() => onGet(app)}
                     >
                       {GET_LABEL}
                     </button>
+                    <OpenControl app={app} onOpen={onOpen} />
                   </>
                 ) : (
-                  <button
-                    type="button"
-                    className="btn btn-primary btn-wide"
-                    data-testid={`open-app-${app.id}`}
-                    onClick={() => onOpen(app)}
-                  >
-                    {OPEN_LABEL}
-                  </button>
+                  <OpenControl app={app} onOpen={onOpen} />
                 )}
               </div>
             </article>

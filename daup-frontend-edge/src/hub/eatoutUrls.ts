@@ -14,6 +14,9 @@
 
 export const DEFAULT_EATOUT_ORIGIN = 'https://eatout.daup.co.za';
 
+/** Search home. EatOut Open. full-navs here — never /place/{id}, never the hub. */
+export const EATOUT_SEARCH_HOME = 'https://eatout.daup.co.za/';
+
 /** Single constant to update if EatOut changes the place path. */
 export const EATOUT_PLACE_PATH_TEMPLATE = '/place/{slug}';
 
@@ -25,6 +28,36 @@ export function eatoutOrigin(origin?: string): string {
     typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_APP_EATOUT_URL;
   const raw = (origin || fromEnv || DEFAULT_EATOUT_ORIGIN).trim();
   return raw.replace(/\/+$/, '') || DEFAULT_EATOUT_ORIGIN;
+}
+
+/** Search home only. Ignores env / place origin so Open. cannot land on /place/{id}. */
+export function eatoutHomeUrl(): string {
+  return EATOUT_SEARCH_HOME;
+}
+
+export function isEatOutSearchHome(url: string): boolean {
+  return url === EATOUT_SEARCH_HOME;
+}
+
+export function eatoutOpenHitsPlaceOrHub(url: string): boolean {
+  if (!url) return true;
+  try {
+    const parsed = new URL(url);
+    const path = parsed.pathname.replace(/\/+$/, '') || '/';
+    if (path.startsWith('/place')) return true;
+    if (parsed.hash === '#menu' || parsed.hash === '#book') return true;
+    if (parsed.hostname.includes('eatery')) return true;
+    if (path === '/owner' || path.startsWith('/owner/')) return true;
+    if (parsed.hostname === 'app.daup.co.za') return true;
+    return false;
+  } catch {
+    return true;
+  }
+}
+
+export function navigateToEatOutHome(): void {
+  if (typeof window === 'undefined') return;
+  window.location.assign(EATOUT_SEARCH_HOME);
 }
 
 /**
