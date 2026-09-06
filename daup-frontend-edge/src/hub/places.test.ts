@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { CHAIN_APP_EATOUT, GET_LABEL, OPEN_LABEL, hasBannedDoorCopy } from './copy';
-import { DEFAULT_EATOUT_ORIGIN, eatoutHomeUrl, publicPlaceUrlHitsOwnerFloor } from './eatoutUrls';
+import {
+  EATOUT_SEARCH_HOME,
+  eatoutHomeUrl,
+  eatoutOpenHitsPlaceOrHub,
+  isEatOutSearchHome,
+  publicPlaceUrlHitsOwnerFloor
+} from './eatoutUrls';
 import {
   COMING_SHOP_APPS,
   EATOUT_MODULE_KEY,
@@ -39,12 +45,16 @@ describe('Get apps. shop catalog', () => {
     expect(shopAppOpenHref(eatery)).toBeUndefined();
   });
 
-  it('Open. for EatOut is diner home, never eatery owner Floor', () => {
+  it('Open. for EatOut is search home, never a place page or the hub', () => {
     const eatout = SHOP_APPS.find(app => app.id === 'eatout')!;
     const href = shopAppOpenHref(eatout);
-    expect(href).toBe(`${DEFAULT_EATOUT_ORIGIN}/`);
+    expect(href).toBe('https://eatout.daup.co.za/');
+    expect(href).toBe(EATOUT_SEARCH_HOME);
     expect(href).toBe(eatoutHomeUrl());
-    expect(href).not.toMatch(/eatery\.daup\.co\.za|\/owner|\/floor/i);
+    expect(isEatOutSearchHome(href || '')).toBe(true);
+    expect(href).not.toMatch(/\/place\/|#menu|#book|eatery\.daup\.co\.za|\/owner|app\.daup\.co\.za/i);
+    expect(eatoutOpenHitsPlaceOrHub(href || '')).toBe(false);
+    expect(eatoutOpenHitsPlaceOrHub('https://eatout.daup.co.za/place/kortrijk#menu')).toBe(true);
     expect(publicPlaceUrlHitsOwnerFloor(href || '')).toBe(false);
     expect(GET_LABEL).toBe('Get.');
     expect(OPEN_LABEL).toBe('Open.');

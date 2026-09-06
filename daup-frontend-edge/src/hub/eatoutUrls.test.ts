@@ -2,9 +2,12 @@ import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_EATOUT_ORIGIN,
   EATOUT_PLACE_PATH_TEMPLATE,
+  EATOUT_SEARCH_HOME,
   buildEatOutPlaceUrl,
   eatoutHomeUrl,
+  eatoutOpenHitsPlaceOrHub,
   eatoutPlaceHrefs,
+  isEatOutSearchHome,
   navigateToEatOutHome,
   placePublicSlug,
   publicPlaceUrlHitsOwnerFloor
@@ -45,13 +48,19 @@ describe('EatOut public place URLs', () => {
     expect(hasBannedDoorCopy(SEE_THE_MENU_LABEL + RESERVE_A_TABLE_LABEL)).toBe(false);
   });
 
-  it('Open. diner home is eatout.daup.co.za/ and never owner Floor', () => {
+  it('Open. search home is exactly https://eatout.daup.co.za/', () => {
     const home = eatoutHomeUrl();
-    expect(home).toBe(`${DEFAULT_EATOUT_ORIGIN}/`);
-    expect(home).not.toMatch(/eatery\.daup\.co\.za|\/owner|\/floor/i);
+    expect(home).toBe('https://eatout.daup.co.za/');
+    expect(home).toBe(EATOUT_SEARCH_HOME);
+    expect(isEatOutSearchHome(home)).toBe(true);
+    expect(home).not.toMatch(/\/place\/|#menu|#book/i);
+    expect(eatoutOpenHitsPlaceOrHub(home)).toBe(false);
+    expect(eatoutOpenHitsPlaceOrHub(`${DEFAULT_EATOUT_ORIGIN}/place/the-olive#menu`)).toBe(true);
+    expect(eatoutOpenHitsPlaceOrHub('https://app.daup.co.za/')).toBe(true);
     expect(publicPlaceUrlHitsOwnerFloor(home)).toBe(false);
     expect(navigateToEatOutHome.toString()).toContain('location.assign');
+    expect(navigateToEatOutHome.toString()).toContain('EATOUT_SEARCH_HOME');
+    expect(navigateToEatOutHome.toString()).not.toContain('/place/');
     expect(navigateToEatOutHome.toString()).not.toContain('/owner');
-    expect(navigateToEatOutHome.toString()).not.toContain('eatery.daup.co.za');
   });
 });

@@ -380,8 +380,10 @@ describe('hub home after email', () => {
     const open = eatout?.querySelector('[data-testid="open-app-eatout"]') as HTMLAnchorElement | null;
     expect(eatout?.textContent).toContain('LIVE');
     expect(open?.textContent).toBe(OPEN_LABEL);
+    expect(open?.tagName).toBe('A');
     expect(open?.getAttribute('href')).toBe('https://eatout.daup.co.za/');
-    expect(open?.getAttribute('href') || '').not.toMatch(/eatery\.daup\.co\.za|\/owner|\/floor/i);
+    expect(open?.getAttribute('target')).toBe('_self');
+    expect(open?.getAttribute('href') || '').not.toMatch(/\/place\/|#menu|#book|eatery\.daup\.co\.za|\/owner|\/floor/i);
     expect(eatout?.querySelector('[data-testid="get-app-eatout"]')).toBeNull();
     expect(eatout?.querySelector('[data-testid="subscribe-app-eatout"]')).toBeNull();
     expect(container.querySelector('[data-testid="open-app-eatery"]')?.textContent).toBe(OPEN_LABEL);
@@ -407,8 +409,10 @@ describe('hub home after email', () => {
     expect(container.querySelector('[data-testid="subscribe-app-eatout"]')).toBeNull();
     const open = container.querySelector('[data-testid="open-app-eatout"]') as HTMLAnchorElement | null;
     expect(open?.textContent).toBe(OPEN_LABEL);
+    expect(open?.tagName).toBe('A');
     expect(open?.getAttribute('href')).toBe('https://eatout.daup.co.za/');
-    expect(open?.getAttribute('href') || '').not.toMatch(/eatery\.daup\.co\.za|\/owner/i);
+    expect(open?.getAttribute('target')).toBe('_self');
+    expect(open?.getAttribute('href') || '').not.toMatch(/\/place\/|#menu|#book|eatery\.daup\.co\.za|\/owner/i);
     expect(JSON.parse(localStorage.getItem('daup_installed_apps') || '{}')['daup-eatout']).toBe(true);
     expect(container.querySelector('[data-testid="open-app-eatery"]')?.textContent).toBe(OPEN_LABEL);
     expect(container.querySelector('[data-testid="coming-app-eatout"]')).toBeNull();

@@ -9,7 +9,7 @@ import {
   HUB_HOME_FALLBACK,
   OPEN_THE_HOUSE_LABEL
 } from './copy';
-import { eatoutHomeUrl } from './eatoutUrls';
+import { EATOUT_SEARCH_HOME } from './eatoutUrls';
 import { buildOpenTheHouseUrl } from './ownerArrival';
 
 export interface HubPlaceRow {
@@ -95,8 +95,8 @@ export function shopAppIsHeld(app: ShopApp, held: {
   return Boolean(held.installed?.[app.moduleKey]);
 }
 
-/** EatOut Open. is diner home. Eatery Open. stays a house button — never this href. */
-export function shopAppOpenHref(app: ShopApp, origin?: string): string | undefined {
+/** EatOut Open. is search home. Eatery Open. stays a house button — never this href. */
+export function shopAppOpenHref(app: ShopApp): string | undefined {
   if (app.id !== 'eatout') return undefined;
-  return eatoutHomeUrl(origin);
+  return EATOUT_SEARCH_HOME;
 }

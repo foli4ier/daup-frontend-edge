@@ -95,8 +95,8 @@ export function GetAppsSection({
                   <a
                     className="btn btn-primary btn-wide"
                     href={openHref}
+                    target="_self"
                     data-testid={`open-app-${app.id}`}
-                    onClick={() => onOpen(app)}
                   >
                     {OPEN_LABEL}
                   </a>
