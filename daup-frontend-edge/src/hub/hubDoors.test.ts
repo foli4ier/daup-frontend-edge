@@ -58,6 +58,8 @@ describe('hub email door copy', () => {
     expect(SAME_CHAIN_CAPTION).toBe('Same chain. Not live yet.');
     expect(DELETE_THE_HOUSE_LABEL).toBe('Delete the house.');
     expect(REGISTER_A_NEW_HOUSE_LABEL).toBe('Register a new house.');
+    expect(HUB_HOME_COPY).toContain('On the chain.');
+    expect(HUB_HOME_COPY).toContain('No other places on the chain yet.');
     for (const line of DELETE_HOUSE_MODAL_COPY) {
       expect(hasBannedDoorCopy(line), `banned word in "${line}"`).toBe(false);
     }

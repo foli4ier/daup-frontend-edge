@@ -798,6 +798,61 @@ body {
   padding-top: 2px;
 }
 
+.on-the-chain {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.chain-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.chain-app,
+.chain-country,
+.chain-region,
+.chain-city {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.chain-country {
+  padding-left: 4px;
+}
+
+.chain-region {
+  padding-left: 10px;
+}
+
+.chain-city {
+  padding-left: 10px;
+}
+
+.chain-group-label {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 750;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--forest);
+}
+
+.chain-place {
+  gap: 6px;
+}
+
+.chain-place h3 {
+  font-size: 1.2rem;
+}
+
+.chain-place p {
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
 .owner-modal-narrow {
   max-width: 440px;
 }

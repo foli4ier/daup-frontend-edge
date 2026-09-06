@@ -14,6 +14,20 @@ export const PLATFORM_ENTITIES_KEY = 'daup_platform_registered_entities';
 export const APP_INSTANCES_KEY = 'daup_app_instances_db';
 export const SUBSCRIPTIONS_KEY = 'daup_subscriptions_db';
 
+export const PLATFORM_APP_IDS = ['eatery', 'farm', 'reseller', 'maker'] as const;
+export type PlatformAppId = (typeof PLATFORM_APP_IDS)[number];
+
+/** A registered place the hub can list. Ready for a future shared store. */
+export interface PlatformPlaceRecord {
+  placeName: string;
+  app: PlatformAppId;
+  country: string;
+  region: string;
+  city: string;
+}
+
+export type PlatformEntityEntry = string | PlatformPlaceRecord;
+
 export interface UserIdentityVault {
   version: 1;
   hasCompletedOnboarding: boolean;
@@ -207,18 +221,101 @@ export function resolveActiveWallet(wallets: WalletEntry[], primaryWalletId?: st
   return wallets[0];
 }
 
+export function isPlatformAppId(value: unknown): value is PlatformAppId {
+  return typeof value === 'string' && (PLATFORM_APP_IDS as readonly string[]).includes(value);
+}
+
+export function isPlatformPlaceRecord(value: unknown): value is PlatformPlaceRecord {
+  if (!value || typeof value !== 'object') return false;
+  const rec = value as Partial<PlatformPlaceRecord>;
+  return typeof rec.placeName === 'string' && rec.placeName.trim().length > 0;
+}
+
+export function platformEntityName(entry: unknown): string {
+  if (typeof entry === 'string') return entry;
+  if (isPlatformPlaceRecord(entry)) return entry.placeName;
+  return '';
+}
+
+function readPlatformEntities(): PlatformEntityEntry[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(PLATFORM_ENTITIES_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((entry): entry is PlatformEntityEntry =>
+      typeof entry === 'string' || isPlatformPlaceRecord(entry)
+    );
+  } catch (e) {}
+  return [];
+}
+
+function writePlatformEntities(entries: PlatformEntityEntry[]): void {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(PLATFORM_ENTITIES_KEY, JSON.stringify(entries));
+}
+
+export function asPlatformPlaceRecord(value: unknown): PlatformPlaceRecord | null {
+  if (!isPlatformPlaceRecord(value)) return null;
+  return {
+    placeName: value.placeName.trim(),
+    app: isPlatformAppId(value.app) ? value.app : 'eatery',
+    country: (value.country || '').trim(),
+    region: (value.region || '').trim(),
+    city: (value.city || '').trim()
+  };
+}
+
 /**
  * Get all registered legal names across the platform
  */
 export function getRegisteredLegalNames(): string[] {
-  if (typeof window === 'undefined') return [];
+  return readPlatformEntities().map(platformEntityName).filter(Boolean);
+}
+
+/**
+ * Places the hub can show on the chain. Legacy name-only strings stay off this list.
+ */
+export function listRegisteredPlaces(): PlatformPlaceRecord[] {
+  return readPlatformEntities()
+    .map(asPlatformPlaceRecord)
+    .filter((place): place is PlatformPlaceRecord => Boolean(place));
+}
+
+/**
+ * Write or replace a rich place record (place, app, country, region, city).
+ */
+export function registerPlaceOnPlatform(place: {
+  placeName: string;
+  app?: PlatformAppId | string;
+  country?: string;
+  region?: string;
+  city?: string;
+}): PlatformPlaceRecord | null {
+  if (typeof window === 'undefined') return null;
+  const placeName = (place.placeName || '').trim();
+  if (!placeName) return null;
   try {
-    const raw = localStorage.getItem(PLATFORM_ENTITIES_KEY);
-    if (raw) {
-      return JSON.parse(raw);
+    const record: PlatformPlaceRecord = {
+      placeName,
+      app: isPlatformAppId(place.app) ? place.app : 'eatery',
+      country: (place.country || '').trim(),
+      region: (place.region || '').trim(),
+      city: (place.city || '').trim()
+    };
+    const norm = normalizeLegalName(placeName);
+    const existing = readPlatformEntities();
+    const idx = existing.findIndex(entry => normalizeLegalName(platformEntityName(entry)) === norm);
+    if (idx >= 0) {
+      existing[idx] = record;
+    } else {
+      existing.push(record);
     }
+    writePlatformEntities(existing);
+    return record;
   } catch (e) {}
-  return [];
+  return null;
 }
 
 /**
@@ -275,11 +372,12 @@ export function registerLegalNameOnPlatform(name: string): void {
   if (typeof window === 'undefined' || !name.trim()) return;
   try {
     const norm = normalizeLegalName(name);
-    const existing = getRegisteredLegalNames();
-    if (!existing.some(e => normalizeLegalName(e) === norm)) {
-      existing.push(name.trim());
-      localStorage.setItem(PLATFORM_ENTITIES_KEY, JSON.stringify(existing));
+    const existing = readPlatformEntities();
+    if (existing.some(entry => normalizeLegalName(platformEntityName(entry)) === norm)) {
+      return;
     }
+    existing.push(name.trim());
+    writePlatformEntities(existing);
   } catch (e) {}
 }
 
@@ -290,10 +388,14 @@ export function unregisterLegalNameOnPlatform(name: string): void {
   if (typeof window === 'undefined' || !name.trim()) return;
   try {
     const norm = normalizeLegalName(name);
-    const existing = getRegisteredLegalNames();
-    const updated = existing.filter(e => normalizeLegalName(e) !== norm);
-    localStorage.setItem(PLATFORM_ENTITIES_KEY, JSON.stringify(updated));
+    const existing = readPlatformEntities();
+    const updated = existing.filter(entry => normalizeLegalName(platformEntityName(entry)) !== norm);
+    writePlatformEntities(updated);
   } catch (e) {}
+}
+
+export function unregisterPlaceOnPlatform(name: string): void {
+  unregisterLegalNameOnPlatform(name);
 }
 
 /**

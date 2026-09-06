@@ -10,8 +10,10 @@ import {
   YOUR_APPS_KICKER
 } from '../hub/copy';
 import { COMING_APPS, listOwnerPlaces } from '../hub/places';
+import { listPlacesOnTheChain } from '../hub/placeDirectory';
 import { navigateToTheHouse } from '../hub/ownerArrival';
 import { DeleteHouseModal } from './DeleteHouseModal';
+import { OnTheChainSection } from './OnTheChain';
 
 const DOCS_SHIFT = 'https://www.daup.co.za/docs/eatery/tuesday-lunch';
 
@@ -33,6 +35,7 @@ export const SubscribedAppsView: React.FC = () => {
   const email = ownerSession?.email || '';
   const places = listOwnerPlaces({ email, placeName: houseName });
   const eatery = places[0];
+  const chainPlaces = listPlacesOnTheChain();
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   const openTheHouse = (event: React.MouseEvent<HTMLAnchorElement>) => {
@@ -106,6 +109,8 @@ export const SubscribedAppsView: React.FC = () => {
           clearHouse();
         }}
       />
+
+      <OnTheChainSection places={chainPlaces} />
 
       <div className="section-head">
         <span className="kicker">{OTHER_APPS_KICKER}</span>
