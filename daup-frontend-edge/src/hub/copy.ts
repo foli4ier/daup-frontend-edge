@@ -1,6 +1,6 @@
 /** Kitchen English on hub doors. Protocol words stay behind Advanced. */
 
-export const BANNED_DOOR_WORDS = ['node', 'did', 'wallet', 'mcp', 'npm'] as const;
+export const BANNED_DOOR_WORDS = ['peer', 'node', 'dht', 'did', 'wallet', 'mcp', 'npm'] as const;
 
 export const YOUR_EMAIL_LABEL = 'Your email.';
 export const OPEN_YOUR_HUB_LABEL = 'Open your hub.';
@@ -29,6 +29,18 @@ export const DELETE_HOUSE_CONFIRM_LABEL = 'Delete';
 export const DELETE_HOUSE_CANCEL_LABEL = 'Cancel';
 export const TYPE_THE_PLACE_NAME = 'Type the place name.';
 export const STAY_WITH_THE_HOUSE_LABEL = 'Stay with this house.';
+export const ON_THE_CHAIN_KICKER = 'On the chain.';
+export const ON_THE_CHAIN_EMPTY = 'No other places on the chain yet.';
+export const CHAIN_APP_EATERY = 'Eatery';
+export const CHAIN_APP_FARM = 'Farm';
+export const CHAIN_APP_RESELLER = 'Reseller';
+export const CHAIN_APP_MAKER = 'Maker';
+export const CHAIN_APP_LABELS = {
+  eatery: CHAIN_APP_EATERY,
+  farm: CHAIN_APP_FARM,
+  reseller: CHAIN_APP_RESELLER,
+  maker: CHAIN_APP_MAKER
+} as const;
 
 /** Exact match — extra spaces or a different case keep Delete quiet. */
 export function houseNameMatchesConfirm(typedName: string, houseName: string): boolean {
@@ -60,9 +72,12 @@ export const HUB_HOME_COPY = [
   LOG_OFF_LABEL,
   DELETE_THE_HOUSE_LABEL,
   REGISTER_A_NEW_HOUSE_LABEL,
-  'Farm',
-  'Reseller',
-  'Maker'
+  ON_THE_CHAIN_KICKER,
+  ON_THE_CHAIN_EMPTY,
+  CHAIN_APP_EATERY,
+  CHAIN_APP_FARM,
+  CHAIN_APP_RESELLER,
+  CHAIN_APP_MAKER
 ];
 
 export const DELETE_HOUSE_MODAL_COPY = [

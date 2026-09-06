@@ -5,9 +5,21 @@ import { act } from 'react';
 import { Simulate } from 'react-dom/test-utils';
 import { SubscribedAppsView } from './SubscribedAppsView';
 import { UserProfileProvider } from '../context/UserProfileContext';
-import { saveIdentityVault, resetIdentityVault, UserIdentityVault } from '../stores/identityStore';
+import {
+  saveIdentityVault,
+  resetIdentityVault,
+  UserIdentityVault,
+  registerPlaceOnPlatform,
+  listRegisteredPlaces
+} from '../stores/identityStore';
 import { OWNER_SESSION_STORAGE_KEY } from '../hub/ownerSession';
-import { OPEN_THE_HOUSE_LABEL, SAME_CHAIN_CAPTION, WHERE_IS_THE_EATERY } from '../hub/copy';
+import {
+  ON_THE_CHAIN_EMPTY,
+  ON_THE_CHAIN_KICKER,
+  OPEN_THE_HOUSE_LABEL,
+  SAME_CHAIN_CAPTION,
+  WHERE_IS_THE_EATERY
+} from '../hub/copy';
 import { App } from '../App';
 import { persistOwnerCookie, mintOwnerArrivalToken, readOwnerArrivalToken, buildOpenTheHouseUrl, cookieSetsParentDomain } from '../hub/ownerArrival';
 
@@ -147,7 +159,66 @@ describe('hub home after email', () => {
     expect(container.textContent).not.toContain('Decentralized Edge App Registry');
     expect(container.querySelector('[data-testid="delete-the-house"]')?.textContent).toBe('Delete the house.');
     expect(container.querySelector('[data-testid="register-new-house"]')?.textContent).toBe('Register a new house.');
-    expect(container.textContent).not.toMatch(/\b(node|DID|wallet|MCP|npm)\b/i);
+    expect(container.querySelector('[data-testid="on-the-chain"]')?.textContent).toContain(ON_THE_CHAIN_KICKER);
+    expect(container.querySelector('[data-testid="on-the-chain-empty"]')?.textContent).toBe(ON_THE_CHAIN_EMPTY);
+    expect(container.textContent).not.toMatch(/\b(peer|node|DID|DHT|wallet|MCP|npm)\b/i);
+    unmount();
+  });
+
+  it('lists registered places grouped App → Country → Region → City → name', async () => {
+    registerPlaceOnPlatform({
+      placeName: 'Press',
+      app: 'maker',
+      country: 'United States',
+      region: 'Texas',
+      city: 'Austin'
+    });
+    registerPlaceOnPlatform({
+      placeName: 'The Olive',
+      app: 'eatery',
+      country: 'South Africa',
+      region: 'Western Cape',
+      city: 'Stellenbosch'
+    });
+    registerPlaceOnPlatform({
+      placeName: 'Green Field',
+      app: 'farm',
+      country: 'Kenya',
+      region: 'Nairobi',
+      city: 'Nairobi'
+    });
+    registerPlaceOnPlatform({
+      placeName: 'Salt',
+      app: 'eatery',
+      country: 'South Africa',
+      region: 'Western Cape',
+      city: 'Cape Town'
+    });
+
+    const { container, unmount } = render(
+      <UserProfileProvider>
+        <SubscribedAppsView />
+      </UserProfileProvider>
+    );
+
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 80));
+    });
+
+    const chain = container.querySelector('[data-testid="on-the-chain"]');
+    expect(chain?.querySelector('[data-testid="on-the-chain-empty"]')).toBeNull();
+    const names = Array.from(chain?.querySelectorAll('[data-testid="on-the-chain-place"]') || [])
+      .map(row => row.getAttribute('data-place-name'));
+    expect(names).toEqual(['Salt', 'The Olive', 'Green Field', 'Press']);
+
+    const text = chain?.textContent || '';
+    expect(text.indexOf('Eatery')).toBeLessThan(text.indexOf('Farm'));
+    expect(text.indexOf('Farm')).toBeLessThan(text.indexOf('Maker'));
+    expect(text.indexOf('Cape Town')).toBeLessThan(text.indexOf('Stellenbosch'));
+    expect(text).toContain('Stellenbosch, Western Cape, South Africa');
+    expect(text).toContain('The Olive');
+    expect(text).not.toMatch(/\b(peer|node|DID|DHT|wallet|MCP|npm)\b/i);
+    expect(container.querySelector('[data-testid="hub-home"]')).toBeTruthy();
     unmount();
   });
 
@@ -311,6 +382,101 @@ describe('delete and register a house from hub home', () => {
       house: 'The Olive',
       origin: 'https://eatery.daup.co.za'
     })).toBe('');
+    unmount();
+  });
+});
+
+function clickContinue(container: HTMLElement) {
+  const next = Array.from(container.querySelectorAll('button')).find(button =>
+    (button.textContent || '').includes('Continue')
+  );
+  act(() => {
+    next?.click();
+  });
+}
+
+describe('On the chain. from register and delete', () => {
+  beforeEach(() => {
+    resetIdentityVault();
+    localStorage.clear();
+    localStorage.setItem(OWNER_SESSION_STORAGE_KEY, JSON.stringify({
+      email: 'owner@theolive.co.za',
+      signedInAt: Date.now()
+    }));
+  });
+
+  it('writes the wizard location onto the chain after See your apps', async () => {
+    const { container, unmount } = render(<App />);
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 80));
+    });
+
+    expect(container.querySelector('[data-testid="hub-wizard"]')).toBeTruthy();
+    typeInto(container.querySelector('#place-name') as HTMLInputElement, 'The Olive');
+    typeInto(container.querySelector('#country') as HTMLInputElement, 'South Africa');
+    typeInto(container.querySelector('#province') as HTMLInputElement, 'Western Cape');
+    typeInto(container.querySelector('#city') as HTMLInputElement, 'Stellenbosch');
+    clickContinue(container);
+
+    typeInto(container.querySelector('#phone') as HTMLInputElement, '+27820000000');
+    clickContinue(container);
+    clickContinue(container);
+
+    act(() => {
+      (container.querySelector('[data-testid="see-your-apps"]') as HTMLButtonElement | null)?.click();
+    });
+
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 80));
+    });
+
+    expect(container.querySelector('[data-testid="hub-home"]')).toBeTruthy();
+    const row = container.querySelector('[data-testid="on-the-chain-place"]');
+    expect(row?.getAttribute('data-place-name')).toBe('The Olive');
+    expect(row?.textContent).toContain('The Olive');
+    expect(row?.textContent).toContain('Stellenbosch, Western Cape, South Africa');
+    expect(row?.textContent).toContain('Eatery');
+    expect(container.querySelector('[data-testid="on-the-chain-empty"]')).toBeNull();
+    expect(listRegisteredPlaces()).toEqual([{
+      placeName: 'The Olive',
+      app: 'eatery',
+      country: 'South Africa',
+      region: 'Western Cape',
+      city: 'Stellenbosch'
+    }]);
+    expect(container.textContent).not.toMatch(/\b(peer|node|DID|DHT|wallet|MCP|npm)\b/i);
+    unmount();
+  });
+
+  it('takes the place off the chain when Delete the house. confirms', async () => {
+    saveIdentityVault(houseVault);
+    registerPlaceOnPlatform({
+      placeName: 'The Olive',
+      app: 'eatery',
+      country: 'South Africa',
+      region: 'Western Cape',
+      city: 'Stellenbosch'
+    });
+
+    const { container, unmount } = render(<App />);
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 80));
+    });
+
+    expect(container.querySelector('[data-testid="on-the-chain-place"]')?.textContent).toContain('The Olive');
+    expect(listRegisteredPlaces()).toHaveLength(1);
+
+    act(() => {
+      (container.querySelector('[data-testid="delete-the-house"]') as HTMLButtonElement).click();
+    });
+    typeInto(container.querySelector('[data-testid="delete-house-name"]') as HTMLInputElement, 'The Olive');
+    act(() => {
+      (container.querySelector('[data-testid="delete-house-confirm"]') as HTMLButtonElement).click();
+    });
+
+    expect(listRegisteredPlaces()).toEqual([]);
+    expect(container.querySelector('[data-testid="hub-wizard"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="on-the-chain"]')).toBeNull();
     unmount();
   });
 });

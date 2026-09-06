@@ -21,6 +21,7 @@ import {
   resolveActiveWallet,
   isLegalNameUniqueOnPlatform,
   registerLegalNameOnPlatform,
+  registerPlaceOnPlatform,
   unregisterLegalNameOnPlatform,
   normalizeLegalName,
   DEFAULT_VAULT
@@ -485,9 +486,17 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
         }
       });
 
-      // Register active wallet in global platform registry
+      // Register the named place on the chain (wizard location + Eatery today)
       if (active?.legalName) {
         registerLegalNameOnPlatform(active.legalName);
+        const location = finalProfileData?.location || prev.profile.location;
+        registerPlaceOnPlatform({
+          placeName: active.legalName,
+          app: 'eatery',
+          country: location?.country || '',
+          region: location?.provinceState || '',
+          city: location?.city || ''
+        });
       }
 
       const updatedProfile: UserProfile = {
