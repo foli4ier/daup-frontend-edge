@@ -24,8 +24,17 @@ import {
   registerPlaceOnPlatform,
   unregisterLegalNameOnPlatform,
   normalizeLegalName,
+  listRegisteredPlaces,
+  mergeHousePlacesIntoPlatform,
+  applyHousePlacesToVault,
   DEFAULT_VAULT
 } from '../stores/identityStore';
+import {
+  housePlaceToPlatform,
+  listPlacesByEmail,
+  registerHousePlace,
+  unregisterHousePlace
+} from '../hub/houseMcp';
 import {
   OwnerSession,
   clearHouseCompanionCookie,
@@ -45,7 +54,7 @@ export interface UserProfileContextType {
   hasCompletedOnboarding: boolean;
   hasHouse: boolean;
   ownerSession: OwnerSession | null;
-  openHubWithEmail: (session: OwnerSession) => void;
+  openHubWithEmail: (session: OwnerSession) => Promise<void>;
   logOffHub: () => void;
   isNamingPlace: boolean;
   beginNamingPlace: () => void;
@@ -68,7 +77,7 @@ export interface UserProfileContextType {
   updateWallet: (id: string, updates: Partial<WalletEntry>) => void;
   removeWallet: (id: string) => void;
   setPrimaryWallet: (id: string) => void;
-  completeOnboarding: (finalProfileData?: Partial<UserProfile>) => void;
+  completeOnboarding: (finalProfileData?: Partial<UserProfile>) => Promise<void>;
   startFreeTrial: (durationDays?: number) => void;
   detectLocation: () => Promise<UserLocation>;
   resetProfile: () => void;
@@ -86,7 +95,24 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
-  // Initial Vault Hydration on boot
+  const applyListedHousePlaces = useCallback((
+    current: UserIdentityVault,
+    email: string,
+    places: ReturnType<typeof housePlaceToPlatform>[]
+  ) => {
+    const records = places.filter((place): place is NonNullable<typeof place> => Boolean(place));
+    mergeHousePlacesIntoPlatform(records);
+    const next = applyHousePlacesToVault(current, email, records);
+    saveIdentityVault(next);
+    setVault(next);
+    const house = (next.activeWallet?.legalName || '').trim();
+    if (email && house) {
+      writeOwnerCompanionCookie(email, house);
+    }
+    return next;
+  }, []);
+
+  // Initial vault. Place list from the house node runs only on email sign-in.
   useEffect(() => {
     try {
       const initialVault = loadIdentityVault();
@@ -138,22 +164,38 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const activeWallet = vault.activeWallet;
   const hasHouse = hasNamedHouse(activeWallet?.legalName) && hasCompletedOnboarding;
 
-  const openHubWithEmail = useCallback((session: OwnerSession) => {
+  const openHubWithEmail = useCallback(async (session: OwnerSession) => {
     saveOwnerSession(session);
     setOwnerSession(session);
-    commitVault(prev => ({
-      ...prev,
+    setIsHydrating(true);
+
+    const stamped = loadIdentityVault();
+    const withEmail = {
+      ...stamped,
       profile: {
-        ...prev.profile,
+        ...stamped.profile,
         demographics: {
-          ...prev.profile.demographics,
+          ...stamped.profile.demographics,
           email: session.email
         },
         updatedAt: Date.now()
       },
       updatedAt: Date.now()
-    }));
-  }, [commitVault]);
+    };
+    saveIdentityVault(withEmail);
+    setVault(withEmail);
+
+    try {
+      const listed = await listPlacesByEmail(session.email);
+      if (listed.ok) {
+        applyListedHousePlaces(withEmail, session.email, listed.places.map(housePlaceToPlatform));
+      }
+    } catch {
+      // keep local Your places.
+    } finally {
+      setIsHydrating(false);
+    }
+  }, [applyListedHousePlaces]);
 
   const logOffHub = useCallback(() => {
     clearOwnerSession();
@@ -174,13 +216,26 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
       vault.activeWallet?.legalName,
       ...vault.registeredWallets.map(wallet => wallet.legalName)
     ].filter((name): name is string => Boolean(name && name.trim()));
+    const houseName = (vault.activeWallet?.legalName || '').trim();
+    const email = ownerSession?.email || vault.profile.demographics.email || '';
+    const match = listRegisteredPlaces().find(
+      place => normalizeLegalName(place.placeName) === normalizeLegalName(houseName)
+    );
+
     names.forEach(name => unregisterLegalNameOnPlatform(name));
 
-    const email = ownerSession?.email || vault.profile.demographics.email || '';
     const next = clearHouseFromVault(email);
     setVault(next);
     setIsNamingPlace(false);
     clearHouseCompanionCookie();
+
+    void unregisterHousePlace({
+      placeId: match?.placeId,
+      placeName: houseName || match?.placeName,
+      ownerEmail: email || match?.ownerEmail
+    }).catch(() => {
+      // keep local delete
+    });
   }, [ownerSession?.email, vault.activeWallet?.legalName, vault.profile.demographics.email, vault.registeredWallets]);
 
   const primaryWallet = vault.activeWallet;
@@ -468,7 +523,7 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
   }, [commitVault]);
 
   // Complete Onboarding
-  const completeOnboarding = useCallback((finalProfileData?: Partial<UserProfile>) => {
+  const completeOnboarding = useCallback(async (finalProfileData?: Partial<UserProfile>) => {
     const now = Date.now();
     const trialDurationDays = 30;
     const trialExpiresAt = now + trialDurationDays * 24 * 60 * 60 * 1000;
@@ -557,8 +612,36 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
     if (email && house) {
       writeOwnerCompanionCookie(email, house);
     }
+
+    const location = finalProfileData?.location || vault.profile.location;
+    if (email && house) {
+      try {
+        const minted = await registerHousePlace({
+          ownerEmail: email,
+          placeName: house,
+          app: 'eatery',
+          country: location?.country || '',
+          region: location?.provinceState || '',
+          city: location?.city || ''
+        });
+        if (minted.ok) {
+          registerPlaceOnPlatform({
+            placeName: minted.place.placeName,
+            app: minted.place.app,
+            country: minted.place.country,
+            region: minted.place.region,
+            city: minted.place.city,
+            placeId: minted.place.placeId,
+            ownerEmail: minted.place.ownerEmail || email
+          });
+        }
+      } catch {
+        // keep local register
+      }
+    }
+
     setIsNamingPlace(false);
-  }, [commitVault, ownerSession?.email, vault.activeWallet?.legalName, vault.profile.demographics.email]);
+  }, [commitVault, ownerSession?.email, vault.activeWallet?.legalName, vault.profile.demographics.email, vault.profile.location]);
 
   // Geolocation Auto-Enrichment
   const detectLocation = useCallback(async (): Promise<UserLocation> => {
