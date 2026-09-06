@@ -7,3 +7,5 @@ From hub home, **Register a new house.** starts the naming wizard.
 - First-time / no house: **Back to your hub.** returns to empty home
 - Already has a house: **Stay with this house.** returns to home
 - Completing the wizard names the house and returns to home
+
+![Register opens Where is the eatery?](register-opens-wizard.png)

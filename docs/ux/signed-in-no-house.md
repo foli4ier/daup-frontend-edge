@@ -9,3 +9,5 @@ Email session, no named house.
 - **Ask for an enhancement.** stays
 - **Delete the house.** is hidden until there is a house
 - Door copy does not assume an eatery-only node
+
+![Signed-in, no house](signed-in-no-house.png)

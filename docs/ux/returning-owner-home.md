@@ -10,3 +10,5 @@ Signed-in owner who already has a house.
 - **Advanced** stays protocol-only
 
 Wizard opens only from **Register a new house.**
+
+![Returning owner hub home](returning-owner-home.png)
