@@ -9,6 +9,7 @@ import {
 import { ASKS_PATH } from '../hub/asksPath';
 import { ShopApp, listOwnerPlaces } from '../hub/places';
 import { listPlacesOnTheChain } from '../hub/placeDirectory';
+import { navigateToEatOutHome } from '../hub/eatoutUrls';
 import { navigateToTheHouse } from '../hub/ownerArrival';
 import { DeleteHouseModal } from './DeleteHouseModal';
 import { GetAppsSection } from './GetApps';
@@ -54,6 +55,10 @@ export const SubscribedAppsView: React.FC<{
       navigateToTheHouse({ email, house: houseName });
       return;
     }
+    if (app.live && app.id === 'eatout' && app.moduleKey) {
+      if (!installedApps[app.moduleKey]) onSubscribeApp?.(app.moduleKey);
+      return;
+    }
     if (app.live && app.moduleKey) {
       if (!installedApps[app.moduleKey]) onSubscribeApp?.(app.moduleKey);
       else onLaunchApp?.(app.moduleKey);
@@ -64,6 +69,10 @@ export const SubscribedAppsView: React.FC<{
     if (app.id === 'eatery') {
       if (!email.trim() || !houseName.trim()) return;
       navigateToTheHouse({ email, house: houseName });
+      return;
+    }
+    if (app.id === 'eatout') {
+      navigateToEatOutHome();
       return;
     }
     if (app.moduleKey) onLaunchApp?.(app.moduleKey);

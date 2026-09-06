@@ -1,5 +1,5 @@
 import React from 'react';
-import { Factory, MessageCircle, Store, Utensils, Wheat } from 'lucide-react';
+import { Factory, MessageCircle, Store, Utensils, UtensilsCrossed, Wheat } from 'lucide-react';
 import {
   COMING_KICKER,
   GET_APPS_KICKER,
@@ -8,10 +8,17 @@ import {
   SAME_CHAIN_CAPTION,
   SUBSCRIBE_LABEL
 } from '../hub/copy';
-import { COMING_SHOP_APPS, LIVE_SHOP_APPS, ShopApp, shopAppIsHeld } from '../hub/places';
+import {
+  COMING_SHOP_APPS,
+  LIVE_SHOP_APPS,
+  ShopApp,
+  shopAppIsHeld,
+  shopAppOpenHref
+} from '../hub/places';
 
 const SHOP_ICONS = {
   eatery: Utensils,
+  eatout: UtensilsCrossed,
   farm: Wheat,
   reseller: Store,
   maker: Factory,
@@ -46,6 +53,7 @@ export function GetAppsSection({
         {LIVE_SHOP_APPS.map(app => {
           const held = heldOf(app);
           const Icon = SHOP_ICONS[app.id];
+          const openHref = shopAppOpenHref(app);
           return (
             <article
               className="card"
@@ -83,6 +91,15 @@ export function GetAppsSection({
                       {GET_LABEL}
                     </button>
                   </>
+                ) : openHref ? (
+                  <a
+                    className="btn btn-primary btn-wide"
+                    href={openHref}
+                    data-testid={`open-app-${app.id}`}
+                    onClick={() => onOpen(app)}
+                  >
+                    {OPEN_LABEL}
+                  </a>
                 ) : (
                   <button
                     type="button"

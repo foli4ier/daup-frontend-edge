@@ -3,7 +3,9 @@ import {
   DEFAULT_EATOUT_ORIGIN,
   EATOUT_PLACE_PATH_TEMPLATE,
   buildEatOutPlaceUrl,
+  eatoutHomeUrl,
   eatoutPlaceHrefs,
+  navigateToEatOutHome,
   placePublicSlug,
   publicPlaceUrlHitsOwnerFloor
 } from './eatoutUrls';
@@ -41,5 +43,15 @@ describe('EatOut public place URLs', () => {
     expect(menu).not.toMatch(/eatery\.daup\.co\.za/);
     expect(menu).not.toMatch(/\/owner/);
     expect(hasBannedDoorCopy(SEE_THE_MENU_LABEL + RESERVE_A_TABLE_LABEL)).toBe(false);
+  });
+
+  it('Open. diner home is eatout.daup.co.za/ and never owner Floor', () => {
+    const home = eatoutHomeUrl();
+    expect(home).toBe(`${DEFAULT_EATOUT_ORIGIN}/`);
+    expect(home).not.toMatch(/eatery\.daup\.co\.za|\/owner|\/floor/i);
+    expect(publicPlaceUrlHitsOwnerFloor(home)).toBe(false);
+    expect(navigateToEatOutHome.toString()).toContain('location.assign');
+    expect(navigateToEatOutHome.toString()).not.toContain('/owner');
+    expect(navigateToEatOutHome.toString()).not.toContain('eatery.daup.co.za');
   });
 });

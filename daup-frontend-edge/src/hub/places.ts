@@ -1,6 +1,7 @@
 import {
   CHAIN_APP_CHAT,
   CHAIN_APP_EATERY,
+  CHAIN_APP_EATOUT,
   CHAIN_APP_FARM,
   CHAIN_APP_MAKER,
   CHAIN_APP_RESELLER,
@@ -8,6 +9,7 @@ import {
   HUB_HOME_FALLBACK,
   OPEN_THE_HOUSE_LABEL
 } from './copy';
+import { eatoutHomeUrl } from './eatoutUrls';
 import { buildOpenTheHouseUrl } from './ownerArrival';
 
 export interface HubPlaceRow {
@@ -19,7 +21,9 @@ export interface HubPlaceRow {
   href?: string;
 }
 
-export type ShopAppId = 'eatery' | 'farm' | 'reseller' | 'maker' | 'chat';
+export type ShopAppId = 'eatery' | 'eatout' | 'farm' | 'reseller' | 'maker' | 'chat';
+
+export const EATOUT_MODULE_KEY = 'daup-eatout';
 
 export interface ShopApp {
   id: ShopAppId;
@@ -68,6 +72,7 @@ export const COMING_APPS: HubPlaceRow[] = [
 /** Shop catalog for Get apps. Live first. Coming never Subscribe. */
 export const SHOP_APPS: ShopApp[] = [
   { id: 'eatery', title: CHAIN_APP_EATERY, live: true, moduleKey: 'daup-eatery' },
+  { id: 'eatout', title: CHAIN_APP_EATOUT, live: true, moduleKey: EATOUT_MODULE_KEY },
   { id: 'farm', title: CHAIN_APP_FARM, live: false, moduleKey: 'daup-farmer' },
   { id: 'reseller', title: CHAIN_APP_RESELLER, live: false, moduleKey: 'daup-reseller' },
   { id: 'maker', title: CHAIN_APP_MAKER, live: false, moduleKey: 'daup-manufacturing' },
@@ -83,6 +88,15 @@ export function shopAppIsHeld(app: ShopApp, held: {
 }): boolean {
   if (!app.live) return false;
   if (app.id === 'eatery') return Boolean(held.hasHouse);
+  if (app.id === 'eatout') {
+    return Boolean(held.installed?.[app.moduleKey || EATOUT_MODULE_KEY]);
+  }
   if (!app.moduleKey) return false;
   return Boolean(held.installed?.[app.moduleKey]);
+}
+
+/** EatOut Open. is diner home. Eatery Open. stays a house button — never this href. */
+export function shopAppOpenHref(app: ShopApp, origin?: string): string | undefined {
+  if (app.id !== 'eatout') return undefined;
+  return eatoutHomeUrl(origin);
 }

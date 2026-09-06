@@ -27,6 +27,18 @@ export function eatoutOrigin(origin?: string): string {
   return raw.replace(/\/+$/, '') || DEFAULT_EATOUT_ORIGIN;
 }
 
+/** Diner home. Never eatery owner Floor / /owner. */
+export function eatoutHomeUrl(origin?: string): string {
+  return `${eatoutOrigin(origin)}/`;
+}
+
+export function navigateToEatOutHome(origin?: string): void {
+  const url = eatoutHomeUrl(origin);
+  if (publicPlaceUrlHitsOwnerFloor(url)) return;
+  if (typeof window === 'undefined') return;
+  window.location.assign(url);
+}
+
 /**
  * EatOut /place/:id values live today. Map common house names onto those ids
  * so the hub publishes the same {id} EatOut resolves.

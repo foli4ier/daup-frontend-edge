@@ -18,6 +18,7 @@ import { FarmerWorkspace, ResellerWorkspace, ManufacturingWorkspace } from './co
 import { ProfileModal } from './components/ProfileModal';
 import { MODULE_METADATA } from './components/withLicenseCheck';
 import { deriveSeedNode, deployAppInstance } from './stores/identityStore';
+import { navigateToEatOutHome } from './hub/eatoutUrls';
 import { navigateToTheHouse } from './hub/ownerArrival';
 import { LOG_OFF_LABEL } from './hub/copy';
 import { goToAsks, goToHubHome, readHubPage } from './hub/asksPath';
@@ -111,6 +112,10 @@ const DashboardContent: React.FC = () => {
       const email = ownerSession?.email || '';
       if (!email.trim() || !house.trim()) return;
       navigateToTheHouse({ email, house });
+      return;
+    }
+    if (moduleName === 'daup-eatout') {
+      navigateToEatOutHome();
       return;
     }
     setLaunchedApp(moduleName);
