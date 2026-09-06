@@ -106,7 +106,7 @@ function PublicPlaceCard({
 }) {
   const isEatery = place.app === 'eatery';
   const menuHref = isEatery ? buildEatOutPlaceUrl({ placeName: place.placeName, focus: 'menu' }) : '';
-  const reserveHref = isEatery ? buildEatOutPlaceUrl({ placeName: place.placeName, focus: 'reserve' }) : '';
+  const reserveHref = isEatery ? buildEatOutPlaceUrl({ placeName: place.placeName, focus: 'book' }) : '';
 
   return (
     <article className="card place-public-card" data-testid="place-public-card" data-place-name={place.placeName}>

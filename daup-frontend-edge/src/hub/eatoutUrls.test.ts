@@ -15,9 +15,12 @@ describe('EatOut public place URLs', () => {
     const card = buildEatOutPlaceUrl({ placeName: 'The Olive' });
     const menu = buildEatOutPlaceUrl({ placeName: 'The Olive', focus: 'menu' });
     const reserve = buildEatOutPlaceUrl({ placeName: 'The Olive', focus: 'reserve' });
+    const book = buildEatOutPlaceUrl({ placeName: 'Kortrijk', focus: 'book' });
     expect(card).toBe(`${DEFAULT_EATOUT_ORIGIN}/place/the-olive`);
     expect(menu).toBe(`${DEFAULT_EATOUT_ORIGIN}/place/the-olive#menu`);
-    expect(reserve).toBe(`${DEFAULT_EATOUT_ORIGIN}/place/the-olive#reserve`);
+    expect(reserve).toBe(`${DEFAULT_EATOUT_ORIGIN}/place/the-olive#book`);
+    expect(book).toBe(`${DEFAULT_EATOUT_ORIGIN}/place/kortrijk#book`);
+    expect(placePublicSlug('Kortrijk')).toBe('kortrijk');
     expect(publicPlaceUrlHitsOwnerFloor(card)).toBe(false);
     expect(publicPlaceUrlHitsOwnerFloor(menu)).toBe(false);
     expect(publicPlaceUrlHitsOwnerFloor(reserve)).toBe(false);

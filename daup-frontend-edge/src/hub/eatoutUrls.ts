@@ -1,8 +1,12 @@
 /**
- * Public EatOut place URLs.
+ * Public EatOut place URLs. Locked shape:
+ *   https://eatout.daup.co.za/place/{id}
+ *   See the menu.     → #menu
+ *   Reserve a table.  → #book
+ * Aliases: ?focus=menu | ?focus=book | ?focus=reserve (#reserve → book).
  *
- * EatOut (foli4ier/daup-eatout) documents `/place/:id` with `#menu` / `#reserve`
- * (also `?focus=menu` / `?focus=reserve`) on eatout.daup.co.za.
+ * {id} matches what EatOut resolves (kortrijk | genesis | noop today):
+ * derive a stable slug from the place name (Kortrijk → kortrijk).
  * Owner Floor lives on eatery.daup.co.za/owner — never from public cards.
  *
  * Update EATOUT_PLACE_PATH_TEMPLATE if the diner app changes path shape.
@@ -14,7 +18,7 @@ export const DEFAULT_EATOUT_ORIGIN = 'https://eatout.daup.co.za';
 export const EATOUT_PLACE_PATH_TEMPLATE = '/place/{slug}';
 
 export const EATOUT_MENU_HASH = 'menu';
-export const EATOUT_RESERVE_HASH = 'reserve';
+export const EATOUT_BOOK_HASH = 'book';
 
 export function eatoutOrigin(origin?: string): string {
   const fromEnv =
@@ -32,7 +36,7 @@ export function placePublicSlug(placeName: string): string {
   return slug || 'place';
 }
 
-export type EatOutPlaceFocus = 'menu' | 'reserve';
+export type EatOutPlaceFocus = 'menu' | 'book' | 'reserve';
 
 export function buildEatOutPlaceUrl(args: {
   placeName: string;
@@ -43,7 +47,7 @@ export function buildEatOutPlaceUrl(args: {
   const path = EATOUT_PLACE_PATH_TEMPLATE.replace('{slug}', slug);
   const url = `${eatoutOrigin(args.origin)}${path}`;
   if (args.focus === 'menu') return `${url}#${EATOUT_MENU_HASH}`;
-  if (args.focus === 'reserve') return `${url}#${EATOUT_RESERVE_HASH}`;
+  if (args.focus === 'book' || args.focus === 'reserve') return `${url}#${EATOUT_BOOK_HASH}`;
   return url;
 }
 

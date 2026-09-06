@@ -264,7 +264,7 @@ describe('hub home after email', () => {
     expect(menu?.textContent).toBe(SEE_THE_MENU_LABEL);
     expect(reserve?.textContent).toBe(RESERVE_A_TABLE_LABEL);
     expect(menu?.getAttribute('href')).toBe('https://eatout.daup.co.za/place/the-olive#menu');
-    expect(reserve?.getAttribute('href')).toBe('https://eatout.daup.co.za/place/the-olive#reserve');
+    expect(reserve?.getAttribute('href')).toBe('https://eatout.daup.co.za/place/the-olive#book');
     expect(menu?.getAttribute('href') || '').not.toMatch(/eatery\.daup\.co\.za/);
     expect(menu?.getAttribute('href') || '').not.toMatch(/\/owner/);
     expect(reserve?.getAttribute('href') || '').not.toMatch(/eatery\.daup\.co\.za/);
