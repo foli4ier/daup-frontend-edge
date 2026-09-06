@@ -16,8 +16,11 @@ import {
 } from './copy';
 import {
   PLATFORM_ENTITIES_KEY,
+  DEFAULT_VAULT,
+  applyHousePlacesToVault,
   getRegisteredLegalNames,
   listRegisteredPlaces,
+  mergeHousePlacesIntoPlatform,
   registerLegalNameOnPlatform,
   registerPlaceOnPlatform,
   unregisterLegalNameOnPlatform,
@@ -134,5 +137,41 @@ describe('platform place directory', () => {
     unregisterLegalNameOnPlatform('The Olive');
     expect(listRegisteredPlaces()).toEqual([]);
     expect(getRegisteredLegalNames()).toEqual([]);
+  });
+
+  it('keeps placeId from the house node on upsert', () => {
+    registerPlaceOnPlatform({ ...olive, placeId: 'place-olive', ownerEmail: 'you@gmail.com' });
+    registerPlaceOnPlatform({ ...olive, city: 'Franschhoek' });
+    expect(listRegisteredPlaces()[0]).toEqual({
+      ...olive,
+      city: 'Franschhoek',
+      placeId: 'place-olive',
+      ownerEmail: 'you@gmail.com'
+    });
+  });
+});
+
+describe('applyHousePlacesToVault', () => {
+  it('applies the first listed place when the vault has no house', () => {
+    const next = applyHousePlacesToVault(DEFAULT_VAULT, 'you@gmail.com', [{
+      ...olive,
+      placeId: 'place-olive'
+    }]);
+    expect(next.hasCompletedOnboarding).toBe(true);
+    expect(next.activeWallet?.legalName).toBe('The Olive');
+    expect(next.profile.demographics.email).toBe('you@gmail.com');
+    expect(next.profile.location.city).toBe('Stellenbosch');
+  });
+
+  it('does not overwrite an existing named house', () => {
+    const housed = applyHousePlacesToVault(DEFAULT_VAULT, 'you@gmail.com', [olive]);
+    const again = applyHousePlacesToVault(housed, 'you@gmail.com', [salt]);
+    expect(again.activeWallet?.legalName).toBe('The Olive');
+  });
+
+  it('merges house-node places into the platform store', () => {
+    localStorage.clear();
+    mergeHousePlacesIntoPlatform([olive, salt]);
+    expect(listRegisteredPlaces().map(place => place.placeName)).toEqual(['The Olive', 'Salt']);
   });
 });

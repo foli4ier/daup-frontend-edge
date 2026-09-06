@@ -5,7 +5,8 @@ import {
   DELETE_THE_HOUSE_LABEL,
   REGISTER_A_NEW_HOUSE_LABEL,
   YOUR_PLACES_EMPTY,
-  YOUR_PLACES_KICKER
+  YOUR_PLACES_KICKER,
+  YOUR_PLACES_UNREACHABLE
 } from '../hub/copy';
 import { ASKS_PATH } from '../hub/asksPath';
 import { ShopApp, listOwnerPlaces } from '../hub/places';
@@ -34,7 +35,8 @@ export const SubscribedAppsView: React.FC<{
     hasHouse,
     ownerSession,
     beginNamingPlace,
-    clearHouse
+    clearHouse,
+    placesRestoreFailed
   } = useUserProfile();
   const houseName = (activeWallet?.legalName || '').trim();
   const email = ownerSession?.email || '';
@@ -119,6 +121,9 @@ export const SubscribedAppsView: React.FC<{
           </>
         ) : (
           <p className="caption" data-testid="your-places-empty-copy">{YOUR_PLACES_EMPTY}</p>
+          {placesRestoreFailed ? (
+            <p className="caption" data-testid="your-places-unreachable">{YOUR_PLACES_UNREACHABLE}</p>
+          ) : null}
         )}
         <div className="place-row-controls">
           {hasHouse ? (

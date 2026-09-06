@@ -12,14 +12,15 @@ import {
 import { signInWithEmail, type OwnerSession } from '../hub/ownerSession';
 
 interface HubEmailDoorProps {
-  onOpenHub: (session: OwnerSession) => void;
+  onOpenHub: (session: OwnerSession) => void | Promise<void>;
 }
 
 export const HubEmailDoor: React.FC<HubEmailDoorProps> = ({ onOpenHub }) => {
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
+  const [opening, setOpening] = useState(false);
 
-  const submit = (event: React.FormEvent) => {
+  const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     const result = signInWithEmail(email);
     if (!result.ok) {
@@ -27,7 +28,12 @@ export const HubEmailDoor: React.FC<HubEmailDoorProps> = ({ onOpenHub }) => {
       return;
     }
     setError('');
-    onOpenHub(result.session);
+    setOpening(true);
+    try {
+      await onOpenHub(result.session);
+    } finally {
+      setOpening(false);
+    }
   };
 
   return (
@@ -51,6 +57,7 @@ export const HubEmailDoor: React.FC<HubEmailDoorProps> = ({ onOpenHub }) => {
               value={email}
               onChange={event => setEmail(event.target.value)}
               autoFocus
+              disabled={opening}
             />
           </div>
           {error && (
@@ -58,7 +65,7 @@ export const HubEmailDoor: React.FC<HubEmailDoorProps> = ({ onOpenHub }) => {
               {error}
             </p>
           )}
-          <button type="submit" className="btn btn-primary btn-wide" data-testid="open-your-hub">
+          <button type="submit" className="btn btn-primary btn-wide" data-testid="open-your-hub" disabled={opening}>
             {OPEN_YOUR_HUB_LABEL}
           </button>
         </form>

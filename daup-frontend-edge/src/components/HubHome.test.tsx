@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach } from 'vitest';
+import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { act } from 'react';
@@ -28,6 +28,7 @@ import {
   SEE_THE_MENU_LABEL,
   YOUR_PLACES_EMPTY,
   YOUR_PLACES_KICKER,
+  YOUR_PLACES_UNREACHABLE,
   WHERE_IS_THE_EATERY
 } from '../hub/copy';
 import { App } from '../App';
@@ -951,6 +952,97 @@ describe('Advanced is protocol only', () => {
     expect(container.textContent).not.toContain('Marketplace');
     expect(container.textContent).not.toContain('Get apps.');
     expect(container.textContent).not.toContain('On the chain.');
+    unmount();
+  });
+});
+
+describe('Your places. from the house node', () => {
+  function mockHouseList(places: unknown[]) {
+    vi.stubGlobal('fetch', vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body || '{}'));
+      expect(body.params.name).toBe('places_list_by_email');
+      expect(body.params.arguments.ownerEmail).toBe('you@gmail.com');
+      return new Response(JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        result: {
+          content: [{
+            type: 'text',
+            text: JSON.stringify({ email: 'you@gmail.com', places })
+          }]
+        }
+      }), { status: 200, headers: { 'content-type': 'application/json' } });
+    }));
+  }
+
+  beforeEach(() => {
+    resetIdentityVault();
+    localStorage.clear();
+    window.history.replaceState({}, '', '/');
+  });
+
+  afterEach(() => {
+    vi.stubGlobal('fetch', vi.fn(async () => {
+      throw new TypeError('Failed to fetch');
+    }));
+  });
+
+  it('restores Kortrijk on Your places. after email when the house list returns it', async () => {
+    mockHouseList([{
+      placeId: 'place-kortrijk',
+      ownerEmail: 'you@gmail.com',
+      placeName: 'Kortrijk',
+      app: 'eatery',
+      country: 'South Africa',
+      region: 'Western Cape',
+      city: 'Stellenbosch'
+    }]);
+
+    const { container, unmount } = render(<App />);
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 80));
+    });
+
+    expect(container.querySelector('[data-testid="hub-email-door"]')).toBeTruthy();
+    typeInto(container.querySelector('#hub-email') as HTMLInputElement, 'you@gmail.com');
+    await act(async () => {
+      Simulate.submit(container.querySelector('[data-testid="hub-email-form"]') as HTMLFormElement);
+      await new Promise(resolve => setTimeout(resolve, 40));
+    });
+
+    expect(container.querySelector('[data-testid="hub-home"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="eatery-place-name"]')?.textContent).toContain('Kortrijk');
+    expect(container.querySelector('[data-testid="your-places-empty"]')).toBeNull();
+    expect(listRegisteredPlaces()[0]).toMatchObject({
+      placeName: 'Kortrijk',
+      placeId: 'place-kortrijk',
+      ownerEmail: 'you@gmail.com'
+    });
+    expect(container.textContent).not.toMatch(/\b(peer|node|DID|DHT|wallet|MCP|npm|hydrate|neon)\b/i);
+    unmount();
+  });
+
+  it('keeps the empty card and a quiet note when the house list is unreachable', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => {
+      throw new TypeError('Failed to fetch');
+    }));
+
+    const { container, unmount } = render(<App />);
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 80));
+    });
+
+    typeInto(container.querySelector('#hub-email') as HTMLInputElement, 'you@gmail.com');
+    await act(async () => {
+      Simulate.submit(container.querySelector('[data-testid="hub-email-form"]') as HTMLFormElement);
+      await new Promise(resolve => setTimeout(resolve, 40));
+    });
+
+    expect(container.querySelector('[data-testid="hub-home"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="eatery-place-row"]')).toBeNull();
+    expect(container.querySelector('[data-testid="your-places-empty-copy"]')?.textContent).toBe(YOUR_PLACES_EMPTY);
+    expect(container.querySelector('[data-testid="your-places-unreachable"]')?.textContent).toBe(YOUR_PLACES_UNREACHABLE);
+    expect(container.textContent).not.toMatch(/\b(peer|node|DID|DHT|wallet|MCP|npm|hydrate|neon)\b/i);
     unmount();
   });
 });

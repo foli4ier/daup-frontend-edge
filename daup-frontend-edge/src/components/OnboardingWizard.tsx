@@ -57,6 +57,7 @@ export const OnboardingWizard: React.FC = () => {
   const [step, setStep] = useState<number>(1);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const [placeName, setPlaceName] = useState<string>('');
 
@@ -170,7 +171,8 @@ export const OnboardingWizard: React.FC = () => {
     setStep(prev => Math.max(1, prev - 1));
   };
 
-  const handleFinishOnboarding = () => {
+  const handleFinishOnboarding = async () => {
+    if (saving) return;
     const newWalletId = `wallet_${Date.now()}`;
     const legalName = placeName.trim();
     const initialWallet = (showAdvanced && walletType === 'crypto') ? {
@@ -192,16 +194,21 @@ export const OnboardingWizard: React.FC = () => {
       createdAt: Date.now()
     } as BankWalletConfig;
 
-    completeOnboarding({
-      location: locationForm,
-      socials: socialsForm,
-      demographics: {
-        ...demographicsForm,
-        email: ownerSession?.email || demographicsForm.email
-      },
-      wallets: [initialWallet],
-      primaryWalletId: newWalletId
-    });
+    setSaving(true);
+    try {
+      await completeOnboarding({
+        location: locationForm,
+        socials: socialsForm,
+        demographics: {
+          ...demographicsForm,
+          email: ownerSession?.email || demographicsForm.email
+        },
+        wallets: [initialWallet],
+        primaryWalletId: newWalletId
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const copy = STEP_COPY[step - 1];
@@ -534,7 +541,7 @@ export const OnboardingWizard: React.FC = () => {
                 Continue <ArrowRight size={16} />
               </button>
             ) : (
-              <button type="button" className="btn btn-primary" onClick={handleFinishOnboarding} data-testid="see-your-apps">
+              <button type="button" className="btn btn-primary" onClick={handleFinishOnboarding} data-testid="see-your-apps" disabled={saving}>
                 <Check size={16} /> {SEE_YOUR_APPS_LABEL}
               </button>
             )}

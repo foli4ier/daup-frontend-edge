@@ -17,13 +17,15 @@ export const SUBSCRIPTIONS_KEY = 'daup_subscriptions_db';
 export const PLATFORM_APP_IDS = ['eatery', 'farm', 'reseller', 'maker'] as const;
 export type PlatformAppId = (typeof PLATFORM_APP_IDS)[number];
 
-/** A registered place the hub can list. Ready for a future shared store. */
+/** A registered place the hub can list. placeId comes from the house MCP when minted. */
 export interface PlatformPlaceRecord {
   placeName: string;
   app: PlatformAppId;
   country: string;
   region: string;
   city: string;
+  placeId?: string;
+  ownerEmail?: string;
 }
 
 export type PlatformEntityEntry = string | PlatformPlaceRecord;
@@ -258,13 +260,19 @@ function writePlatformEntities(entries: PlatformEntityEntry[]): void {
 
 export function asPlatformPlaceRecord(value: unknown): PlatformPlaceRecord | null {
   if (!isPlatformPlaceRecord(value)) return null;
-  return {
-    placeName: value.placeName.trim(),
-    app: isPlatformAppId(value.app) ? value.app : 'eatery',
-    country: (value.country || '').trim(),
-    region: (value.region || '').trim(),
-    city: (value.city || '').trim()
+  const rec = value as PlatformPlaceRecord;
+  const record: PlatformPlaceRecord = {
+    placeName: rec.placeName.trim(),
+    app: isPlatformAppId(rec.app) ? rec.app : 'eatery',
+    country: (rec.country || '').trim(),
+    region: (rec.region || '').trim(),
+    city: (rec.city || '').trim()
   };
+  const placeId = typeof rec.placeId === 'string' ? rec.placeId.trim() : '';
+  const ownerEmail = typeof rec.ownerEmail === 'string' ? rec.ownerEmail.trim().toLowerCase() : '';
+  if (placeId) record.placeId = placeId;
+  if (ownerEmail) record.ownerEmail = ownerEmail;
+  return record;
 }
 
 /**
@@ -292,30 +300,117 @@ export function registerPlaceOnPlatform(place: {
   country?: string;
   region?: string;
   city?: string;
+  placeId?: string;
+  ownerEmail?: string;
 }): PlatformPlaceRecord | null {
   if (typeof window === 'undefined') return null;
-  const placeName = (place.placeName || '').trim();
-  if (!placeName) return null;
+  const record = asPlatformPlaceRecord({
+    placeName: place.placeName,
+    app: isPlatformAppId(place.app) ? place.app : 'eatery',
+    country: place.country,
+    region: place.region,
+    city: place.city,
+    placeId: place.placeId,
+    ownerEmail: place.ownerEmail
+  });
+  if (!record) return null;
   try {
-    const record: PlatformPlaceRecord = {
-      placeName,
-      app: isPlatformAppId(place.app) ? place.app : 'eatery',
-      country: (place.country || '').trim(),
-      region: (place.region || '').trim(),
-      city: (place.city || '').trim()
-    };
-    const norm = normalizeLegalName(placeName);
+    const norm = normalizeLegalName(record.placeName);
     const existing = readPlatformEntities();
-    const idx = existing.findIndex(entry => normalizeLegalName(platformEntityName(entry)) === norm);
+    const idx = existing.findIndex(entry => {
+      const current = asPlatformPlaceRecord(entry);
+      if (record.placeId && current?.placeId && current.placeId === record.placeId) return true;
+      return normalizeLegalName(platformEntityName(entry)) === norm;
+    });
     if (idx >= 0) {
-      existing[idx] = record;
-    } else {
-      existing.push(record);
+      const previous = asPlatformPlaceRecord(existing[idx]);
+      const merged: PlatformPlaceRecord = {
+        ...record,
+        ...(previous?.placeId && !record.placeId ? { placeId: previous.placeId } : {}),
+        ...(previous?.ownerEmail && !record.ownerEmail ? { ownerEmail: previous.ownerEmail } : {})
+      };
+      existing[idx] = merged;
+      writePlatformEntities(existing);
+      return merged;
     }
+    existing.push(record);
     writePlatformEntities(existing);
     return record;
   } catch (e) {}
   return null;
+}
+
+/** Merge house-node places into the local Your places. / On the chain. store. */
+export function mergeHousePlacesIntoPlatform(places: PlatformPlaceRecord[]): PlatformPlaceRecord[] {
+  for (const place of places) {
+    registerPlaceOnPlatform(place);
+  }
+  return listRegisteredPlaces();
+}
+
+/**
+ * When the vault has no named house, take the first house-node place as Your places.
+ * Existing local house stays; MCP places still merge via mergeHousePlacesIntoPlatform.
+ */
+export function applyHousePlacesToVault(
+  prev: UserIdentityVault,
+  email: string,
+  places: PlatformPlaceRecord[]
+): UserIdentityVault {
+  const now = Date.now();
+  const nextEmail = (email || '').trim().toLowerCase();
+  const alreadyHasHouse = Boolean(prev.activeWallet?.legalName?.trim()) && prev.hasCompletedOnboarding;
+  if (alreadyHasHouse || places.length === 0) {
+    if (!nextEmail || prev.profile.demographics.email === nextEmail) return prev;
+    return {
+      ...prev,
+      profile: {
+        ...prev.profile,
+        demographics: { ...prev.profile.demographics, email: nextEmail },
+        updatedAt: now
+      },
+      updatedAt: now
+    };
+  }
+
+  const primary = places[0];
+  const wallet: WalletEntry = {
+    id: primary.placeId ? `wallet_place_${primary.placeId}` : `wallet_house_${now}`,
+    type: 'bank',
+    legalName: primary.placeName,
+    bankName: '',
+    accountNumber: '',
+    routingCode: '',
+    isPrimary: true,
+    createdAt: now
+  };
+
+  return {
+    ...prev,
+    hasCompletedOnboarding: true,
+    registeredAt: prev.registeredAt || now,
+    updatedAt: now,
+    profile: {
+      ...prev.profile,
+      demographics: {
+        ...prev.profile.demographics,
+        email: nextEmail || prev.profile.demographics.email
+      },
+      location: {
+        ...prev.profile.location,
+        country: primary.country || prev.profile.location.country,
+        provinceState: primary.region || prev.profile.location.provinceState,
+        city: primary.city || prev.profile.location.city
+      },
+      wallets: [wallet],
+      primaryWalletId: wallet.id,
+      isOnboarded: true,
+      updatedAt: now
+    },
+    registeredWallets: [wallet],
+    activeWallet: wallet,
+    identityKeySeedNode: deriveSeedNode(primary.placeName)
+  };
 }
 
 /**
