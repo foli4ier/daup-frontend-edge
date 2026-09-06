@@ -1,31 +1,32 @@
 import React, { useState } from 'react';
-import { Wheat, Store, Factory } from 'lucide-react';
 import { useUserProfile } from '../context/UserProfileContext';
 import {
   ASK_FOR_ENHANCEMENT_LABEL,
-  COMING_KICKER,
   DELETE_THE_HOUSE_LABEL,
-  OTHER_APPS_KICKER,
   REGISTER_A_NEW_HOUSE_LABEL,
-  SAME_CHAIN_CAPTION,
-  YOUR_APPS_KICKER
+  YOUR_PLACES_KICKER
 } from '../hub/copy';
 import { ASKS_PATH } from '../hub/asksPath';
-import { COMING_APPS, listOwnerPlaces } from '../hub/places';
+import { ShopApp, listOwnerPlaces } from '../hub/places';
 import { listPlacesOnTheChain } from '../hub/placeDirectory';
 import { navigateToTheHouse } from '../hub/ownerArrival';
 import { DeleteHouseModal } from './DeleteHouseModal';
+import { GetAppsSection } from './GetApps';
 import { OnTheChainSection } from './OnTheChain';
 
 const DOCS_SHIFT = 'https://www.daup.co.za/docs/eatery/tuesday-lunch';
 
-const COMING_ICONS = {
-  farm: Wheat,
-  reseller: Store,
-  maker: Factory
-} as const;
-
-export const SubscribedAppsView: React.FC<{ onOpenAsk?: () => void }> = ({ onOpenAsk }) => {
+export const SubscribedAppsView: React.FC<{
+  onOpenAsk?: () => void;
+  installedApps?: Record<string, boolean>;
+  onSubscribeApp?: (moduleKey: string) => void;
+  onLaunchApp?: (moduleKey: string) => void;
+}> = ({
+  onOpenAsk,
+  installedApps = {},
+  onSubscribeApp,
+  onLaunchApp
+}) => {
   const {
     activeWallet,
     instanceName,
@@ -39,6 +40,7 @@ export const SubscribedAppsView: React.FC<{ onOpenAsk?: () => void }> = ({ onOpe
   const eatery = places[0];
   const chainPlaces = listPlacesOnTheChain();
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const hasHouse = Boolean(houseName);
 
   const openTheHouse = (event: React.MouseEvent<HTMLAnchorElement>) => {
     event.preventDefault();
@@ -46,10 +48,36 @@ export const SubscribedAppsView: React.FC<{ onOpenAsk?: () => void }> = ({ onOpe
     navigateToTheHouse({ email, house: houseName });
   };
 
+  const handleGet = (app: ShopApp) => {
+    if (app.live && app.id === 'eatery') {
+      if (!email.trim() || !houseName.trim()) return;
+      navigateToTheHouse({ email, house: houseName });
+      return;
+    }
+    if (app.live && app.moduleKey) {
+      if (!installedApps[app.moduleKey]) onSubscribeApp?.(app.moduleKey);
+      else onLaunchApp?.(app.moduleKey);
+    }
+  };
+
+  const handleOpen = (app: ShopApp) => {
+    if (app.id === 'eatery') {
+      if (!email.trim() || !houseName.trim()) return;
+      navigateToTheHouse({ email, house: houseName });
+      return;
+    }
+    if (app.moduleKey) onLaunchApp?.(app.moduleKey);
+  };
+
+  const handleSubscribe = (app: ShopApp) => {
+    if (!app.live || !app.moduleKey) return;
+    onSubscribeApp?.(app.moduleKey);
+  };
+
   return (
     <div className="apps-home" data-testid="hub-home">
       <div className="section-head">
-        <span className="kicker">{YOUR_APPS_KICKER}</span>
+        <span className="kicker">{YOUR_PLACES_KICKER}</span>
         <span className="rule" />
       </div>
 
@@ -123,37 +151,15 @@ export const SubscribedAppsView: React.FC<{ onOpenAsk?: () => void }> = ({ onOpe
         }}
       />
 
+      <GetAppsSection
+        hasHouse={hasHouse}
+        installedApps={installedApps}
+        onGet={handleGet}
+        onOpen={handleOpen}
+        onSubscribe={handleSubscribe}
+      />
+
       <OnTheChainSection places={chainPlaces} />
-
-      <div className="section-head">
-        <span className="kicker">{OTHER_APPS_KICKER}</span>
-        <span className="rule" />
-      </div>
-
-      <div className="other-apps" data-testid="other-apps">
-        {COMING_APPS.map((app) => {
-          const Icon = COMING_ICONS[app.id as keyof typeof COMING_ICONS];
-          return (
-            <article
-              className="card coming-card"
-              key={app.id}
-              data-testid={`coming-app-${app.id}`}
-            >
-              <div className="card-top">
-                <span className="ico-sq" aria-hidden="true">
-                  {Icon ? <Icon size={22} /> : null}
-                </span>
-                <div>
-                  <h3>
-                    {app.title} <span className="coming-flag">{COMING_KICKER}</span>
-                  </h3>
-                </div>
-              </div>
-            </article>
-          );
-        })}
-      </div>
-      <p className="caption" data-testid="same-chain-caption">{SAME_CHAIN_CAPTION}</p>
     </div>
   );
 };

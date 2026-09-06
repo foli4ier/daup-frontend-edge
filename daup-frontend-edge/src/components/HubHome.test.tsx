@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client';
 import { act } from 'react';
 import { Simulate } from 'react-dom/test-utils';
 import { SubscribedAppsView } from './SubscribedAppsView';
+import { GetAppsSection } from './GetApps';
 import { UserProfileProvider } from '../context/UserProfileContext';
 import {
   saveIdentityVault,
@@ -14,10 +15,16 @@ import {
 } from '../stores/identityStore';
 import { OWNER_SESSION_STORAGE_KEY } from '../hub/ownerSession';
 import {
+  GET_APPS_KICKER,
+  GET_LABEL,
   ON_THE_CHAIN_EMPTY,
   ON_THE_CHAIN_KICKER,
+  OPEN_LABEL,
   OPEN_THE_HOUSE_LABEL,
+  RESERVE_A_TABLE_LABEL,
   SAME_CHAIN_CAPTION,
+  SEE_THE_MENU_LABEL,
+  YOUR_PLACES_KICKER,
   WHERE_IS_THE_EATERY
 } from '../hub/copy';
 import { App } from '../App';
@@ -150,14 +157,25 @@ describe('hub home after email', () => {
     expect(claims?.house).toBe('The Olive');
     expect(claims?.email).toBe('owner@theolive.co.za');
 
+    expect(container.textContent).toContain(YOUR_PLACES_KICKER);
+    const shop = container.querySelector('[data-testid="get-apps"]');
+    expect(shop?.textContent).toContain(GET_APPS_KICKER);
+    expect(shop?.textContent).toContain(OPEN_LABEL);
+    expect(shop?.querySelector('[data-testid="shop-app-eatery"]')?.textContent).toContain('Eatery');
+    expect(shop?.querySelector('[data-testid="get-app-eatery"]')).toBeNull();
+    expect(shop?.querySelector('[data-testid="open-app-eatery"]')?.textContent).toBe(OPEN_LABEL);
+    expect(shop?.querySelector('[data-testid="subscribe-app-eatery"]')).toBeNull();
     const other = container.querySelector('[data-testid="other-apps"]');
     expect(other?.textContent).toContain('Farm');
     expect(other?.textContent).toContain('Reseller');
     expect(other?.textContent).toContain('Maker');
+    expect(other?.textContent).toContain('Chat');
     expect(other?.textContent).toContain('Coming');
     expect(other?.textContent).not.toMatch(/Subscribe/i);
+    expect(other?.textContent).not.toMatch(/Subscribed/i);
     expect(container.querySelector('[data-testid="same-chain-caption"]')?.textContent).toBe(SAME_CHAIN_CAPTION);
     expect(container.textContent).not.toContain('Decentralized Edge App Registry');
+    expect(container.textContent).not.toContain('Marketplace');
     expect(container.querySelector('[data-testid="delete-the-house"]')?.textContent).toBe('Delete the house.');
     expect(container.querySelector('[data-testid="register-new-house"]')?.textContent).toBe('Register a new house.');
     expect(container.querySelector('[data-testid="on-the-chain"]')?.textContent).toContain(ON_THE_CHAIN_KICKER);
@@ -167,7 +185,7 @@ describe('hub home after email', () => {
     expect(door?.getAttribute('href')).toBe('/asks');
     expect(container.querySelector('.place-row-controls')?.contains(door)).toBe(true);
     expect(container.querySelector('[data-testid="ask-page"]')).toBeNull();
-    expect(container.textContent).not.toMatch(/\b(peer|node|DID|DHT|wallet|MCP|npm)\b/i);
+    expect(container.textContent).not.toMatch(/\b(peer|node|DID|DHT|wallet|MCP|npm|hydrate|neon)\b/i);
     unmount();
   });
 
@@ -200,6 +218,13 @@ describe('hub home after email', () => {
       region: 'Western Cape',
       city: 'Cape Town'
     });
+    registerPlaceOnPlatform({
+      placeName: 'Kortrijk',
+      app: 'eatery',
+      country: 'South Africa',
+      region: 'Western Cape',
+      city: 'Stellenbosch'
+    });
 
     const { container, unmount } = render(
       <UserProfileProvider>
@@ -215,7 +240,7 @@ describe('hub home after email', () => {
     expect(chain?.querySelector('[data-testid="on-the-chain-empty"]')).toBeNull();
     const names = Array.from(chain?.querySelectorAll('[data-testid="on-the-chain-place"]') || [])
       .map(row => row.getAttribute('data-place-name'));
-    expect(names).toEqual(['Salt', 'The Olive', 'Green Field', 'Press']);
+    expect(names).toEqual(['Salt', 'Kortrijk', 'The Olive', 'Green Field', 'Press']);
 
     const text = chain?.textContent || '';
     expect(text.indexOf('Eatery')).toBeLessThan(text.indexOf('Farm'));
@@ -223,9 +248,57 @@ describe('hub home after email', () => {
     expect(text.indexOf('Cape Town')).toBeLessThan(text.indexOf('Stellenbosch'));
     expect(text).toContain('Stellenbosch, Western Cape, South Africa');
     expect(text).toContain('The Olive');
-    expect(text).not.toMatch(/\b(peer|node|DID|DHT|wallet|MCP|npm)\b/i);
+    expect(text).not.toMatch(/\b(peer|node|DID|DHT|wallet|MCP|npm|hydrate|neon)\b/i);
     expect(container.querySelector('[data-testid="hub-home"]')).toBeTruthy();
     expect(container.querySelector('[data-testid="ask-for-enhancement"]')?.textContent).toBe('Ask for an enhancement.');
+
+    const eateryDoor = container.querySelector('[data-testid="chain-app-door-eatery"]') as HTMLButtonElement;
+    act(() => {
+      eateryDoor.click();
+    });
+    const eateryPlaces = Array.from(container.querySelectorAll('[data-testid="on-the-chain-place"]'))
+      .map(row => row.getAttribute('data-place-name'));
+    expect(eateryPlaces).toEqual(['Salt', 'Kortrijk', 'The Olive']);
+
+    const olive = Array.from(container.querySelectorAll('[data-testid="on-the-chain-place"]'))
+      .find(row => row.getAttribute('data-place-name') === 'The Olive')
+      ?.querySelector('button') as HTMLButtonElement;
+    act(() => {
+      olive.click();
+    });
+    const card = container.querySelector('[data-testid="place-public-card"]');
+    const menu = container.querySelector('[data-testid="see-the-menu"]') as HTMLAnchorElement | null;
+    const reserve = container.querySelector('[data-testid="reserve-a-table"]') as HTMLAnchorElement | null;
+    expect(card?.textContent).toContain('The Olive');
+    expect(card?.textContent).toContain('Stellenbosch, Western Cape, South Africa · Eatery');
+    expect(card?.textContent).toContain('Back.');
+    expect(card?.textContent).not.toContain('Open the public card.');
+    expect(card?.textContent).not.toContain('Pay at the table.');
+    expect(menu?.textContent).toBe(SEE_THE_MENU_LABEL);
+    expect(reserve?.textContent).toBe(RESERVE_A_TABLE_LABEL);
+    expect(menu?.className).toContain('btn-primary');
+    expect(menu?.getAttribute('href')).toBe('https://eatout.daup.co.za/place/the-olive#menu');
+    expect(reserve?.getAttribute('href')).toBe('https://eatout.daup.co.za/place/the-olive#book');
+    expect(menu?.getAttribute('data-eatout-id')).toBe('the-olive');
+    expect(menu?.getAttribute('href') || '').not.toMatch(/eatery\.daup\.co\.za/);
+    expect(menu?.getAttribute('href') || '').not.toMatch(/\/owner/);
+    expect(reserve?.getAttribute('href') || '').not.toMatch(/eatery\.daup\.co\.za|#reserve/);
+
+    act(() => {
+      (container.querySelector('[data-testid="chain-back"]') as HTMLButtonElement).click();
+    });
+    const kortrijkRow = Array.from(container.querySelectorAll('[data-testid="on-the-chain-place"]'))
+      .find(row => row.getAttribute('data-place-name') === 'Kortrijk')
+      ?.querySelector('button') as HTMLButtonElement;
+    act(() => {
+      kortrijkRow.click();
+    });
+    const kortrijkMenu = container.querySelector('[data-testid="see-the-menu"]') as HTMLAnchorElement | null;
+    const kortrijkBook = container.querySelector('[data-testid="reserve-a-table"]') as HTMLAnchorElement | null;
+    expect(kortrijkMenu?.getAttribute('href')).toBe('https://eatout.daup.co.za/place/kortrijk#menu');
+    expect(kortrijkBook?.getAttribute('href')).toBe('https://eatout.daup.co.za/place/kortrijk#book');
+    expect(kortrijkMenu?.getAttribute('data-eatout-id')).toBe('kortrijk');
+    expect(container.querySelector('[data-testid="get-apps"]')?.textContent).not.toMatch(/Subscribe/i);
     unmount();
   });
 
@@ -239,9 +312,39 @@ describe('hub home after email', () => {
 
     const other = container.querySelector('[data-testid="other-apps"]');
     expect(other?.textContent).toContain('Farm');
+    expect(other?.textContent).toContain('Chat');
     expect(other?.textContent).toContain('Coming');
     expect(other?.textContent).not.toMatch(/Subscribe/i);
+    expect(other?.textContent).not.toMatch(/Subscribed/i);
+    expect(container.querySelector('[data-testid="coming-app-farm"]')?.textContent).not.toMatch(/Subscribe/i);
+    expect(container.querySelector('[data-testid="coming-app-farm"]')?.textContent).not.toContain(SAME_CHAIN_CAPTION);
+    expect(container.querySelector('[data-testid="shop-app-eatery"]')?.textContent).toContain(OPEN_LABEL);
+    expect(container.querySelector('[data-testid="shop-app-eatery"]')?.textContent).not.toContain(GET_LABEL);
+    expect(container.querySelector('[data-testid="get-app-eatery"]')).toBeNull();
+    expect(container.querySelector('[data-testid="subscribe-app-eatery"]')).toBeNull();
     expect(container.textContent).not.toMatch(/Subscribed/i);
+    expect(container.textContent).not.toContain('Marketplace');
+    const captions = Array.from(container.querySelectorAll('[data-testid="get-apps"] .caption, [data-testid="coming-app-farm"] .caption'))
+      .map(node => node.textContent)
+      .filter(text => text === SAME_CHAIN_CAPTION);
+    expect(container.querySelectorAll('[data-testid="same-chain-caption"]').length).toBe(1);
+    expect(captions.length).toBeLessThanOrEqual(1);
+    unmount();
+  });
+
+  it('shows Get. only when a live app is not held', () => {
+    const { container, unmount } = render(
+      <GetAppsSection
+        hasHouse={false}
+        installedApps={{}}
+        onGet={() => undefined}
+        onOpen={() => undefined}
+        onSubscribe={() => undefined}
+      />
+    );
+    expect(container.querySelector('[data-testid="get-app-eatery"]')?.textContent).toBe(GET_LABEL);
+    expect(container.querySelector('[data-testid="open-app-eatery"]')).toBeNull();
+    expect(container.querySelector('[data-testid="subscribe-app-eatery"]')?.textContent).toBe('Subscribe');
     unmount();
   });
 
@@ -295,7 +398,7 @@ describe('hub home after email', () => {
     expect(container.querySelector('[data-testid="eatery-place-row"]')).toBeNull();
     expect(container.querySelector('[data-testid="other-apps"]')).toBeNull();
     expect(container.textContent).toContain('Ask for an enhancement.');
-    expect(container.textContent).not.toMatch(/\b(peer|node|DID|DHT|wallet|MCP|npm|GossipSub|CRDT|mesh|hydrate|Defect|Support)\b/i);
+    expect(container.textContent).not.toMatch(/\b(peer|node|DID|DHT|wallet|MCP|npm|GossipSub|CRDT|mesh|hydrate|neon|Defect|Support)\b/i);
     expect(container.textContent).toContain("Something's wrong");
     expect(container.textContent).toContain('Need help');
     expect(container.textContent).toContain('What do you need?');
@@ -554,7 +657,7 @@ describe('On the chain. from register and delete', () => {
       region: 'Western Cape',
       city: 'Stellenbosch'
     }]);
-    expect(container.textContent).not.toMatch(/\b(peer|node|DID|DHT|wallet|MCP|npm)\b/i);
+    expect(container.textContent).not.toMatch(/\b(peer|node|DID|DHT|wallet|MCP|npm|hydrate|neon)\b/i);
     unmount();
   });
 
@@ -587,6 +690,58 @@ describe('On the chain. from register and delete', () => {
     expect(listRegisteredPlaces()).toEqual([]);
     expect(container.querySelector('[data-testid="hub-wizard"]')).toBeTruthy();
     expect(container.querySelector('[data-testid="on-the-chain"]')).toBeNull();
+    unmount();
+  });
+});
+
+describe('Advanced is protocol only', () => {
+  beforeEach(() => {
+    resetIdentityVault();
+    localStorage.clear();
+    window.history.replaceState({}, '', '/');
+    saveIdentityVault(houseVault);
+    localStorage.setItem(OWNER_SESSION_STORAGE_KEY, JSON.stringify({
+      email: 'owner@theolive.co.za',
+      signedInAt: Date.now()
+    }));
+  });
+
+  it('keeps Marketplace and app subscribe off Advanced', async () => {
+    const { container, unmount } = render(<App />);
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 80));
+    });
+
+    const advanced = Array.from(container.querySelectorAll('button')).find(button =>
+      (button.textContent || '').trim() === 'Advanced'
+    );
+    expect(advanced).toBeTruthy();
+    act(() => {
+      advanced?.click();
+    });
+
+    const nav = container.querySelector('[data-testid="owner-advanced-nav"]');
+    expect(nav).toBeTruthy();
+    expect(nav?.textContent).toContain('Licenses');
+    expect(nav?.textContent).toContain('MCP');
+    expect(nav?.textContent).not.toContain('Marketplace');
+    expect(nav?.textContent).not.toContain('Other apps');
+    expect(nav?.textContent).not.toContain(GET_APPS_KICKER);
+    expect(nav?.textContent).not.toMatch(/Subscribe/i);
+    expect(container.querySelector('[data-testid="get-apps"]')).toBeTruthy();
+
+    const licenses = Array.from(nav?.querySelectorAll('button') || []).find(button =>
+      (button.textContent || '').includes('Licenses')
+    );
+    act(() => {
+      licenses?.click();
+    });
+    expect(container.querySelector('[data-testid="hub-home"]')).toBeNull();
+    expect(container.querySelector('[data-testid="get-apps"]')).toBeNull();
+    expect(container.querySelector('[data-testid="on-the-chain"]')).toBeNull();
+    expect(container.textContent).not.toContain('Marketplace');
+    expect(container.textContent).not.toContain('Get apps.');
+    expect(container.textContent).not.toContain('On the chain.');
     unmount();
   });
 });

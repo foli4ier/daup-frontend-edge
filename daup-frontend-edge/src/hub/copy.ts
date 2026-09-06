@@ -1,6 +1,19 @@
 /** Kitchen English on hub doors. Protocol words stay behind Advanced. */
 
-export const BANNED_DOOR_WORDS = ['peer', 'node', 'dht', 'did', 'wallet', 'mcp', 'npm'] as const;
+export const BANNED_DOOR_WORDS = [
+  'peer',
+  'node',
+  'dht',
+  'did',
+  'wallet',
+  'mcp',
+  'npm',
+  'hydrate',
+  'neon'
+] as const;
+
+/** Door name — never label Your places. / Get apps. / On the chain. as Marketplace. */
+export const BANNED_DOOR_NAMES = ['Marketplace'] as const;
 
 export const YOUR_EMAIL_LABEL = 'Your email.';
 export const OPEN_YOUR_HUB_LABEL = 'Open your hub.';
@@ -14,10 +27,19 @@ export const DAUP_HOME_HREF = 'https://www.daup.co.za';
 export const INVALID_EMAIL_MESSAGE = 'Add the email we can reach.';
 export const WHERE_IS_THE_EATERY = 'Where is the eatery?';
 export const WHERE_IS_THE_EATERY_SUB = 'Name the place. Staff join with a WhatsApp tap.';
-export const YOUR_APPS_KICKER = 'Your apps';
-export const OTHER_APPS_KICKER = 'Other apps';
+export const YOUR_PLACES_KICKER = 'Your places.';
+export const YOUR_APPS_KICKER = YOUR_PLACES_KICKER;
+export const GET_APPS_KICKER = 'Get apps.';
+export const OTHER_APPS_KICKER = GET_APPS_KICKER;
+export const GET_LABEL = 'Get.';
+export const OPEN_LABEL = 'Open.';
+export const SUBSCRIBE_LABEL = 'Subscribe';
 export const COMING_KICKER = 'Coming';
 export const SAME_CHAIN_CAPTION = 'Same chain. Not live yet.';
+export const SEE_THE_MENU_LABEL = 'See the menu.';
+export const RESERVE_A_TABLE_LABEL = 'Reserve a table.';
+export const CHAIN_BACK_LABEL = 'Back.';
+export const CHAIN_APP_CHAT = 'Chat';
 export const EATERY_ROW_BODY = 'Tables, tickets, kitchen, stock.';
 export const HUB_HOME_FALLBACK = 'Your hub';
 export const LOG_OFF_LABEL = 'Log off.';
@@ -67,6 +89,10 @@ export function hasBannedDoorCopy(text: string): boolean {
   return BANNED_RE.test(text || '');
 }
 
+export function hasBannedDoorName(text: string): boolean {
+  return BANNED_DOOR_NAMES.some(name => (text || '').includes(name));
+}
+
 export const HUB_EMAIL_DOOR_COPY = [
   HUB_DOOR_TITLE,
   HUB_DOOR_BODY,
@@ -76,12 +102,18 @@ export const HUB_EMAIL_DOOR_COPY = [
 ];
 
 export const HUB_HOME_COPY = [
-  YOUR_APPS_KICKER,
+  YOUR_PLACES_KICKER,
   OPEN_THE_HOUSE_LABEL,
   EATERY_ROW_BODY,
-  OTHER_APPS_KICKER,
+  GET_APPS_KICKER,
+  GET_LABEL,
+  OPEN_LABEL,
+  SUBSCRIBE_LABEL,
   COMING_KICKER,
   SAME_CHAIN_CAPTION,
+  SEE_THE_MENU_LABEL,
+  RESERVE_A_TABLE_LABEL,
+  CHAIN_BACK_LABEL,
   LOG_OFF_LABEL,
   DELETE_THE_HOUSE_LABEL,
   REGISTER_A_NEW_HOUSE_LABEL,
@@ -91,6 +123,7 @@ export const HUB_HOME_COPY = [
   CHAIN_APP_FARM,
   CHAIN_APP_RESELLER,
   CHAIN_APP_MAKER,
+  CHAIN_APP_CHAT,
   ASK_FOR_ENHANCEMENT_LABEL
 ];
 

@@ -1,14 +1,156 @@
-import React from 'react';
-import { ON_THE_CHAIN_EMPTY, ON_THE_CHAIN_KICKER } from '../hub/copy';
+import React, { useState } from 'react';
+import {
+  CHAIN_BACK_LABEL,
+  ON_THE_CHAIN_EMPTY,
+  ON_THE_CHAIN_KICKER,
+  RESERVE_A_TABLE_LABEL,
+  SAME_CHAIN_CAPTION,
+  SEE_THE_MENU_LABEL
+} from '../hub/copy';
+import { eatoutPlaceHrefs } from '../hub/eatoutUrls';
 import {
   chainAppLabel,
   chainPlaceWhere,
   groupPlacesOnTheChain
 } from '../hub/placeDirectory';
-import { PlatformPlaceRecord } from '../stores/identityStore';
+import { PlatformAppId, PlatformPlaceRecord } from '../stores/identityStore';
+
+type ChainFocus =
+  | { kind: 'tree' }
+  | { kind: 'app'; app: PlatformAppId }
+  | { kind: 'place'; place: PlatformPlaceRecord };
+
+function PlaceTree({
+  places,
+  onOpenApp,
+  onOpenPlace
+}: {
+  places: PlatformPlaceRecord[];
+  onOpenApp: (app: PlatformAppId) => void;
+  onOpenPlace: (place: PlatformPlaceRecord) => void;
+}) {
+  const groups = groupPlacesOnTheChain(places);
+
+  return (
+    <div className="chain-tree">
+      {groups.map(appGroup => (
+        <div
+          key={appGroup.app}
+          className="chain-app"
+          data-testid={`chain-app-${appGroup.app}`}
+        >
+          <button
+            type="button"
+            className="chain-group-door"
+            data-testid={`chain-app-door-${appGroup.app}`}
+            onClick={() => onOpenApp(appGroup.app)}
+          >
+            {appGroup.appLabel}
+          </button>
+          {appGroup.countries.map(country => (
+            <div key={country.country || 'country'} className="chain-country">
+              {country.country ? (
+                <p className="chain-group-label">{country.country}</p>
+              ) : null}
+              {country.regions.map(region => (
+                <div key={region.region || 'region'} className="chain-region">
+                  {region.region ? (
+                    <p className="chain-group-label">{region.region}</p>
+                  ) : null}
+                  {region.cities.map(city => (
+                    <div key={city.city || 'city'} className="chain-city">
+                      {city.city ? (
+                        <p className="chain-group-label">{city.city}</p>
+                      ) : null}
+                      {city.places.map(place => (
+                        <article
+                          key={`${place.app}-${place.placeName}`}
+                          className="card chain-place"
+                          data-testid="on-the-chain-place"
+                          data-place-name={place.placeName}
+                          data-app={place.app}
+                        >
+                          <button
+                            type="button"
+                            className="chain-place-door"
+                            onClick={() => onOpenPlace(place)}
+                          >
+                            <h3>{place.placeName}</h3>
+                            <p>
+                              {[chainPlaceWhere(place), chainAppLabel(place.app)]
+                                .filter(Boolean)
+                                .join(' · ')}
+                            </p>
+                          </button>
+                        </article>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function PublicPlaceCard({
+  place,
+  onBack
+}: {
+  place: PlatformPlaceRecord;
+  onBack: () => void;
+}) {
+  const isEatery = place.app === 'eatery';
+  const hrefs = isEatery ? eatoutPlaceHrefs(place.placeName) : null;
+  const menuHref = hrefs?.menu || '';
+  const reserveHref = hrefs?.book || '';
+
+  return (
+    <article className="card place-public-card" data-testid="place-public-card" data-place-name={place.placeName}>
+      <button type="button" className="owner-quiet" data-testid="chain-back" onClick={onBack}>
+        {CHAIN_BACK_LABEL}
+      </button>
+      <h3 data-testid="place-public-name">{place.placeName}</h3>
+      <p>{[chainPlaceWhere(place), chainAppLabel(place.app)].filter(Boolean).join(' · ')}</p>
+      {isEatery ? (
+        <>
+          <div className="place-public-actions">
+            <a
+              className="btn btn-primary btn-wide"
+              href={menuHref}
+              data-testid="see-the-menu"
+              data-eatout-id={hrefs?.id}
+              title={menuHref}
+            >
+              {SEE_THE_MENU_LABEL}
+            </a>
+            <a
+              className="btn btn-outline btn-wide"
+              href={reserveHref}
+              data-testid="reserve-a-table"
+              data-eatout-id={hrefs?.id}
+              title={reserveHref}
+            >
+              {RESERVE_A_TABLE_LABEL}
+            </a>
+          </div>
+        </>
+      ) : (
+        <p className="caption" data-testid="same-chain-caption">{SAME_CHAIN_CAPTION}</p>
+      )}
+    </article>
+  );
+}
 
 export function OnTheChainSection({ places }: { places: PlatformPlaceRecord[] }) {
+  const [focus, setFocus] = useState<ChainFocus>({ kind: 'tree' });
   const groups = groupPlacesOnTheChain(places);
+  const appPlaces = focus.kind === 'app'
+    ? places.filter(place => place.app === focus.app)
+    : places;
 
   return (
     <section className="on-the-chain" data-testid="on-the-chain">
@@ -19,55 +161,34 @@ export function OnTheChainSection({ places }: { places: PlatformPlaceRecord[] })
 
       {groups.length === 0 ? (
         <p className="caption" data-testid="on-the-chain-empty">{ON_THE_CHAIN_EMPTY}</p>
+      ) : focus.kind === 'place' ? (
+        <PublicPlaceCard
+          place={focus.place}
+          onBack={() => setFocus({ kind: 'app', app: focus.place.app })}
+        />
+      ) : focus.kind === 'app' ? (
+        <>
+          <button
+            type="button"
+            className="owner-quiet"
+            data-testid="chain-back"
+            onClick={() => setFocus({ kind: 'tree' })}
+          >
+            {CHAIN_BACK_LABEL}
+          </button>
+          <p className="chain-group-label">{chainAppLabel(focus.app)}</p>
+          <PlaceTree
+            places={appPlaces}
+            onOpenApp={() => undefined}
+            onOpenPlace={place => setFocus({ kind: 'place', place })}
+          />
+        </>
       ) : (
-        <div className="chain-tree">
-          {groups.map(appGroup => (
-            <div
-              key={appGroup.app}
-              className="chain-app"
-              data-testid={`chain-app-${appGroup.app}`}
-            >
-              <p className="chain-group-label">{appGroup.appLabel}</p>
-              {appGroup.countries.map(country => (
-                <div key={country.country || 'country'} className="chain-country">
-                  {country.country ? (
-                    <p className="chain-group-label">{country.country}</p>
-                  ) : null}
-                  {country.regions.map(region => (
-                    <div key={region.region || 'region'} className="chain-region">
-                      {region.region ? (
-                        <p className="chain-group-label">{region.region}</p>
-                      ) : null}
-                      {region.cities.map(city => (
-                        <div key={city.city || 'city'} className="chain-city">
-                          {city.city ? (
-                            <p className="chain-group-label">{city.city}</p>
-                          ) : null}
-                          {city.places.map(place => (
-                            <article
-                              key={`${place.app}-${place.placeName}`}
-                              className="card chain-place"
-                              data-testid="on-the-chain-place"
-                              data-place-name={place.placeName}
-                              data-app={place.app}
-                            >
-                              <h3>{place.placeName}</h3>
-                              <p>
-                                {[chainPlaceWhere(place), chainAppLabel(place.app)]
-                                  .filter(Boolean)
-                                  .join(' · ')}
-                              </p>
-                            </article>
-                          ))}
-                        </div>
-                      ))}
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>
-          ))}
-        </div>
+        <PlaceTree
+          places={places}
+          onOpenApp={app => setFocus({ kind: 'app', app })}
+          onOpenPlace={place => setFocus({ kind: 'place', place })}
+        />
       )}
     </section>
   );

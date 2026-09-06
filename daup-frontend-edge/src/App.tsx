@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
-  Key, ShoppingBag, Activity, Compass, HardDrive, Terminal,
+  Key, Activity, Compass, HardDrive, Terminal,
   Shield, User
 } from 'lucide-react';
 import { DIDWalletProvider, useDIDWallet } from './components/DIDWalletProvider';
@@ -10,7 +10,6 @@ import { TelemetryGrid } from './components/TelemetryGrid';
 import { DHTRouterView } from './components/DHTRouterView';
 import { DcdnResolverView } from './components/DcdnResolverView';
 import { McpConsole } from './components/McpConsole';
-import { MarketplaceView } from './components/MarketplaceView';
 import { SubscribedAppsView } from './components/SubscribedAppsView';
 import { AskForEnhancementView } from './components/AskForEnhancementView';
 import { LicenseManagementView } from './components/LicenseManagementView';
@@ -23,18 +22,11 @@ import { navigateToTheHouse } from './hub/ownerArrival';
 import { LOG_OFF_LABEL } from './hub/copy';
 import { goToAsks, goToHubHome, readHubPage } from './hub/asksPath';
 
-const EATERY = 'https://eatery.daup.co.za/';
-
-function staffInviteHref(houseName: string) {
-  const text = `You're on tonight's floor at ${houseName}. Open the eatery: ${EATERY}`;
-  return `https://wa.me/?text=${encodeURIComponent(text)}`;
-}
-
 const DashboardContent: React.FC = () => {
   const { did, seed, connectWallet, wasmLoaded, isLoadingWasm } = useDIDWallet();
   const { instanceName, activeWallet, identityKeySeedNode, setIsProfileModalOpen, ownerSession, logOffHub } = useUserProfile();
 
-  const [activeTab, setActiveTab] = useState<'home' | 'licenses' | 'marketplace' | 'telemetry' | 'dht' | 'dcdn' | 'mcp'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'licenses' | 'telemetry' | 'dht' | 'dcdn' | 'mcp'>('home');
   const [launchedApp, setLaunchedApp] = useState<string | null>(null);
   const [isAdvanced, setIsAdvanced] = useState(false);
   const [hubPage, setHubPage] = useState<'home' | 'ask'>(() => readHubPage());
@@ -113,11 +105,6 @@ const DashboardContent: React.FC = () => {
     loadSubscriptions();
   };
 
-  const handleUninstallApp = (moduleName: string) => {
-    const updated = { ...installedApps, [moduleName]: false };
-    saveInstalled(updated);
-  };
-
   const handleLaunchApp = (moduleName: string) => {
     if (moduleName === 'daup-eatery') {
       const house = activeWallet?.legalName || instanceName || '';
@@ -132,7 +119,6 @@ const DashboardContent: React.FC = () => {
   const handleExitApp = () => setLaunchedApp(null);
 
   const houseName = activeWallet?.legalName || instanceName || 'Your hub';
-  const inviteHref = staffInviteHref(houseName);
 
   const showProtocol = isAdvanced && !launchedApp && activeTab !== 'home';
 
@@ -186,7 +172,7 @@ const DashboardContent: React.FC = () => {
       </header>
 
       {isAdvanced && (
-        <nav className="wrap owner-advanced-nav" aria-label="Advanced">
+        <nav className="wrap owner-advanced-nav" aria-label="Advanced" data-testid="owner-advanced-nav">
           <button
             type="button"
             onClick={openHome}
@@ -200,13 +186,6 @@ const DashboardContent: React.FC = () => {
             className={activeTab === 'licenses' && !launchedApp ? 'btn btn-primary' : 'btn btn-outline'}
           >
             <Key size={16} /> Licenses
-          </button>
-          <button
-            type="button"
-            onClick={() => { setActiveTab('marketplace'); setLaunchedApp(null); }}
-            className={activeTab === 'marketplace' && !launchedApp ? 'btn btn-primary' : 'btn btn-outline'}
-          >
-            <ShoppingBag size={16} /> Other apps
           </button>
           <button type="button" onClick={() => { setActiveTab('telemetry'); setLaunchedApp(null); }} className={activeTab === 'telemetry' ? 'btn btn-primary' : 'btn btn-outline'}>
             <Activity size={14} /> Telemetry
@@ -239,7 +218,12 @@ const DashboardContent: React.FC = () => {
               hubPage === 'ask' ? (
                 <AskForEnhancementView onBack={openHome} />
               ) : (
-                <SubscribedAppsView onOpenAsk={openAsks} />
+                <SubscribedAppsView
+                  onOpenAsk={openAsks}
+                  installedApps={installedApps}
+                  onSubscribeApp={handleInstallApp}
+                  onLaunchApp={handleLaunchApp}
+                />
               )
             )}
             {showProtocol && activeTab === 'licenses' && (
@@ -251,18 +235,6 @@ const DashboardContent: React.FC = () => {
                 />
               </div>
             )}
-            {showProtocol && activeTab === 'marketplace' && (
-              <div className="protocol-console">
-                <MarketplaceView
-                  installedApps={installedApps}
-                  subsData={subsData}
-                  currentTime={currentTime}
-                  onLaunchApp={handleLaunchApp}
-                  onInstallApp={handleInstallApp}
-                  onUninstallApp={handleUninstallApp}
-                />
-              </div>
-            )}
             {showProtocol && activeTab === 'telemetry' && <div className="protocol-console"><TelemetryGrid /></div>}
             {showProtocol && activeTab === 'dht' && <div className="protocol-console"><DHTRouterView /></div>}
             {showProtocol && activeTab === 'dcdn' && <div className="protocol-console"><DcdnResolverView /></div>}
@@ -271,12 +243,6 @@ const DashboardContent: React.FC = () => {
         )}
       </main>
 
-      <footer className="wrap owner-footer">
-        <p className="caption" style={{ margin: 0 }}>Staff join with a WhatsApp tap.</p>
-        <a className="btn btn-primary" href={inviteHref} target="_blank" rel="noreferrer">
-          Invite tonight’s floor
-        </a>
-      </footer>
     </div>
   );
 };
