@@ -78,11 +78,6 @@ export const SubscribedAppsView: React.FC<{
     if (app.moduleKey) onLaunchApp?.(app.moduleKey);
   };
 
-  const handleSubscribe = (app: ShopApp) => {
-    if (!app.live || !app.moduleKey) return;
-    onSubscribeApp?.(app.moduleKey);
-  };
-
   return (
     <div className="apps-home" data-testid="hub-home">
       <div className="section-head">
@@ -165,7 +160,6 @@ export const SubscribedAppsView: React.FC<{
         installedApps={installedApps}
         onGet={handleGet}
         onOpen={handleOpen}
-        onSubscribe={handleSubscribe}
       />
 
       <OnTheChainSection places={chainPlaces} />

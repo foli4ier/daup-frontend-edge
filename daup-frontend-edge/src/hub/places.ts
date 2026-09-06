@@ -69,7 +69,7 @@ export const COMING_APPS: HubPlaceRow[] = [
   { id: 'maker', title: CHAIN_APP_MAKER, body: '', live: false }
 ];
 
-/** Shop catalog for Get apps. Live first. Coming never Subscribe. */
+/** Shop catalog for Get apps. Live first. Coming never Get. or Open. */
 export const SHOP_APPS: ShopApp[] = [
   { id: 'eatery', title: CHAIN_APP_EATERY, live: true, moduleKey: 'daup-eatery' },
   { id: 'eatout', title: CHAIN_APP_EATOUT, live: true, moduleKey: EATOUT_MODULE_KEY },

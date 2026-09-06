@@ -5,8 +5,7 @@ import {
   GET_APPS_KICKER,
   GET_LABEL,
   OPEN_LABEL,
-  SAME_CHAIN_CAPTION,
-  SUBSCRIBE_LABEL
+  SAME_CHAIN_CAPTION
 } from '../hub/copy';
 import {
   COMING_SHOP_APPS,
@@ -30,15 +29,45 @@ export interface GetAppsProps {
   installedApps: Record<string, boolean>;
   onGet: (app: ShopApp) => void;
   onOpen: (app: ShopApp) => void;
-  onSubscribe: (app: ShopApp) => void;
+}
+
+function OpenControl({
+  app,
+  onOpen
+}: {
+  app: ShopApp;
+  onOpen: (app: ShopApp) => void;
+}) {
+  const openHref = shopAppOpenHref(app);
+  if (openHref) {
+    return (
+      <a
+        className="btn btn-primary btn-wide"
+        href={openHref}
+        target="_self"
+        data-testid={`open-app-${app.id}`}
+      >
+        {OPEN_LABEL}
+      </a>
+    );
+  }
+  return (
+    <button
+      type="button"
+      className="btn btn-primary btn-wide"
+      data-testid={`open-app-${app.id}`}
+      onClick={() => onOpen(app)}
+    >
+      {OPEN_LABEL}
+    </button>
+  );
 }
 
 export function GetAppsSection({
   hasHouse,
   installedApps,
   onGet,
-  onOpen,
-  onSubscribe
+  onOpen
 }: GetAppsProps) {
   const heldOf = (app: ShopApp) => shopAppIsHeld(app, { hasHouse, installed: installedApps });
 
@@ -53,7 +82,6 @@ export function GetAppsSection({
         {LIVE_SHOP_APPS.map(app => {
           const held = heldOf(app);
           const Icon = SHOP_ICONS[app.id];
-          const openHref = shopAppOpenHref(app);
           return (
             <article
               className="card"
@@ -77,38 +105,15 @@ export function GetAppsSection({
                     <button
                       type="button"
                       className="btn btn-outline btn-wide"
-                      data-testid={`subscribe-app-${app.id}`}
-                      onClick={() => onSubscribe(app)}
-                    >
-                      {SUBSCRIBE_LABEL}
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-primary btn-wide"
                       data-testid={`get-app-${app.id}`}
                       onClick={() => onGet(app)}
                     >
                       {GET_LABEL}
                     </button>
+                    <OpenControl app={app} onOpen={onOpen} />
                   </>
-                ) : openHref ? (
-                  <a
-                    className="btn btn-primary btn-wide"
-                    href={openHref}
-                    target="_self"
-                    data-testid={`open-app-${app.id}`}
-                  >
-                    {OPEN_LABEL}
-                  </a>
                 ) : (
-                  <button
-                    type="button"
-                    className="btn btn-primary btn-wide"
-                    data-testid={`open-app-${app.id}`}
-                    onClick={() => onOpen(app)}
-                  >
-                    {OPEN_LABEL}
-                  </button>
+                  <OpenControl app={app} onOpen={onOpen} />
                 )}
               </div>
             </article>
