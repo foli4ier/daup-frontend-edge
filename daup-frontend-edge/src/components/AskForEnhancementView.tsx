@@ -3,26 +3,21 @@ import { useUserProfile } from '../context/UserProfileContext';
 import {
   ASK_ALL_APPS,
   ASK_BACK_LABEL,
+  ASK_BODY_LABEL,
   ASK_EMPTY,
   ASK_FOR_ENHANCEMENT_LABEL,
   ASK_KIND_ENHANCEMENT,
-  ASK_KIND_LABEL,
-  ASK_MORE_LABEL,
-  ASK_NEEDED_LABEL,
-  ASK_PAGE_BODY,
+  ASK_KIND_WRONG,
   ASK_PICK_AN_APP,
-  ASK_RAISE_KICKER,
-  ASK_REQUESTS_KICKER,
   ASK_SEND_LABEL,
-  ASK_SHOW_LABEL,
   ASK_WHICH_APP_LABEL
 } from '../hub/copy';
 import {
   ASK_APP_CHOICES,
   ASK_KINDS,
   AskAppFilter,
+  AskAppId,
   AskKind,
-  askAppChoiceLabel,
   askAppLabel,
   canRaiseAsk,
   filterAsksByApp,
@@ -40,8 +35,7 @@ export const AskForEnhancementView: React.FC<AskForEnhancementViewProps> = ({ on
 
   const [app, setApp] = useState('');
   const [kind, setKind] = useState<AskKind>(ASK_KIND_ENHANCEMENT);
-  const [title, setTitle] = useState('');
-  const [detail, setDetail] = useState('');
+  const [body, setBody] = useState('');
   const [appError, setAppError] = useState('');
   const [filterApp, setFilterApp] = useState<AskAppFilter>('all');
   const [items, setItems] = useState(() => loadAskRequests());
@@ -57,8 +51,7 @@ export const AskForEnhancementView: React.FC<AskForEnhancementViewProps> = ({ on
     const result = raiseAskRequest({
       app,
       kind,
-      title,
-      detail,
+      title: body,
       houseName
     });
     if (!result.ok) {
@@ -66,8 +59,7 @@ export const AskForEnhancementView: React.FC<AskForEnhancementViewProps> = ({ on
       return;
     }
     setAppError('');
-    setTitle('');
-    setDetail('');
+    setBody('');
     setKind(ASK_KIND_ENHANCEMENT);
     setApp('');
     setItems(loadAskRequests());
@@ -85,72 +77,57 @@ export const AskForEnhancementView: React.FC<AskForEnhancementViewProps> = ({ on
       </button>
 
       <h1 className="ask-title">{ASK_FOR_ENHANCEMENT_LABEL}</h1>
-      <p className="caption">{ASK_PAGE_BODY}</p>
 
       <form className="card ask-raise" onSubmit={submit} data-testid="ask-raise-form">
-        <div className="section-head">
-          <span className="kicker">{ASK_RAISE_KICKER}</span>
-          <span className="rule" />
-        </div>
-
-        <div className="owner-field">
-          <label htmlFor="ask-which-app">{ASK_WHICH_APP_LABEL}</label>
-          <select
-            id="ask-which-app"
-            data-testid="ask-which-app"
-            value={app}
-            onChange={(event) => {
-              setApp(event.target.value);
-              if (event.target.value) setAppError('');
-            }}
-          >
-            <option value="">{ASK_WHICH_APP_LABEL}</option>
+        <fieldset className="ask-fieldset" data-testid="ask-which-app">
+          <legend>{ASK_WHICH_APP_LABEL}</legend>
+          <div className="ask-chips">
             {ASK_APP_CHOICES.map(choice => (
-              <option key={choice.id} value={choice.id}>
-                {askAppChoiceLabel(choice.id)}
-              </option>
+              <button
+                key={choice.id}
+                type="button"
+                className="ask-chip"
+                data-testid={`ask-app-${choice.id}`}
+                aria-pressed={app === choice.id}
+                onClick={() => {
+                  setApp(choice.id);
+                  setAppError('');
+                }}
+              >
+                {choice.label}
+              </button>
             ))}
-          </select>
+          </div>
           {appError ? (
             <p className="wizard-error" role="alert" data-testid="ask-app-error">
               {appError}
             </p>
           ) : null}
+        </fieldset>
+
+        <div className="ask-chips" data-testid="ask-kinds">
+          {ASK_KINDS.map(row => (
+            <button
+              key={row}
+              type="button"
+              className="ask-chip"
+              data-testid={`ask-kind-${row === ASK_KIND_ENHANCEMENT ? 'enhancement' : row === ASK_KIND_WRONG ? 'wrong' : 'help'}`}
+              aria-pressed={kind === row}
+              onClick={() => setKind(row)}
+            >
+              {row}
+            </button>
+          ))}
         </div>
 
         <div className="owner-field">
-          <label htmlFor="ask-kind">{ASK_KIND_LABEL}</label>
-          <select
-            id="ask-kind"
-            data-testid="ask-kind"
-            value={kind}
-            onChange={(event) => setKind(event.target.value as AskKind)}
-          >
-            {ASK_KINDS.map(row => (
-              <option key={row} value={row}>{row}</option>
-            ))}
-          </select>
-        </div>
-
-        <div className="owner-field">
-          <label htmlFor="ask-needed">{ASK_NEEDED_LABEL}</label>
-          <input
-            id="ask-needed"
-            data-testid="ask-needed"
-            type="text"
-            value={title}
-            onChange={(event) => setTitle(event.target.value)}
-          />
-        </div>
-
-        <div className="owner-field">
-          <label htmlFor="ask-more">{ASK_MORE_LABEL}</label>
+          <label htmlFor="ask-body">{ASK_BODY_LABEL}</label>
           <textarea
-            id="ask-more"
-            data-testid="ask-more"
+            id="ask-body"
+            data-testid="ask-body"
             rows={4}
-            value={detail}
-            onChange={(event) => setDetail(event.target.value)}
+            value={body}
+            onChange={(event) => setBody(event.target.value)}
           />
         </div>
 
@@ -160,26 +137,28 @@ export const AskForEnhancementView: React.FC<AskForEnhancementViewProps> = ({ on
       </form>
 
       <section className="ask-list" data-testid="ask-list">
-        <div className="section-head">
-          <span className="kicker">{ASK_REQUESTS_KICKER}</span>
-          <span className="rule" />
-        </div>
-
-        <div className="owner-field ask-filter">
-          <label htmlFor="ask-app-filter">{ASK_SHOW_LABEL}</label>
-          <select
-            id="ask-app-filter"
-            data-testid="ask-app-filter"
-            value={filterApp}
-            onChange={(event) => setFilterApp(event.target.value as AskAppFilter)}
+        <div className="ask-chips" data-testid="ask-app-filter">
+          <button
+            type="button"
+            className="ask-chip"
+            data-testid="ask-filter-all"
+            aria-pressed={filterApp === 'all'}
+            onClick={() => setFilterApp('all')}
           >
-            <option value="all">{ASK_ALL_APPS}</option>
-            {ASK_APP_CHOICES.map(choice => (
-              <option key={choice.id} value={choice.id}>
-                {choice.label}
-              </option>
-            ))}
-          </select>
+            {ASK_ALL_APPS}
+          </button>
+          {ASK_APP_CHOICES.map(choice => (
+            <button
+              key={choice.id}
+              type="button"
+              className="ask-chip"
+              data-testid={`ask-filter-${choice.id}`}
+              aria-pressed={filterApp === choice.id}
+              onClick={() => setFilterApp(choice.id as AskAppId)}
+            >
+              {choice.label}
+            </button>
+          ))}
         </div>
 
         {visible.length === 0 ? (
@@ -200,7 +179,6 @@ export const AskForEnhancementView: React.FC<AskForEnhancementViewProps> = ({ on
                 <span className="coming-flag">{item.kind}</span>
               </div>
               <h3>{item.title}</h3>
-              {item.detail ? <p>{item.detail}</p> : null}
             </article>
           ))
         )}

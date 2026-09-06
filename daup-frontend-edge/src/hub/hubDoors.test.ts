@@ -75,13 +75,18 @@ describe('hub email door copy', () => {
     for (const word of BANNED_DOOR_WORDS) {
       expect(hasBannedDoorCopy(ask), `banned "${word}" on ask page`).toBe(false);
     }
-    expect(ask).not.toMatch(/\b(gossipsub|crdt|mesh)\b/i);
+    expect(ask).not.toMatch(/\b(gossipsub|crdt|mesh|neon|hydrate|Defect|Support)\b/i);
     expect(ASK_FOR_ENHANCEMENT_LABEL).toBe('Ask for an enhancement.');
     expect(ASK_WHICH_APP_LABEL).toBe('Which app?');
     expect(ASK_PICK_AN_APP).toBe('Pick an app first.');
     expect(ASK_PAGE_COPY).toContain('Enhancement');
-    expect(ASK_PAGE_COPY).toContain('Defect');
-    expect(ASK_PAGE_COPY).toContain('Support');
+    expect(ASK_PAGE_COPY).toContain("Something's wrong");
+    expect(ASK_PAGE_COPY).toContain('Need help');
+    expect(ASK_PAGE_COPY).toContain('What do you need?');
+    expect(ASK_PAGE_COPY).toContain('Send.');
+    expect(ASK_PAGE_COPY).toContain('No asks yet.');
+    expect(ASK_PAGE_COPY).not.toContain('Defect');
+    expect(ASK_PAGE_COPY).not.toContain('Support');
   });
 });
 

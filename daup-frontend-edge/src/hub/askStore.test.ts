@@ -20,8 +20,7 @@ describe('ask store', () => {
     expect(canRaiseAsk({ app: 'kitchen', title: 'More covers on Friday' })).toBe(false);
     const result = raiseAskRequest({
       app: '',
-      title: 'More covers on Friday',
-      detail: 'We need a bigger Friday book.'
+      title: 'More covers on Friday'
     });
     expect(result.ok).toBe(false);
     if (result.ok) return;
@@ -36,12 +35,11 @@ describe('ask store', () => {
       app: 'farm',
       kind: 'Enhancement',
       title: 'Harvest list on the phone',
-      detail: 'Need the pick list in the field.',
       now: 100
     });
     const eatery = raiseAskRequest({
       app: 'eatery',
-      kind: 'Defect',
+      kind: "Something's wrong",
       title: 'Ticket printer stays quiet',
       now: 200
     });

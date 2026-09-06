@@ -1,16 +1,15 @@
 import {
-  ASK_KIND_DEFECT,
   ASK_KIND_ENHANCEMENT,
-  ASK_KIND_SUPPORT,
-  CHAIN_APP_LABELS,
-  COMING_KICKER
+  ASK_KIND_HELP,
+  ASK_KIND_WRONG,
+  CHAIN_APP_LABELS
 } from './copy';
 import { PLATFORM_APP_IDS, type PlatformAppId } from '../stores/identityStore';
 
 export const ASK_STORAGE_KEY = 'daup:hub:ask_requests';
 
 export type AskAppId = PlatformAppId;
-export type AskKind = typeof ASK_KIND_ENHANCEMENT | typeof ASK_KIND_DEFECT | typeof ASK_KIND_SUPPORT;
+export type AskKind = typeof ASK_KIND_ENHANCEMENT | typeof ASK_KIND_WRONG | typeof ASK_KIND_HELP;
 export type AskAppFilter = AskAppId | 'all';
 
 export interface AskRequest {
@@ -18,15 +17,14 @@ export interface AskRequest {
   app: AskAppId;
   kind: AskKind;
   title: string;
-  detail: string;
   createdAt: number;
   houseName?: string;
 }
 
 export const ASK_KINDS: AskKind[] = [
   ASK_KIND_ENHANCEMENT,
-  ASK_KIND_DEFECT,
-  ASK_KIND_SUPPORT
+  ASK_KIND_WRONG,
+  ASK_KIND_HELP
 ];
 
 export const ASK_APP_CHOICES: { id: AskAppId; label: string; coming: boolean }[] = PLATFORM_APP_IDS.map(id => ({
@@ -34,6 +32,12 @@ export const ASK_APP_CHOICES: { id: AskAppId; label: string; coming: boolean }[]
   label: CHAIN_APP_LABELS[id],
   coming: id !== 'eatery'
 }));
+
+const LEGACY_KINDS: Record<string, AskKind> = {
+  Defect: ASK_KIND_WRONG,
+  Support: ASK_KIND_HELP,
+  Enhancement: ASK_KIND_ENHANCEMENT
+};
 
 export function isAskAppId(value: string): value is AskAppId {
   return (PLATFORM_APP_IDS as readonly string[]).includes(value);
@@ -43,20 +47,18 @@ export function isAskKind(value: string): value is AskKind {
   return ASK_KINDS.includes(value as AskKind);
 }
 
-export function askAppLabel(app: AskAppId): string {
-  return CHAIN_APP_LABELS[app];
+export function normalizeAskKind(value: string): AskKind | null {
+  if (isAskKind(value)) return value;
+  return LEGACY_KINDS[value] || null;
 }
 
-export function askAppChoiceLabel(app: AskAppId): string {
-  const choice = ASK_APP_CHOICES.find(row => row.id === app);
-  if (!choice) return askAppLabel(app);
-  return choice.coming ? `${choice.label} · ${COMING_KICKER}` : choice.label;
+export function askAppLabel(app: AskAppId): string {
+  return CHAIN_APP_LABELS[app];
 }
 
 export function canRaiseAsk(input: {
   app: string;
   title?: string;
-  detail?: string;
 }): boolean {
   return isAskAppId(input.app);
 }
@@ -80,16 +82,19 @@ function readRaw(): unknown {
 
 function asRequest(value: unknown): AskRequest | null {
   if (!value || typeof value !== 'object') return null;
-  const row = value as Partial<AskRequest>;
-  if (!row.id || !isAskAppId(String(row.app || '')) || !isAskKind(String(row.kind || ''))) return null;
+  const row = value as Partial<AskRequest> & { detail?: string };
+  if (!row.id || !isAskAppId(String(row.app || ''))) return null;
+  const kind = normalizeAskKind(String(row.kind || ''));
+  if (!kind) return null;
   const title = typeof row.title === 'string' ? row.title.trim() : '';
-  if (!title) return null;
+  const fallback = typeof row.detail === 'string' ? row.detail.trim() : '';
+  const body = title || fallback;
+  if (!body) return null;
   return {
     id: String(row.id),
     app: row.app as AskAppId,
-    kind: row.kind as AskKind,
-    title,
-    detail: typeof row.detail === 'string' ? row.detail : '',
+    kind,
+    title: body,
     createdAt: typeof row.createdAt === 'number' ? row.createdAt : 0,
     houseName: typeof row.houseName === 'string' ? row.houseName : undefined
   };
@@ -114,7 +119,6 @@ export function raiseAskRequest(input: {
   app: string;
   kind?: string;
   title: string;
-  detail?: string;
   houseName?: string;
   now?: number;
 }): { ok: true; request: AskRequest } | { ok: false; reason: 'app' | 'title' } {
@@ -125,15 +129,12 @@ export function raiseAskRequest(input: {
   if (!title) {
     return { ok: false, reason: 'title' };
   }
-  const kind: AskKind = isAskKind(String(input.kind || ''))
-    ? (input.kind as AskKind)
-    : ASK_KIND_ENHANCEMENT;
+  const kind: AskKind = normalizeAskKind(String(input.kind || '')) || ASK_KIND_ENHANCEMENT;
   const request: AskRequest = {
     id: `ask-${input.now || Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     app: input.app,
     kind,
     title,
-    detail: (input.detail || '').trim(),
     createdAt: input.now || Date.now(),
     houseName: (input.houseName || '').trim() || undefined
   };

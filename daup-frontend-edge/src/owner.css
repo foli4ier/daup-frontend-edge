@@ -916,8 +916,45 @@ body {
   resize: vertical;
 }
 
-.ask-filter {
-  max-width: 280px;
+.ask-fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ask-fieldset legend {
+  font-weight: 650;
+  font-size: 0.92rem;
+  padding: 0;
+  margin-bottom: 4px;
+}
+
+.ask-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ask-chip {
+  appearance: none;
+  min-height: var(--tap);
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1.5px solid var(--line);
+  background: var(--white);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.ask-chip[aria-pressed="true"] {
+  background: var(--ink);
+  color: #fff;
+  border-color: var(--ink);
 }
 
 .ask-list {

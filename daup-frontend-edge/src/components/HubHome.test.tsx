@@ -289,7 +289,12 @@ describe('hub home after email', () => {
     expect(container.querySelector('[data-testid="eatery-place-row"]')).toBeNull();
     expect(container.querySelector('[data-testid="other-apps"]')).toBeNull();
     expect(container.textContent).toContain('Ask for an enhancement.');
-    expect(container.textContent).not.toMatch(/\b(peer|node|DID|DHT|wallet|MCP|npm|GossipSub|CRDT|mesh)\b/i);
+    expect(container.textContent).not.toMatch(/\b(peer|node|DID|DHT|wallet|MCP|npm|GossipSub|CRDT|mesh|hydrate|Defect|Support)\b/i);
+    expect(container.textContent).toContain("Something's wrong");
+    expect(container.textContent).toContain('Need help');
+    expect(container.textContent).toContain('What do you need?');
+    expect(container.textContent).toContain('Send.');
+    expect(container.textContent).toContain('No asks yet.');
 
     act(() => {
       (container.querySelector('[data-testid="ask-back"]') as HTMLButtonElement).click();

@@ -43,22 +43,16 @@ export const CHAIN_APP_LABELS = {
 } as const;
 
 export const ASK_FOR_ENHANCEMENT_LABEL = 'Ask for an enhancement.';
-export const ASK_PAGE_BODY = 'Raise a request for the house. Browse what you have sent.';
 export const ASK_WHICH_APP_LABEL = 'Which app?';
 export const ASK_PICK_AN_APP = 'Pick an app first.';
-export const ASK_KIND_LABEL = 'What kind.';
 export const ASK_KIND_ENHANCEMENT = 'Enhancement';
-export const ASK_KIND_DEFECT = 'Defect';
-export const ASK_KIND_SUPPORT = 'Support';
-export const ASK_NEEDED_LABEL = "What's needed.";
-export const ASK_MORE_LABEL = 'Tell us more.';
-export const ASK_SEND_LABEL = 'Send the request.';
-export const ASK_RAISE_KICKER = 'Raise a request.';
-export const ASK_REQUESTS_KICKER = 'Your requests.';
-export const ASK_EMPTY = 'No requests yet.';
+export const ASK_KIND_WRONG = "Something's wrong";
+export const ASK_KIND_HELP = 'Need help';
+export const ASK_BODY_LABEL = 'What do you need?';
+export const ASK_SEND_LABEL = 'Send.';
+export const ASK_EMPTY = 'No asks yet.';
 export const ASK_BACK_LABEL = 'Back to your hub.';
-export const ASK_SHOW_LABEL = 'Show.';
-export const ASK_ALL_APPS = 'All apps';
+export const ASK_ALL_APPS = 'All';
 
 /** Exact match — extra spaces or a different case keep Delete quiet. */
 export function houseNameMatchesConfirm(typedName: string, houseName: string): boolean {
@@ -101,27 +95,20 @@ export const HUB_HOME_COPY = [
 
 export const ASK_PAGE_COPY = [
   ASK_FOR_ENHANCEMENT_LABEL,
-  ASK_PAGE_BODY,
   ASK_WHICH_APP_LABEL,
   ASK_PICK_AN_APP,
-  ASK_KIND_LABEL,
   ASK_KIND_ENHANCEMENT,
-  ASK_KIND_DEFECT,
-  ASK_KIND_SUPPORT,
-  ASK_NEEDED_LABEL,
-  ASK_MORE_LABEL,
+  ASK_KIND_WRONG,
+  ASK_KIND_HELP,
+  ASK_BODY_LABEL,
   ASK_SEND_LABEL,
-  ASK_RAISE_KICKER,
-  ASK_REQUESTS_KICKER,
   ASK_EMPTY,
   ASK_BACK_LABEL,
-  ASK_SHOW_LABEL,
   ASK_ALL_APPS,
   CHAIN_APP_EATERY,
   CHAIN_APP_FARM,
   CHAIN_APP_RESELLER,
-  CHAIN_APP_MAKER,
-  COMING_KICKER
+  CHAIN_APP_MAKER
 ];
 
 export const DELETE_HOUSE_MODAL_COPY = [
