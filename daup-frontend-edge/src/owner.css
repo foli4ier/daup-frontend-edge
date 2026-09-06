@@ -90,6 +90,8 @@ body {
   text-decoration: underline;
   text-underline-offset: 3px;
   text-decoration-color: var(--line);
+  display: inline-flex;
+  align-items: center;
 }
 
 .owner-quiet[aria-pressed="true"] {
@@ -877,10 +879,6 @@ body {
   opacity: 1;
   cursor: not-allowed;
   transform: none;
-}
-
-.ask-door {
-  padding-top: 8px;
 }
 
 .ask-page {

@@ -52,6 +52,7 @@ export const ASK_BODY_LABEL = 'What do you need?';
 export const ASK_SEND_LABEL = 'Send.';
 export const ASK_EMPTY = 'No asks yet.';
 export const ASK_BACK_LABEL = 'Back to your hub.';
+export const ASK_PATH_LABEL = '/asks';
 export const ASK_ALL_APPS = 'All';
 
 /** Exact match — extra spaces or a different case keep Delete quiet. */

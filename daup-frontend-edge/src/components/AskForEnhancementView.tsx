@@ -12,6 +12,7 @@ import {
   ASK_SEND_LABEL,
   ASK_WHICH_APP_LABEL
 } from '../hub/copy';
+import { HUB_HOME_PATH } from '../hub/asksPath';
 import {
   ASK_APP_CHOICES,
   ASK_KINDS,
@@ -67,14 +68,17 @@ export const AskForEnhancementView: React.FC<AskForEnhancementViewProps> = ({ on
 
   return (
     <div className="ask-page" data-testid="ask-page">
-      <button
-        type="button"
+      <a
         className="owner-quiet ask-back"
+        href={HUB_HOME_PATH}
         data-testid="ask-back"
-        onClick={onBack}
+        onClick={(event) => {
+          event.preventDefault();
+          onBack();
+        }}
       >
         {ASK_BACK_LABEL}
-      </button>
+      </a>
 
       <h1 className="ask-title">{ASK_FOR_ENHANCEMENT_LABEL}</h1>
 

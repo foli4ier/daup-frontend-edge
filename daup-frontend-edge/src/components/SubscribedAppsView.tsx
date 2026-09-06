@@ -10,6 +10,7 @@ import {
   SAME_CHAIN_CAPTION,
   YOUR_APPS_KICKER
 } from '../hub/copy';
+import { ASKS_PATH } from '../hub/asksPath';
 import { COMING_APPS, listOwnerPlaces } from '../hub/places';
 import { listPlacesOnTheChain } from '../hub/placeDirectory';
 import { navigateToTheHouse } from '../hub/ownerArrival';
@@ -95,6 +96,17 @@ export const SubscribedAppsView: React.FC<{ onOpenAsk?: () => void }> = ({ onOpe
           >
             {REGISTER_A_NEW_HOUSE_LABEL}
           </button>
+          <a
+            className="owner-quiet"
+            href={ASKS_PATH}
+            data-testid="ask-for-enhancement"
+            onClick={(event) => {
+              event.preventDefault();
+              onOpenAsk?.();
+            }}
+          >
+            {ASK_FOR_ENHANCEMENT_LABEL}
+          </a>
         </div>
         <div className="card-links">
           <a href={DOCS_SHIFT}>Walk me through it ›</a>
@@ -142,17 +154,6 @@ export const SubscribedAppsView: React.FC<{ onOpenAsk?: () => void }> = ({ onOpe
         })}
       </div>
       <p className="caption" data-testid="same-chain-caption">{SAME_CHAIN_CAPTION}</p>
-
-      <div className="ask-door">
-        <button
-          type="button"
-          className="owner-quiet"
-          data-testid="ask-for-enhancement"
-          onClick={onOpenAsk}
-        >
-          {ASK_FOR_ENHANCEMENT_LABEL}
-        </button>
-      </div>
     </div>
   );
 };

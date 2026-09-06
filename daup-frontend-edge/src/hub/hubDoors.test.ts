@@ -5,6 +5,7 @@ import {
   DELETE_THE_HOUSE_LABEL,
   ASK_FOR_ENHANCEMENT_LABEL,
   ASK_PAGE_COPY,
+  ASK_PATH_LABEL,
   ASK_PICK_AN_APP,
   ASK_WHICH_APP_LABEL,
   HUB_EMAIL_DOOR_COPY,
@@ -77,6 +78,7 @@ describe('hub email door copy', () => {
     }
     expect(ask).not.toMatch(/\b(gossipsub|crdt|mesh|neon|hydrate|Defect|Support)\b/i);
     expect(ASK_FOR_ENHANCEMENT_LABEL).toBe('Ask for an enhancement.');
+    expect(ASK_PATH_LABEL).toBe('/asks');
     expect(ASK_WHICH_APP_LABEL).toBe('Which app?');
     expect(ASK_PICK_AN_APP).toBe('Pick an app first.');
     expect(ASK_PAGE_COPY).toContain('Enhancement');

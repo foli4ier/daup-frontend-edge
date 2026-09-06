@@ -21,6 +21,7 @@ import { MODULE_METADATA } from './components/withLicenseCheck';
 import { deriveSeedNode, deployAppInstance } from './stores/identityStore';
 import { navigateToTheHouse } from './hub/ownerArrival';
 import { LOG_OFF_LABEL } from './hub/copy';
+import { goToAsks, goToHubHome, readHubPage } from './hub/asksPath';
 
 const EATERY = 'https://eatery.daup.co.za/';
 
@@ -36,7 +37,7 @@ const DashboardContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'home' | 'licenses' | 'marketplace' | 'telemetry' | 'dht' | 'dcdn' | 'mcp'>('home');
   const [launchedApp, setLaunchedApp] = useState<string | null>(null);
   const [isAdvanced, setIsAdvanced] = useState(false);
-  const [hubPage, setHubPage] = useState<'home' | 'ask'>('home');
+  const [hubPage, setHubPage] = useState<'home' | 'ask'>(() => readHubPage());
 
   const [installedApps, setInstalledApps] = useState<Record<string, boolean>>(() => {
     try {
@@ -62,6 +63,26 @@ const DashboardContent: React.FC = () => {
     const timer = setInterval(() => setCurrentTime(Date.now()), 1000);
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    const onPop = () => setHubPage(readHubPage());
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+
+  const openHome = () => {
+    goToHubHome();
+    setHubPage('home');
+    setActiveTab('home');
+    setLaunchedApp(null);
+  };
+
+  const openAsks = () => {
+    goToAsks();
+    setHubPage('ask');
+    setActiveTab('home');
+    setLaunchedApp(null);
+  };
 
   const loadSubscriptions = useCallback(() => {
     if (did) {
@@ -134,9 +155,7 @@ const DashboardContent: React.FC = () => {
                 const next = !isAdvanced;
                 setIsAdvanced(next);
                 if (!next) {
-                  setActiveTab('home');
-                  setLaunchedApp(null);
-                  setHubPage('home');
+                  openHome();
                 }
               }}
               title="Advanced tools — off by default"
@@ -147,7 +166,10 @@ const DashboardContent: React.FC = () => {
               type="button"
               className="owner-quiet"
               data-testid="hub-log-off"
-              onClick={logOffHub}
+              onClick={() => {
+                openHome();
+                logOffHub();
+              }}
             >
               {LOG_OFF_LABEL}
             </button>
@@ -167,7 +189,7 @@ const DashboardContent: React.FC = () => {
         <nav className="wrap owner-advanced-nav" aria-label="Advanced">
           <button
             type="button"
-            onClick={() => { setActiveTab('home'); setLaunchedApp(null); setHubPage('home'); }}
+            onClick={openHome}
             className={activeTab === 'home' && !launchedApp ? 'btn btn-primary' : 'btn btn-outline'}
           >
             Home
@@ -215,13 +237,9 @@ const DashboardContent: React.FC = () => {
           <>
             {(!isAdvanced || activeTab === 'home') && (
               hubPage === 'ask' ? (
-                <AskForEnhancementView onBack={() => setHubPage('home')} />
+                <AskForEnhancementView onBack={openHome} />
               ) : (
-                <SubscribedAppsView onOpenAsk={() => {
-                  setHubPage('ask');
-                  setActiveTab('home');
-                  setLaunchedApp(null);
-                }} />
+                <SubscribedAppsView onOpenAsk={openAsks} />
               )
             )}
             {showProtocol && activeTab === 'licenses' && (
