@@ -7,6 +7,7 @@ import { BankWalletConfig, CryptoWalletConfig, SexType, UserLocation, UserDemogr
 import { getCurrencyForCountry } from '../utils/currency';
 
 import {
+  ASK_BACK_LABEL,
   SEE_YOUR_APPS_LABEL,
   STAY_WITH_THE_HOUSE_LABEL,
   WHERE_IS_THE_EATERY,
@@ -215,16 +216,14 @@ export const OnboardingWizard: React.FC = () => {
             <p className="owner-house">{placeName.trim() || 'Set up the house'}</p>
           </div>
           <div className="owner-nav-actions">
-            {hasHouse ? (
-              <button
-                type="button"
-                className="owner-quiet"
-                data-testid="stay-with-this-house"
-                onClick={cancelNamingPlace}
-              >
-                {STAY_WITH_THE_HOUSE_LABEL}
-              </button>
-            ) : null}
+            <button
+              type="button"
+              className="owner-quiet"
+              data-testid={hasHouse ? 'stay-with-this-house' : 'back-to-your-hub'}
+              onClick={cancelNamingPlace}
+            >
+              {hasHouse ? STAY_WITH_THE_HOUSE_LABEL : ASK_BACK_LABEL}
+            </button>
             <button
               type="button"
               className="owner-quiet"

@@ -93,7 +93,9 @@ export function resolveHubSurface(args: {
   namingPlace?: boolean;
 }): HubSurface {
   if (!args.session) return 'email-door';
-  if (args.namingPlace || !args.hasHouse) return 'wizard';
+  // Wizard only when the owner starts Register a new house. / beginNamingPlace.
+  // Signed-in with no house stays on hub home — do not assume eatery-only.
+  if (args.namingPlace) return 'wizard';
   return 'home';
 }
 
