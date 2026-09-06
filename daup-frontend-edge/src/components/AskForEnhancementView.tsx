@@ -98,7 +98,6 @@ export const AskForEnhancementView: React.FC<AskForEnhancementViewProps> = ({ on
           <select
             id="ask-which-app"
             data-testid="ask-which-app"
-            required
             value={app}
             onChange={(event) => {
               setApp(event.target.value);
