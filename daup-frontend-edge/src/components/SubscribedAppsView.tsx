@@ -4,6 +4,7 @@ import {
   ASK_FOR_ENHANCEMENT_LABEL,
   DELETE_THE_HOUSE_LABEL,
   REGISTER_A_NEW_HOUSE_LABEL,
+  YOUR_PLACES_EMPTY,
   YOUR_PLACES_KICKER
 } from '../hub/copy';
 import { ASKS_PATH } from '../hub/asksPath';
@@ -30,18 +31,17 @@ export const SubscribedAppsView: React.FC<{
 }) => {
   const {
     activeWallet,
-    instanceName,
+    hasHouse,
     ownerSession,
     beginNamingPlace,
     clearHouse
   } = useUserProfile();
-  const houseName = (activeWallet?.legalName || instanceName || '').trim();
+  const houseName = (activeWallet?.legalName || '').trim();
   const email = ownerSession?.email || '';
   const places = listOwnerPlaces({ email, placeName: houseName });
   const eatery = places[0];
   const chainPlaces = listPlacesOnTheChain();
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const hasHouse = Boolean(houseName);
 
   const openTheHouse = (event: React.MouseEvent<HTMLAnchorElement>) => {
     event.preventDefault();
@@ -85,41 +85,52 @@ export const SubscribedAppsView: React.FC<{
         <span className="rule" />
       </div>
 
-      <article className="card" data-testid="eatery-place-row">
-        <div className="card-top">
-          <span className="ico-sq" aria-hidden="true">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 11h18" />
-              <path d="M5 11V7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v4" />
-              <path d="M5 11v8h4v-4h6v4h4v-8" />
-            </svg>
-          </span>
-          <div>
-            <h3 data-testid="eatery-place-name">
-              {eatery.title} <span className="live">LIVE</span>
-            </h3>
-            <p>{eatery.body}</p>
-          </div>
-        </div>
-        <div className="place-row-action">
-          <a
-            className="btn btn-primary btn-wide"
-            href={eatery.href || undefined}
-            data-testid="open-the-house"
-            onClick={openTheHouse}
-          >
-            {eatery.actionLabel}
-          </a>
-        </div>
+      <article
+        className={hasHouse ? 'card' : 'card places-empty'}
+        data-testid={hasHouse ? 'eatery-place-row' : 'your-places-empty'}
+      >
+        {hasHouse ? (
+          <>
+            <div className="card-top">
+              <span className="ico-sq" aria-hidden="true">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 11h18" />
+                  <path d="M5 11V7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v4" />
+                  <path d="M5 11v8h4v-4h6v4h4v-8" />
+                </svg>
+              </span>
+              <div>
+                <h3 data-testid="eatery-place-name">
+                  {eatery.title} <span className="live">LIVE</span>
+                </h3>
+                <p>{eatery.body}</p>
+              </div>
+            </div>
+            <div className="place-row-action">
+              <a
+                className="btn btn-primary btn-wide"
+                href={eatery.href || undefined}
+                data-testid="open-the-house"
+                onClick={openTheHouse}
+              >
+                {eatery.actionLabel}
+              </a>
+            </div>
+          </>
+        ) : (
+          <p className="caption" data-testid="your-places-empty-copy">{YOUR_PLACES_EMPTY}</p>
+        )}
         <div className="place-row-controls">
-          <button
-            type="button"
-            className="owner-quiet"
-            data-testid="delete-the-house"
-            onClick={() => setDeleteOpen(true)}
-          >
-            {DELETE_THE_HOUSE_LABEL}
-          </button>
+          {hasHouse ? (
+            <button
+              type="button"
+              className="owner-quiet"
+              data-testid="delete-the-house"
+              onClick={() => setDeleteOpen(true)}
+            >
+              {DELETE_THE_HOUSE_LABEL}
+            </button>
+          ) : null}
           <button
             type="button"
             className="owner-quiet"
@@ -140,9 +151,11 @@ export const SubscribedAppsView: React.FC<{
             {ASK_FOR_ENHANCEMENT_LABEL}
           </a>
         </div>
-        <div className="card-links">
-          <a href={DOCS_SHIFT}>Walk me through it ›</a>
-        </div>
+        {hasHouse ? (
+          <div className="card-links">
+            <a href={DOCS_SHIFT}>Walk me through it ›</a>
+          </div>
+        ) : null}
       </article>
 
       <DeleteHouseModal

@@ -59,6 +59,10 @@ describe('hub email door copy', () => {
     for (const word of BANNED_DOOR_WORDS) {
       expect(hasBannedDoorCopy(door), `banned "${word}" on email door`).toBe(false);
     }
+    expect(hasBannedDoorName(door)).toBe(false);
+    expect(door).not.toContain('Marketplace');
+    expect(door).not.toContain('Set up the house, invite the floor.');
+    expect(HUB_EMAIL_DOOR_COPY).toContain('Social and business apps. Your places live here.');
   });
 
   it('keeps banned protocol words off hub home place rows', () => {
@@ -71,6 +75,7 @@ describe('hub email door copy', () => {
     expect(DELETE_THE_HOUSE_LABEL).toBe('Delete the house.');
     expect(REGISTER_A_NEW_HOUSE_LABEL).toBe('Register a new house.');
     expect(YOUR_PLACES_KICKER).toBe('Your places.');
+    expect(HUB_HOME_COPY).toContain('No house on this hub yet.');
     expect(GET_APPS_KICKER).toBe('Get apps.');
     expect(GET_LABEL).toBe('Get.');
     expect(OPEN_LABEL).toBe('Open.');
@@ -120,15 +125,16 @@ describe('hub surface', () => {
     expect(resolveHubSurface({ session: null, hasHouse: true })).toBe('email-door');
   });
 
-  it('keeps Where is the eatery? on the hub wizard after email', () => {
+  it('lands on hub home after email, even with no house', () => {
     const signedIn = signInWithEmail('owner@theolive.co.za');
     expect(signedIn.ok).toBe(true);
     if (!signedIn.ok) return;
-    expect(resolveHubSurface({ session: signedIn.session, hasHouse: false })).toBe('wizard');
+    expect(resolveHubSurface({ session: signedIn.session, hasHouse: false })).toBe('home');
+    expect(resolveHubSurface({ session: signedIn.session, hasHouse: false })).not.toBe('wizard');
     expect(WHERE_IS_THE_EATERY).toBe('Where is the eatery?');
   });
 
-  it('shows hub home only after email and a named house', () => {
+  it('opens the wizard only when naming a place', () => {
     const signedIn = signInWithEmail('owner@theolive.co.za');
     if (!signedIn.ok) return;
     expect(resolveHubSurface({ session: signedIn.session, hasHouse: true })).toBe('home');
@@ -137,13 +143,19 @@ describe('hub surface', () => {
       hasHouse: true,
       namingPlace: true
     })).toBe('wizard');
+    expect(resolveHubSurface({
+      session: signedIn.session,
+      hasHouse: false,
+      namingPlace: true
+    })).toBe('wizard');
   });
 
-  it('returns to naming a place when the house is gone but email stays', () => {
+  it('stays on home when the house is gone but email stays', () => {
     const signedIn = signInWithEmail('owner@theolive.co.za');
     if (!signedIn.ok) return;
-    expect(resolveHubSurface({ session: signedIn.session, hasHouse: false })).toBe('wizard');
+    expect(resolveHubSurface({ session: signedIn.session, hasHouse: false })).toBe('home');
     expect(resolveHubSurface({ session: signedIn.session, hasHouse: false })).not.toBe('email-door');
+    expect(resolveHubSurface({ session: signedIn.session, hasHouse: false })).not.toBe('wizard');
   });
 
   it('rejects a blank email in kitchen English', () => {

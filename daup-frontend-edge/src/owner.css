@@ -876,6 +876,10 @@ body {
   padding-top: 2px;
 }
 
+.places-empty .caption {
+  margin-bottom: 8px;
+}
+
 .on-the-chain {
   display: flex;
   flex-direction: column;

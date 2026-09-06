@@ -18,7 +18,7 @@ export const BANNED_DOOR_NAMES = ['Marketplace'] as const;
 export const YOUR_EMAIL_LABEL = 'Your email.';
 export const OPEN_YOUR_HUB_LABEL = 'Open your hub.';
 export const HUB_DOOR_TITLE = 'Your hub.';
-export const HUB_DOOR_BODY = 'Set up the house, invite the floor.';
+export const HUB_DOOR_BODY = 'Social and business apps. Your places live here.';
 export const OPEN_THE_HOUSE_LABEL = 'Open the house';
 export const SEE_YOUR_APPS_LABEL = 'See your apps';
 export const STAFF_INVITE_LABEL = 'I have a staff invite';
@@ -28,6 +28,7 @@ export const INVALID_EMAIL_MESSAGE = 'Add the email we can reach.';
 export const WHERE_IS_THE_EATERY = 'Where is the eatery?';
 export const WHERE_IS_THE_EATERY_SUB = 'Name the place. Staff join with a WhatsApp tap.';
 export const YOUR_PLACES_KICKER = 'Your places.';
+export const YOUR_PLACES_EMPTY = 'No house on this hub yet.';
 export const YOUR_APPS_KICKER = YOUR_PLACES_KICKER;
 export const GET_APPS_KICKER = 'Get apps.';
 export const OTHER_APPS_KICKER = GET_APPS_KICKER;
@@ -104,6 +105,7 @@ export const HUB_EMAIL_DOOR_COPY = [
 
 export const HUB_HOME_COPY = [
   YOUR_PLACES_KICKER,
+  YOUR_PLACES_EMPTY,
   OPEN_THE_HOUSE_LABEL,
   EATERY_ROW_BODY,
   GET_APPS_KICKER,

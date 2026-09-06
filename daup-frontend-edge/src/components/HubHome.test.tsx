@@ -17,13 +17,16 @@ import { OWNER_SESSION_STORAGE_KEY } from '../hub/ownerSession';
 import {
   GET_APPS_KICKER,
   GET_LABEL,
+  HUB_DOOR_BODY,
   ON_THE_CHAIN_EMPTY,
   ON_THE_CHAIN_KICKER,
   OPEN_LABEL,
   OPEN_THE_HOUSE_LABEL,
+  REGISTER_A_NEW_HOUSE_LABEL,
   RESERVE_A_TABLE_LABEL,
   SAME_CHAIN_CAPTION,
   SEE_THE_MENU_LABEL,
+  YOUR_PLACES_EMPTY,
   YOUR_PLACES_KICKER,
   WHERE_IS_THE_EATERY
 } from '../hub/copy';
@@ -518,6 +521,97 @@ describe('hub home after email', () => {
   });
 });
 
+describe('signed-in hub does not assume eatery', () => {
+  beforeEach(() => {
+    resetIdentityVault();
+    localStorage.clear();
+    window.history.replaceState({}, '', '/');
+  });
+
+  it('signed-in with no house lands on empty home, not the wizard', async () => {
+    localStorage.setItem(OWNER_SESSION_STORAGE_KEY, JSON.stringify({
+      email: 'owner@theolive.co.za',
+      signedInAt: Date.now()
+    }));
+    const { container, unmount } = render(<App />);
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 80));
+    });
+
+    expect(container.querySelector('[data-testid="hub-home"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="hub-wizard"]')).toBeNull();
+    expect(container.querySelector('[data-testid="eatery-place-row"]')).toBeNull();
+    expect(container.querySelector('[data-testid="open-the-house"]')).toBeNull();
+    expect(container.textContent).toContain(YOUR_PLACES_KICKER);
+    expect(container.querySelector('[data-testid="your-places-empty-copy"]')?.textContent).toBe(YOUR_PLACES_EMPTY);
+    expect(container.querySelector('[data-testid="register-new-house"]')?.textContent).toBe(REGISTER_A_NEW_HOUSE_LABEL);
+    expect(container.querySelector('[data-testid="get-apps"]')?.textContent).toContain(GET_APPS_KICKER);
+    expect(container.querySelector('[data-testid="shop-app-eatery"]')?.textContent).toContain('Eatery');
+    expect(container.querySelector('[data-testid="shop-app-eatout"]')?.textContent).toContain('EatOut');
+    expect(container.querySelector('[data-testid="shop-app-eatout"]')?.textContent).toContain('LIVE');
+    expect(container.querySelector('[data-testid="on-the-chain"]')?.textContent).toContain(ON_THE_CHAIN_KICKER);
+    expect(container.querySelector('[data-testid="on-the-chain-empty"]')?.textContent).toBe(ON_THE_CHAIN_EMPTY);
+    expect(container.querySelector('[data-testid="ask-for-enhancement"]')?.textContent).toBe('Ask for an enhancement.');
+    expect(container.querySelector('[data-testid="delete-the-house"]')).toBeNull();
+    expect(container.textContent).not.toContain(WHERE_IS_THE_EATERY);
+    expect(container.textContent).not.toMatch(/\b(peer|node|DID|DHT|wallet|MCP|npm|hydrate|neon)\b/i);
+    expect(container.textContent).not.toContain('Marketplace');
+    expect(HUB_DOOR_BODY).toBe('Social and business apps. Your places live here.');
+    unmount();
+  });
+
+  it('Register a new house. opens Where is the eatery?', async () => {
+    localStorage.setItem(OWNER_SESSION_STORAGE_KEY, JSON.stringify({
+      email: 'owner@theolive.co.za',
+      signedInAt: Date.now()
+    }));
+    const { container, unmount } = render(<App />);
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 80));
+    });
+
+    expect(container.querySelector('[data-testid="hub-home"]')).toBeTruthy();
+    act(() => {
+      (container.querySelector('[data-testid="register-new-house"]') as HTMLButtonElement).click();
+    });
+
+    expect(container.querySelector('[data-testid="hub-wizard"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="hub-wizard"]')?.textContent).toContain(WHERE_IS_THE_EATERY);
+    expect(container.querySelector('#place-name')).toBeTruthy();
+    expect(container.querySelector('[data-testid="back-to-your-hub"]')?.textContent).toBe('Back to your hub.');
+    expect(container.querySelector('[data-testid="hub-home"]')).toBeNull();
+
+    act(() => {
+      (container.querySelector('[data-testid="back-to-your-hub"]') as HTMLButtonElement).click();
+    });
+    expect(container.querySelector('[data-testid="hub-home"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="hub-wizard"]')).toBeNull();
+    unmount();
+  });
+
+  it('returning owner with a house stays on home', async () => {
+    saveIdentityVault(houseVault);
+    localStorage.setItem(OWNER_SESSION_STORAGE_KEY, JSON.stringify({
+      email: 'owner@theolive.co.za',
+      signedInAt: Date.now()
+    }));
+    const { container, unmount } = render(<App />);
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 80));
+    });
+
+    expect(container.querySelector('[data-testid="hub-home"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="hub-wizard"]')).toBeNull();
+    expect(container.querySelector('[data-testid="eatery-place-name"]')?.textContent).toContain('The Olive');
+    expect(container.querySelector('[data-testid="open-the-house"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="register-new-house"]')?.textContent).toBe(REGISTER_A_NEW_HOUSE_LABEL);
+    expect(container.querySelector('[data-testid="delete-the-house"]')?.textContent).toBe('Delete the house.');
+    expect(container.textContent).not.toContain(WHERE_IS_THE_EATERY);
+    expect(container.textContent).not.toMatch(/\b(peer|node|DID|DHT|wallet|MCP|npm|hydrate|neon)\b/i);
+    unmount();
+  });
+});
+
 describe('ask door only on signed home', () => {
   beforeEach(() => {
     resetIdentityVault();
@@ -544,6 +638,11 @@ describe('ask door only on signed home', () => {
     const { container, unmount } = render(<App />);
     await act(async () => {
       await new Promise(resolve => setTimeout(resolve, 80));
+    });
+    expect(container.querySelector('[data-testid="hub-home"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="ask-for-enhancement"]')).toBeTruthy();
+    act(() => {
+      (container.querySelector('[data-testid="register-new-house"]') as HTMLButtonElement).click();
     });
     expect(container.querySelector('[data-testid="hub-wizard"]')).toBeTruthy();
     expect(container.querySelector('[data-testid="hub-home"]')).toBeNull();
@@ -635,11 +734,13 @@ describe('delete and register a house from hub home', () => {
       confirm.click();
     });
 
-    expect(container.querySelector('[data-testid="hub-home"]')).toBeNull();
+    expect(container.querySelector('[data-testid="hub-home"]')).toBeTruthy();
     expect(container.querySelector('[data-testid="eatery-place-row"]')).toBeNull();
     expect(container.querySelector('[data-testid="hub-email-door"]')).toBeNull();
-    expect(container.querySelector('[data-testid="hub-wizard"]')).toBeTruthy();
-    expect(container.querySelector('[data-testid="hub-wizard"]')?.textContent).toContain(WHERE_IS_THE_EATERY);
+    expect(container.querySelector('[data-testid="hub-wizard"]')).toBeNull();
+    expect(container.querySelector('[data-testid="your-places-empty"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="your-places-empty-copy"]')?.textContent).toBe(YOUR_PLACES_EMPTY);
+    expect(container.querySelector('[data-testid="register-new-house"]')?.textContent).toBe('Register a new house.');
     expect(container.textContent).not.toMatch(/\bLIVE\b/);
     expect(localStorage.getItem(OWNER_SESSION_STORAGE_KEY)).toContain('owner@theolive.co.za');
     expect(cookieWrites.some(write =>
@@ -725,6 +826,11 @@ describe('On the chain. from register and delete', () => {
       await new Promise(resolve => setTimeout(resolve, 80));
     });
 
+    expect(container.querySelector('[data-testid="hub-home"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="hub-wizard"]')).toBeNull();
+    act(() => {
+      (container.querySelector('[data-testid="register-new-house"]') as HTMLButtonElement).click();
+    });
     expect(container.querySelector('[data-testid="hub-wizard"]')).toBeTruthy();
     typeInto(container.querySelector('#place-name') as HTMLInputElement, 'The Olive');
     typeInto(container.querySelector('#country') as HTMLInputElement, 'South Africa');
@@ -789,8 +895,10 @@ describe('On the chain. from register and delete', () => {
     });
 
     expect(listRegisteredPlaces()).toEqual([]);
-    expect(container.querySelector('[data-testid="hub-wizard"]')).toBeTruthy();
-    expect(container.querySelector('[data-testid="on-the-chain"]')).toBeNull();
+    expect(container.querySelector('[data-testid="hub-home"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="hub-wizard"]')).toBeNull();
+    expect(container.querySelector('[data-testid="on-the-chain"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="on-the-chain-empty"]')?.textContent).toBe(ON_THE_CHAIN_EMPTY);
     unmount();
   });
 });
