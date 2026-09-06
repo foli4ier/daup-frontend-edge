@@ -32,7 +32,7 @@ import {
   WHERE_IS_THE_EATERY
 } from '../hub/copy';
 import { App } from '../App';
-import { persistOwnerCookie, mintOwnerArrivalToken, readOwnerArrivalToken, buildOpenTheHouseUrl, cookieSetsParentDomain } from '../hub/ownerArrival';
+import { persistOwnerCookie, mintOwnerArrivalToken, readOwnerArrivalToken, buildOpenTheHouseUrl, cookieSetsParentDomain, expireOwnerCookie } from '../hub/ownerArrival';
 
 const houseVault: UserIdentityVault = {
   version: 1,
@@ -978,6 +978,7 @@ describe('Your places. from the house node', () => {
   beforeEach(() => {
     resetIdentityVault();
     localStorage.clear();
+    expireOwnerCookie();
     window.history.replaceState({}, '', '/');
   });
 

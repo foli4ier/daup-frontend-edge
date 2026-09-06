@@ -120,10 +120,12 @@ export const SubscribedAppsView: React.FC<{
             </div>
           </>
         ) : (
-          <p className="caption" data-testid="your-places-empty-copy">{YOUR_PLACES_EMPTY}</p>
-          {placesRestoreFailed ? (
-            <p className="caption" data-testid="your-places-unreachable">{YOUR_PLACES_UNREACHABLE}</p>
-          ) : null}
+          <>
+            <p className="caption" data-testid="your-places-empty-copy">{YOUR_PLACES_EMPTY}</p>
+            {placesRestoreFailed ? (
+              <p className="caption" data-testid="your-places-unreachable">{YOUR_PLACES_UNREACHABLE}</p>
+            ) : null}
+          </>
         )}
         <div className="place-row-controls">
           {hasHouse ? (
