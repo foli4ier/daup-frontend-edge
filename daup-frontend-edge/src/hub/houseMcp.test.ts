@@ -11,7 +11,7 @@ import {
   resolveHouseMcpUrl,
   unregisterHousePlace
 } from './houseMcp';
-import { hasBannedDoorCopy } from './copy';
+import { YOUR_PLACES_EMPTY, hasBannedDoorCopy } from './copy';
 
 function jsonRpcText(data: unknown) {
   return {
@@ -168,6 +168,7 @@ describe('house MCP JSON-RPC client', () => {
     const rpc = await callHouseMcpTool('places_list_by_email', { ownerEmail: 'you@gmail.com' }, { fetch: fetchMock });
     expect(rpc.ok).toBe(false);
 
-    expect(hasBannedDoorCopy("Couldn't reach your places. What's on this device is still here.")).toBe(false);
+    expect(YOUR_PLACES_EMPTY).toBe('No house on this hub yet.');
+    expect(hasBannedDoorCopy(YOUR_PLACES_EMPTY)).toBe(false);
   });
 });

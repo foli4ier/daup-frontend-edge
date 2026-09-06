@@ -31,7 +31,16 @@ Client: `daup-frontend-edge/src/hub/houseMcp.ts`.
 If the house node is down, slow (>6s), or CORS-blocked:
 
 - Sign-in still opens the hub on what’s already on this device
-- Empty Your places. stays *No house on this hub yet.* plus *Couldn't reach your places. What's on this device is still here.*
+- Empty Your places. stays exactly **No house on this hub yet.**
 - Register / Delete still update local Your places. Other browsers catch up when the node is back
 
+No new door copy. No protocol words on Your places.
+
 No OAuth, passwords, or chain contracts in this wire.
+
+## UX lock
+
+1. `places_register` only on **Register a new house.**
+2. `places_list_by_email` only on email sign-in
+3. Empty card copy is unchanged
+4. Screenshots skipped when copy is unchanged

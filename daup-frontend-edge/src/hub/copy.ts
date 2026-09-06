@@ -29,7 +29,6 @@ export const WHERE_IS_THE_EATERY = 'Where is the eatery?';
 export const WHERE_IS_THE_EATERY_SUB = 'Name the place. Staff join with a WhatsApp tap.';
 export const YOUR_PLACES_KICKER = 'Your places.';
 export const YOUR_PLACES_EMPTY = 'No house on this hub yet.';
-export const YOUR_PLACES_UNREACHABLE = "Couldn't reach your places. What's on this device is still here.";
 export const YOUR_APPS_KICKER = YOUR_PLACES_KICKER;
 export const GET_APPS_KICKER = 'Get apps.';
 export const OTHER_APPS_KICKER = GET_APPS_KICKER;
@@ -107,7 +106,6 @@ export const HUB_EMAIL_DOOR_COPY = [
 export const HUB_HOME_COPY = [
   YOUR_PLACES_KICKER,
   YOUR_PLACES_EMPTY,
-  YOUR_PLACES_UNREACHABLE,
   OPEN_THE_HOUSE_LABEL,
   EATERY_ROW_BODY,
   GET_APPS_KICKER,

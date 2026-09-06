@@ -56,7 +56,6 @@ export interface UserProfileContextType {
   ownerSession: OwnerSession | null;
   openHubWithEmail: (session: OwnerSession) => Promise<void>;
   logOffHub: () => void;
-  placesRestoreFailed: boolean;
   isNamingPlace: boolean;
   beginNamingPlace: () => void;
   cancelNamingPlace: () => void;
@@ -95,7 +94,6 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [isHydrating, setIsHydrating] = useState<boolean>(true);
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
-  const [placesRestoreFailed, setPlacesRestoreFailed] = useState(false);
 
   const applyListedHousePlaces = useCallback((
     current: UserIdentityVault,
@@ -114,21 +112,14 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
     return next;
   }, []);
 
-  // Initial vault + optional background place restore (do not block the door)
+  // Initial vault. Place list from the house node runs only on email sign-in.
   useEffect(() => {
-    let cancelled = false;
     try {
       const initialVault = loadIdentityVault();
       setVault(initialVault);
       const session = loadOwnerSession();
       if (session) {
         setOwnerSession(session);
-        void listPlacesByEmail(session.email).then((listed) => {
-          if (cancelled || !listed.ok) return;
-          applyListedHousePlaces(loadIdentityVault(), session.email, listed.places.map(housePlaceToPlatform));
-        }).catch(() => {
-          // keep local
-        });
       }
     } catch (err) {
       console.error('[UserProfileProvider] Hydration error:', err);
@@ -136,12 +127,9 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
       const timer = setTimeout(() => {
         setIsHydrating(false);
       }, 50);
-      return () => {
-        cancelled = true;
-        clearTimeout(timer);
-      };
+      return () => clearTimeout(timer);
     }
-  }, [applyListedHousePlaces]);
+  }, []);
 
   // Multi-Tab Storage Synchronization
   useEffect(() => {
@@ -179,7 +167,6 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const openHubWithEmail = useCallback(async (session: OwnerSession) => {
     saveOwnerSession(session);
     setOwnerSession(session);
-    setPlacesRestoreFailed(false);
     setIsHydrating(true);
 
     const stamped = loadIdentityVault();
@@ -200,15 +187,11 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
     try {
       const listed = await listPlacesByEmail(session.email);
-      if (!listed.ok) {
-        const noHouse = !hasNamedHouse(withEmail.activeWallet?.legalName) || !withEmail.hasCompletedOnboarding;
-        setPlacesRestoreFailed(noHouse);
-        return;
+      if (listed.ok) {
+        applyListedHousePlaces(withEmail, session.email, listed.places.map(housePlaceToPlatform));
       }
-      applyListedHousePlaces(withEmail, session.email, listed.places.map(housePlaceToPlatform));
     } catch {
-      const noHouse = !hasNamedHouse(withEmail.activeWallet?.legalName) || !withEmail.hasCompletedOnboarding;
-      setPlacesRestoreFailed(noHouse);
+      // keep local Your places.
     } finally {
       setIsHydrating(false);
     }
@@ -218,7 +201,6 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
     clearOwnerSession();
     setOwnerSession(null);
     setIsNamingPlace(false);
-    setPlacesRestoreFailed(false);
   }, []);
 
   const beginNamingPlace = useCallback(() => {
@@ -659,7 +641,6 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
 
     setIsNamingPlace(false);
-    setPlacesRestoreFailed(false);
   }, [commitVault, ownerSession?.email, vault.activeWallet?.legalName, vault.profile.demographics.email, vault.profile.location]);
 
   // Geolocation Auto-Enrichment
@@ -779,7 +760,6 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
         ownerSession,
         openHubWithEmail,
         logOffHub,
-        placesRestoreFailed,
         isNamingPlace,
         beginNamingPlace,
         cancelNamingPlace,

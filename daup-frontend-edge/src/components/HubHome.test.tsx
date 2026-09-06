@@ -28,7 +28,6 @@ import {
   SEE_THE_MENU_LABEL,
   YOUR_PLACES_EMPTY,
   YOUR_PLACES_KICKER,
-  YOUR_PLACES_UNREACHABLE,
   WHERE_IS_THE_EATERY
 } from '../hub/copy';
 import { App } from '../App';
@@ -1023,7 +1022,7 @@ describe('Your places. from the house node', () => {
     unmount();
   });
 
-  it('keeps the empty card and a quiet note when the house list is unreachable', async () => {
+  it('keeps No house on this hub yet. when the house list is unreachable', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => {
       throw new TypeError('Failed to fetch');
     }));
@@ -1042,7 +1041,7 @@ describe('Your places. from the house node', () => {
     expect(container.querySelector('[data-testid="hub-home"]')).toBeTruthy();
     expect(container.querySelector('[data-testid="eatery-place-row"]')).toBeNull();
     expect(container.querySelector('[data-testid="your-places-empty-copy"]')?.textContent).toBe(YOUR_PLACES_EMPTY);
-    expect(container.querySelector('[data-testid="your-places-unreachable"]')?.textContent).toBe(YOUR_PLACES_UNREACHABLE);
+    expect(container.querySelector('[data-testid="your-places-unreachable"]')).toBeNull();
     expect(container.textContent).not.toMatch(/\b(peer|node|DID|DHT|wallet|MCP|npm|hydrate|neon)\b/i);
     unmount();
   });
