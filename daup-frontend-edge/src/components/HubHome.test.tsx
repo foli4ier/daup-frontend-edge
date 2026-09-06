@@ -118,6 +118,7 @@ describe('hub home after email', () => {
   beforeEach(() => {
     resetIdentityVault();
     localStorage.clear();
+    window.history.replaceState({}, '', '/');
     saveIdentityVault(houseVault);
     localStorage.setItem(OWNER_SESSION_STORAGE_KEY, JSON.stringify({
       email: 'owner@theolive.co.za',
@@ -161,6 +162,11 @@ describe('hub home after email', () => {
     expect(container.querySelector('[data-testid="register-new-house"]')?.textContent).toBe('Register a new house.');
     expect(container.querySelector('[data-testid="on-the-chain"]')?.textContent).toContain(ON_THE_CHAIN_KICKER);
     expect(container.querySelector('[data-testid="on-the-chain-empty"]')?.textContent).toBe(ON_THE_CHAIN_EMPTY);
+    const door = container.querySelector('[data-testid="ask-for-enhancement"]') as HTMLAnchorElement | null;
+    expect(door?.textContent).toBe('Ask for an enhancement.');
+    expect(door?.getAttribute('href')).toBe('/asks');
+    expect(container.querySelector('.place-row-controls')?.contains(door)).toBe(true);
+    expect(container.querySelector('[data-testid="ask-page"]')).toBeNull();
     expect(container.textContent).not.toMatch(/\b(peer|node|DID|DHT|wallet|MCP|npm)\b/i);
     unmount();
   });
@@ -219,6 +225,7 @@ describe('hub home after email', () => {
     expect(text).toContain('The Olive');
     expect(text).not.toMatch(/\b(peer|node|DID|DHT|wallet|MCP|npm)\b/i);
     expect(container.querySelector('[data-testid="hub-home"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="ask-for-enhancement"]')?.textContent).toBe('Ask for an enhancement.');
     unmount();
   });
 
@@ -264,12 +271,114 @@ describe('hub home after email', () => {
     expect(localStorage.getItem(OWNER_SESSION_STORAGE_KEY)).toBeNull();
     unmount();
   });
+
+  it('opens Ask for an enhancement. as its own page, not a home section', async () => {
+    const { container, unmount } = render(<App />);
+
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 80));
+    });
+
+    expect(container.querySelector('[data-testid="hub-home"]')).toBeTruthy();
+    const door = container.querySelector('[data-testid="ask-for-enhancement"]') as HTMLAnchorElement;
+    expect(door).toBeTruthy();
+    expect(door.getAttribute('href')).toBe('/asks');
+
+    act(() => {
+      door.click();
+    });
+
+    expect(window.location.pathname).toBe('/asks');
+    expect(container.querySelector('[data-testid="ask-page"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="ask-which-app"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="hub-home"]')).toBeNull();
+    expect(container.querySelector('[data-testid="eatery-place-row"]')).toBeNull();
+    expect(container.querySelector('[data-testid="other-apps"]')).toBeNull();
+    expect(container.textContent).toContain('Ask for an enhancement.');
+    expect(container.textContent).not.toMatch(/\b(peer|node|DID|DHT|wallet|MCP|npm|GossipSub|CRDT|mesh|hydrate|Defect|Support)\b/i);
+    expect(container.textContent).toContain("Something's wrong");
+    expect(container.textContent).toContain('Need help');
+    expect(container.textContent).toContain('What do you need?');
+    expect(container.textContent).toContain('Send.');
+    expect(container.textContent).toContain('No asks yet.');
+
+    act(() => {
+      (container.querySelector('[data-testid="ask-back"]') as HTMLButtonElement).click();
+    });
+
+    expect(window.location.pathname).toBe('/');
+    expect(container.querySelector('[data-testid="hub-home"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="ask-page"]')).toBeNull();
+    expect(container.querySelector('[data-testid="ask-for-enhancement"]')).toBeTruthy();
+    unmount();
+  });
+});
+
+describe('ask door only on signed home', () => {
+  beforeEach(() => {
+    resetIdentityVault();
+    localStorage.clear();
+    window.history.replaceState({}, '', '/');
+  });
+
+  it('hides the ask door on the email door', async () => {
+    const { container, unmount } = render(<App />);
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 80));
+    });
+    expect(container.querySelector('[data-testid="hub-email-door"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="ask-for-enhancement"]')).toBeNull();
+    expect(container.querySelector('[data-testid="ask-page"]')).toBeNull();
+    unmount();
+  });
+
+  it('hides the ask door while naming the house', async () => {
+    localStorage.setItem(OWNER_SESSION_STORAGE_KEY, JSON.stringify({
+      email: 'owner@theolive.co.za',
+      signedInAt: Date.now()
+    }));
+    const { container, unmount } = render(<App />);
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 80));
+    });
+    expect(container.querySelector('[data-testid="hub-wizard"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="hub-home"]')).toBeNull();
+    expect(container.querySelector('[data-testid="ask-for-enhancement"]')).toBeNull();
+    expect(container.querySelector('[data-testid="ask-page"]')).toBeNull();
+    unmount();
+  });
+});
+
+describe('asks route', () => {
+  beforeEach(() => {
+    resetIdentityVault();
+    localStorage.clear();
+    saveIdentityVault(houseVault);
+    localStorage.setItem(OWNER_SESSION_STORAGE_KEY, JSON.stringify({
+      email: 'owner@theolive.co.za',
+      signedInAt: Date.now()
+    }));
+    window.history.replaceState({}, '', '/asks');
+  });
+
+  it('opens the ask page from /asks when the house is signed in', async () => {
+    const { container, unmount } = render(<App />);
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 80));
+    });
+    expect(window.location.pathname).toBe('/asks');
+    expect(container.querySelector('[data-testid="ask-page"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="ask-back"]')?.getAttribute('href')).toBe('/');
+    expect(container.querySelector('[data-testid="hub-home"]')).toBeNull();
+    unmount();
+  });
 });
 
 describe('delete and register a house from hub home', () => {
   beforeEach(() => {
     resetIdentityVault();
     localStorage.clear();
+    window.history.replaceState({}, '', '/');
     saveIdentityVault(houseVault);
     localStorage.setItem(OWNER_SESSION_STORAGE_KEY, JSON.stringify({
       email: 'owner@theolive.co.za',
@@ -399,6 +508,7 @@ describe('On the chain. from register and delete', () => {
   beforeEach(() => {
     resetIdentityVault();
     localStorage.clear();
+    window.history.replaceState({}, '', '/');
     localStorage.setItem(OWNER_SESSION_STORAGE_KEY, JSON.stringify({
       email: 'owner@theolive.co.za',
       signedInAt: Date.now()

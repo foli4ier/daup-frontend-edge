@@ -42,6 +42,19 @@ export const CHAIN_APP_LABELS = {
   maker: CHAIN_APP_MAKER
 } as const;
 
+export const ASK_FOR_ENHANCEMENT_LABEL = 'Ask for an enhancement.';
+export const ASK_WHICH_APP_LABEL = 'Which app?';
+export const ASK_PICK_AN_APP = 'Pick an app first.';
+export const ASK_KIND_ENHANCEMENT = 'Enhancement';
+export const ASK_KIND_WRONG = "Something's wrong";
+export const ASK_KIND_HELP = 'Need help';
+export const ASK_BODY_LABEL = 'What do you need?';
+export const ASK_SEND_LABEL = 'Send.';
+export const ASK_EMPTY = 'No asks yet.';
+export const ASK_BACK_LABEL = 'Back to your hub.';
+export const ASK_PATH_LABEL = '/asks';
+export const ASK_ALL_APPS = 'All';
+
 /** Exact match — extra spaces or a different case keep Delete quiet. */
 export function houseNameMatchesConfirm(typedName: string, houseName: string): boolean {
   const target = (houseName || '').trim();
@@ -74,6 +87,25 @@ export const HUB_HOME_COPY = [
   REGISTER_A_NEW_HOUSE_LABEL,
   ON_THE_CHAIN_KICKER,
   ON_THE_CHAIN_EMPTY,
+  CHAIN_APP_EATERY,
+  CHAIN_APP_FARM,
+  CHAIN_APP_RESELLER,
+  CHAIN_APP_MAKER,
+  ASK_FOR_ENHANCEMENT_LABEL
+];
+
+export const ASK_PAGE_COPY = [
+  ASK_FOR_ENHANCEMENT_LABEL,
+  ASK_WHICH_APP_LABEL,
+  ASK_PICK_AN_APP,
+  ASK_KIND_ENHANCEMENT,
+  ASK_KIND_WRONG,
+  ASK_KIND_HELP,
+  ASK_BODY_LABEL,
+  ASK_SEND_LABEL,
+  ASK_EMPTY,
+  ASK_BACK_LABEL,
+  ASK_ALL_APPS,
   CHAIN_APP_EATERY,
   CHAIN_APP_FARM,
   CHAIN_APP_RESELLER,

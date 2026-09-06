@@ -3,6 +3,11 @@ import {
   BANNED_DOOR_WORDS,
   DELETE_HOUSE_MODAL_COPY,
   DELETE_THE_HOUSE_LABEL,
+  ASK_FOR_ENHANCEMENT_LABEL,
+  ASK_PAGE_COPY,
+  ASK_PATH_LABEL,
+  ASK_PICK_AN_APP,
+  ASK_WHICH_APP_LABEL,
   HUB_EMAIL_DOOR_COPY,
   HUB_HOME_COPY,
   LOG_OFF_LABEL,
@@ -60,9 +65,30 @@ describe('hub email door copy', () => {
     expect(REGISTER_A_NEW_HOUSE_LABEL).toBe('Register a new house.');
     expect(HUB_HOME_COPY).toContain('On the chain.');
     expect(HUB_HOME_COPY).toContain('No other places on the chain yet.');
+    expect(HUB_HOME_COPY).toContain(ASK_FOR_ENHANCEMENT_LABEL);
     for (const line of DELETE_HOUSE_MODAL_COPY) {
       expect(hasBannedDoorCopy(line), `banned word in "${line}"`).toBe(false);
     }
+  });
+
+  it('keeps banned protocol words off the ask door and page', () => {
+    const ask = ASK_PAGE_COPY.join('\n');
+    for (const word of BANNED_DOOR_WORDS) {
+      expect(hasBannedDoorCopy(ask), `banned "${word}" on ask page`).toBe(false);
+    }
+    expect(ask).not.toMatch(/\b(gossipsub|crdt|mesh|neon|hydrate|Defect|Support)\b/i);
+    expect(ASK_FOR_ENHANCEMENT_LABEL).toBe('Ask for an enhancement.');
+    expect(ASK_PATH_LABEL).toBe('/asks');
+    expect(ASK_WHICH_APP_LABEL).toBe('Which app?');
+    expect(ASK_PICK_AN_APP).toBe('Pick an app first.');
+    expect(ASK_PAGE_COPY).toContain('Enhancement');
+    expect(ASK_PAGE_COPY).toContain("Something's wrong");
+    expect(ASK_PAGE_COPY).toContain('Need help');
+    expect(ASK_PAGE_COPY).toContain('What do you need?');
+    expect(ASK_PAGE_COPY).toContain('Send.');
+    expect(ASK_PAGE_COPY).toContain('No asks yet.');
+    expect(ASK_PAGE_COPY).not.toContain('Defect');
+    expect(ASK_PAGE_COPY).not.toContain('Support');
   });
 });
 

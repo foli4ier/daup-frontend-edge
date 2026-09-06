@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Wheat, Store, Factory } from 'lucide-react';
 import { useUserProfile } from '../context/UserProfileContext';
 import {
+  ASK_FOR_ENHANCEMENT_LABEL,
   COMING_KICKER,
   DELETE_THE_HOUSE_LABEL,
   OTHER_APPS_KICKER,
@@ -9,6 +10,7 @@ import {
   SAME_CHAIN_CAPTION,
   YOUR_APPS_KICKER
 } from '../hub/copy';
+import { ASKS_PATH } from '../hub/asksPath';
 import { COMING_APPS, listOwnerPlaces } from '../hub/places';
 import { listPlacesOnTheChain } from '../hub/placeDirectory';
 import { navigateToTheHouse } from '../hub/ownerArrival';
@@ -23,7 +25,7 @@ const COMING_ICONS = {
   maker: Factory
 } as const;
 
-export const SubscribedAppsView: React.FC = () => {
+export const SubscribedAppsView: React.FC<{ onOpenAsk?: () => void }> = ({ onOpenAsk }) => {
   const {
     activeWallet,
     instanceName,
@@ -94,6 +96,17 @@ export const SubscribedAppsView: React.FC = () => {
           >
             {REGISTER_A_NEW_HOUSE_LABEL}
           </button>
+          <a
+            className="owner-quiet"
+            href={ASKS_PATH}
+            data-testid="ask-for-enhancement"
+            onClick={(event) => {
+              event.preventDefault();
+              onOpenAsk?.();
+            }}
+          >
+            {ASK_FOR_ENHANCEMENT_LABEL}
+          </a>
         </div>
         <div className="card-links">
           <a href={DOCS_SHIFT}>Walk me through it ›</a>
