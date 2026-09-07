@@ -161,7 +161,7 @@ describe('house MCP JSON-RPC client', () => {
   });
 
   it('unregisters and deletes house state together', async () => {
-    fetchMock.mockResolvedValue(jsonResponse(jsonRpcText({ ok: true })));
+    fetchMock.mockImplementation(async () => jsonResponse(jsonRpcText({ ok: true })));
     const removed = await removeHouseFromNetwork({
       ownerEmail: 'you@gmail.com',
       placeId: 'place-kortrijk',
