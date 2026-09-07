@@ -2,6 +2,9 @@
  * Hub ↔ house MCP client (JSON-RPC tools/call).
  * Base URL default: https://mcp.daup.co.za  Path: /mcp
  * Soft-fail: never throw to the sign-in / register / delete doors.
+ *
+ * Delete lock: places_unregister { ownerEmail, placeId } (placeName if no id)
+ * and house_state_delete { ownerEmail, placeId }. Use Hub-held placeId only.
  */
 
 import {
@@ -262,13 +265,12 @@ export async function unregisterHousePlace(
   const ownerEmail = normalizeEmail(args.ownerEmail || '');
   const placeName = (args.placeName || '').trim();
   const placeId = (args.placeId || '').trim();
-  if (!placeId && !(placeName && ownerEmail)) {
-    return { ok: false, reason: 'place-required' };
-  }
-  const argumentsPayload: Record<string, string> = {};
-  if (placeId) argumentsPayload.placeId = placeId;
-  if (placeName) argumentsPayload.placeName = placeName;
-  if (ownerEmail) argumentsPayload.ownerEmail = ownerEmail;
+  if (!ownerEmail) return { ok: false, reason: 'email-required' };
+  // P2P lock: { ownerEmail, placeId }. placeName only when Hub has no id.
+  if (!placeId && !placeName) return { ok: false, reason: 'place-required' };
+  const argumentsPayload: Record<string, string> = placeId
+    ? { ownerEmail, placeId }
+    : { ownerEmail, placeName };
   const called = await callHouseMcpTool(HOUSE_MCP_TOOLS.unregister, argumentsPayload, options);
   if (!called.ok) return called;
   return { ok: true };

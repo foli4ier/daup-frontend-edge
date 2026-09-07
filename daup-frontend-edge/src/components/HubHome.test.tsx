@@ -1132,7 +1132,7 @@ describe('Your places. from the house node', () => {
       country: 'South Africa',
       region: 'Western Cape',
       city: 'Stellenbosch',
-      placeId: 'place-olive',
+      placeId: 'place-reseed-now',
       ownerEmail: 'you@gmail.com'
     });
 
@@ -1160,16 +1160,17 @@ describe('Your places. from the house node', () => {
       await new Promise(resolve => setTimeout(resolve, 40));
     });
 
-    const names = fetchMock.mock.calls.map(call => JSON.parse(String(call[1]?.body || '{}')).params.name);
+    const calls = fetchMock.mock.calls.map(call => JSON.parse(String(call[1]?.body || '{}')));
+    const names = calls.map(body => body.params.name);
     expect(names).toContain(HOUSE_MCP_TOOLS.unregister);
     expect(names).toContain(HOUSE_MCP_TOOLS.deleteState);
-    const stateCall = fetchMock.mock.calls
-      .map(call => JSON.parse(String(call[1]?.body || '{}')))
-      .find(body => body.params?.name === HOUSE_MCP_TOOLS.deleteState);
-    expect(stateCall?.params.arguments).toEqual({
-      ownerEmail: 'you@gmail.com',
-      placeId: 'place-olive'
-    });
+    const held = { ownerEmail: 'you@gmail.com', placeId: 'place-reseed-now' };
+    const unregisterCall = calls.find(body => body.params?.name === HOUSE_MCP_TOOLS.unregister);
+    expect(unregisterCall?.params.arguments).toEqual(held);
+    expect(unregisterCall?.params.arguments).not.toHaveProperty('placeName');
+    const stateCall = calls.find(body => body.params?.name === HOUSE_MCP_TOOLS.deleteState);
+    expect(stateCall?.params.arguments).toEqual(held);
+    expect(held.placeId).not.toBe('3b2ee9b8-8c92-4cda-a862-66fe10fc6f59');
     expect(listRegisteredPlaces()).toEqual([]);
     expect(container.querySelector('[data-testid="your-places-empty-copy"]')?.textContent).toBe(YOUR_PLACES_EMPTY);
     expect(container.textContent).not.toMatch(/\b(peer|node|DID|DHT|wallet|MCP|npm|hydrate|neon)\b/i);

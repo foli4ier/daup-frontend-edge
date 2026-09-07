@@ -350,6 +350,17 @@ export function placeIdFromHubWallet(wallet?: { id?: string } | null): string {
   return id.startsWith(prefix) ? id.slice(prefix.length) : '';
 }
 
+/** placeId Hub currently holds for this house. Re-seeds change ids — never hardcode. */
+export function heldPlaceIdForHouse(
+  houseName: string,
+  wallet?: { id?: string } | null
+): string {
+  const match = listRegisteredPlaces().find(
+    place => normalizeLegalName(place.placeName) === normalizeLegalName(houseName)
+  );
+  return (match?.placeId || placeIdFromHubWallet(wallet) || '').trim();
+}
+
 /** Merge house-node places into the local Your places. / On the chain. store. */
 export function mergeHousePlacesIntoPlatform(places: PlatformPlaceRecord[]): PlatformPlaceRecord[] {
   for (const place of places) {

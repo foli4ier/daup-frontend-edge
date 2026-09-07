@@ -27,7 +27,7 @@ import {
   listRegisteredPlaces,
   mergeHousePlacesIntoPlatform,
   applyHousePlacesToVault,
-  placeIdFromHubWallet,
+  heldPlaceIdForHouse,
   DEFAULT_VAULT
 } from '../stores/identityStore';
 import {
@@ -225,7 +225,7 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
     const match = listRegisteredPlaces().find(
       place => normalizeLegalName(place.placeName) === normalizeLegalName(houseName)
     );
-    const placeId = (match?.placeId || placeIdFromHubWallet(vault.activeWallet)).trim();
+    const placeId = heldPlaceIdForHouse(houseName || match?.placeName || '', vault.activeWallet);
     const ownerEmail = email || match?.ownerEmail || '';
 
     void removeHouseFromNetwork({
