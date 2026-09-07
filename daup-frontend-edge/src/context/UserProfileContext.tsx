@@ -27,14 +27,16 @@ import {
   listRegisteredPlaces,
   mergeHousePlacesIntoPlatform,
   applyHousePlacesToVault,
+  placeIdFromHubWallet,
   DEFAULT_VAULT
 } from '../stores/identityStore';
 import {
   housePlaceToPlatform,
   listPlacesByEmail,
   registerHousePlace,
-  unregisterHousePlace
+  removeHouseFromNetwork
 } from '../hub/houseMcp';
+import { clearHubBrowserStorage } from '../hub/hubStorage';
 import {
   OwnerSession,
   clearHouseCompanionCookie,
@@ -198,9 +200,11 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
   }, [applyListedHousePlaces]);
 
   const logOffHub = useCallback(() => {
-    clearOwnerSession();
+    clearHubBrowserStorage();
     setOwnerSession(null);
     setIsNamingPlace(false);
+    setVault(DEFAULT_VAULT);
+    setIsHydrating(false);
   }, []);
 
   const beginNamingPlace = useCallback(() => {
@@ -221,6 +225,16 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
     const match = listRegisteredPlaces().find(
       place => normalizeLegalName(place.placeName) === normalizeLegalName(houseName)
     );
+    const placeId = (match?.placeId || placeIdFromHubWallet(vault.activeWallet)).trim();
+    const ownerEmail = email || match?.ownerEmail || '';
+
+    void removeHouseFromNetwork({
+      placeId,
+      placeName: houseName || match?.placeName,
+      ownerEmail
+    }).catch(() => {
+      // keep local delete
+    });
 
     names.forEach(name => unregisterLegalNameOnPlatform(name));
 
@@ -228,15 +242,7 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
     setVault(next);
     setIsNamingPlace(false);
     clearHouseCompanionCookie();
-
-    void unregisterHousePlace({
-      placeId: match?.placeId,
-      placeName: houseName || match?.placeName,
-      ownerEmail: email || match?.ownerEmail
-    }).catch(() => {
-      // keep local delete
-    });
-  }, [ownerSession?.email, vault.activeWallet?.legalName, vault.profile.demographics.email, vault.registeredWallets]);
+  }, [ownerSession?.email, vault.activeWallet, vault.profile.demographics.email, vault.registeredWallets]);
 
   const primaryWallet = vault.activeWallet;
   const identityKeySeedNode = vault.identityKeySeedNode;

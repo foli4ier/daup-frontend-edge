@@ -21,6 +21,7 @@ import {
   getRegisteredLegalNames,
   listRegisteredPlaces,
   mergeHousePlacesIntoPlatform,
+  placeIdFromHubWallet,
   registerLegalNameOnPlatform,
   registerPlaceOnPlatform,
   unregisterLegalNameOnPlatform,
@@ -161,6 +162,7 @@ describe('applyHousePlacesToVault', () => {
     expect(next.activeWallet?.legalName).toBe('The Olive');
     expect(next.profile.demographics.email).toBe('you@gmail.com');
     expect(next.profile.location.city).toBe('Stellenbosch');
+    expect(placeIdFromHubWallet(next.activeWallet)).toBe('place-olive');
   });
 
   it('does not overwrite an existing named house', () => {

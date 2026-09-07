@@ -18,7 +18,8 @@ export const HOUSE_MCP_TIMEOUT_MS = 6000;
 export const HOUSE_MCP_TOOLS = {
   listByEmail: 'places_list_by_email',
   register: 'places_register',
-  unregister: 'places_unregister'
+  unregister: 'places_unregister',
+  deleteState: 'house_state_delete'
 } as const;
 
 export type HouseMcpFetch = (input: string, init?: RequestInit) => Promise<Response>;
@@ -271,4 +272,46 @@ export async function unregisterHousePlace(
   const called = await callHouseMcpTool(HOUSE_MCP_TOOLS.unregister, argumentsPayload, options);
   if (!called.ok) return called;
   return { ok: true };
+}
+
+export async function deleteHouseState(
+  args: {
+    ownerEmail: string;
+    placeId: string;
+  },
+  options: HouseMcpClientOptions = {}
+): Promise<HouseMcpUnregisterOk | HouseMcpFailure> {
+  const ownerEmail = normalizeEmail(args.ownerEmail);
+  const placeId = (args.placeId || '').trim();
+  if (!ownerEmail || !placeId) return { ok: false, reason: 'email-and-place-required' };
+  const called = await callHouseMcpTool(
+    HOUSE_MCP_TOOLS.deleteState,
+    { ownerEmail, placeId },
+    options
+  );
+  if (!called.ok) return called;
+  return { ok: true };
+}
+
+/** Unregister the place, then drop house state. Soft-fail either call. */
+export async function removeHouseFromNetwork(
+  args: {
+    ownerEmail?: string;
+    placeName?: string;
+    placeId?: string;
+  },
+  options: HouseMcpClientOptions = {}
+): Promise<{
+  unregister: HouseMcpUnregisterOk | HouseMcpFailure;
+  state: HouseMcpUnregisterOk | HouseMcpFailure | { ok: false; reason: 'skipped' };
+}> {
+  const ownerEmail = normalizeEmail(args.ownerEmail || '');
+  const placeId = (args.placeId || '').trim();
+  const [unregister, state] = await Promise.all([
+    unregisterHousePlace(args, options),
+    ownerEmail && placeId
+      ? deleteHouseState({ ownerEmail, placeId }, options)
+      : Promise.resolve({ ok: false as const, reason: 'skipped' as const })
+  ]);
+  return { unregister, state };
 }
