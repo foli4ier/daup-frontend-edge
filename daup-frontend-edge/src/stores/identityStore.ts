@@ -340,6 +340,27 @@ export function registerPlaceOnPlatform(place: {
   return null;
 }
 
+export function hubWalletIdForPlace(placeId: string): string {
+  return `wallet_place_${placeId}`;
+}
+
+export function placeIdFromHubWallet(wallet?: { id?: string } | null): string {
+  const id = (wallet?.id || '').trim();
+  const prefix = 'wallet_place_';
+  return id.startsWith(prefix) ? id.slice(prefix.length) : '';
+}
+
+/** placeId Hub currently holds for this house. Re-seeds change ids — never hardcode. */
+export function heldPlaceIdForHouse(
+  houseName: string,
+  wallet?: { id?: string } | null
+): string {
+  const match = listRegisteredPlaces().find(
+    place => normalizeLegalName(place.placeName) === normalizeLegalName(houseName)
+  );
+  return (match?.placeId || placeIdFromHubWallet(wallet) || '').trim();
+}
+
 /** Merge house-node places into the local Your places. / On the chain. store. */
 export function mergeHousePlacesIntoPlatform(places: PlatformPlaceRecord[]): PlatformPlaceRecord[] {
   for (const place of places) {
@@ -375,7 +396,7 @@ export function applyHousePlacesToVault(
 
   const primary = places[0];
   const wallet: WalletEntry = {
-    id: primary.placeId ? `wallet_place_${primary.placeId}` : `wallet_house_${now}`,
+    id: primary.placeId ? hubWalletIdForPlace(primary.placeId) : `wallet_house_${now}`,
     type: 'bank',
     legalName: primary.placeName,
     bankName: '',

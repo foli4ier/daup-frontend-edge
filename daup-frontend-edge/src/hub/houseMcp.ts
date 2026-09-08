@@ -2,6 +2,9 @@
  * Hub ↔ house MCP client (JSON-RPC tools/call).
  * Base URL default: https://mcp.daup.co.za  Path: /mcp
  * Soft-fail: never throw to the sign-in / register / delete doors.
+ *
+ * Delete lock: places_unregister { ownerEmail, placeId } (placeName if no id)
+ * and house_state_delete { ownerEmail, placeId }. Use Hub-held placeId only.
  */
 
 import {
@@ -18,7 +21,8 @@ export const HOUSE_MCP_TIMEOUT_MS = 6000;
 export const HOUSE_MCP_TOOLS = {
   listByEmail: 'places_list_by_email',
   register: 'places_register',
-  unregister: 'places_unregister'
+  unregister: 'places_unregister',
+  deleteState: 'house_state_delete'
 } as const;
 
 export type HouseMcpFetch = (input: string, init?: RequestInit) => Promise<Response>;
@@ -261,14 +265,55 @@ export async function unregisterHousePlace(
   const ownerEmail = normalizeEmail(args.ownerEmail || '');
   const placeName = (args.placeName || '').trim();
   const placeId = (args.placeId || '').trim();
-  if (!placeId && !(placeName && ownerEmail)) {
-    return { ok: false, reason: 'place-required' };
-  }
-  const argumentsPayload: Record<string, string> = {};
-  if (placeId) argumentsPayload.placeId = placeId;
-  if (placeName) argumentsPayload.placeName = placeName;
-  if (ownerEmail) argumentsPayload.ownerEmail = ownerEmail;
+  if (!ownerEmail) return { ok: false, reason: 'email-required' };
+  // P2P lock: { ownerEmail, placeId }. placeName only when Hub has no id.
+  if (!placeId && !placeName) return { ok: false, reason: 'place-required' };
+  const argumentsPayload: Record<string, string> = placeId
+    ? { ownerEmail, placeId }
+    : { ownerEmail, placeName };
   const called = await callHouseMcpTool(HOUSE_MCP_TOOLS.unregister, argumentsPayload, options);
   if (!called.ok) return called;
   return { ok: true };
+}
+
+export async function deleteHouseState(
+  args: {
+    ownerEmail: string;
+    placeId: string;
+  },
+  options: HouseMcpClientOptions = {}
+): Promise<HouseMcpUnregisterOk | HouseMcpFailure> {
+  const ownerEmail = normalizeEmail(args.ownerEmail);
+  const placeId = (args.placeId || '').trim();
+  if (!ownerEmail || !placeId) return { ok: false, reason: 'email-and-place-required' };
+  const called = await callHouseMcpTool(
+    HOUSE_MCP_TOOLS.deleteState,
+    { ownerEmail, placeId },
+    options
+  );
+  if (!called.ok) return called;
+  return { ok: true };
+}
+
+/** Unregister the place, then drop house state. Soft-fail either call. */
+export async function removeHouseFromNetwork(
+  args: {
+    ownerEmail?: string;
+    placeName?: string;
+    placeId?: string;
+  },
+  options: HouseMcpClientOptions = {}
+): Promise<{
+  unregister: HouseMcpUnregisterOk | HouseMcpFailure;
+  state: HouseMcpUnregisterOk | HouseMcpFailure | { ok: false; reason: 'skipped' };
+}> {
+  const ownerEmail = normalizeEmail(args.ownerEmail || '');
+  const placeId = (args.placeId || '').trim();
+  const [unregister, state] = await Promise.all([
+    unregisterHousePlace(args, options),
+    ownerEmail && placeId
+      ? deleteHouseState({ ownerEmail, placeId }, options)
+      : Promise.resolve({ ok: false as const, reason: 'skipped' as const })
+  ]);
+  return { unregister, state };
 }

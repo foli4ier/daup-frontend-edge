@@ -20,7 +20,12 @@ Local Kortrijk / `daup-mcp-servers`: `VITE_APP_MCP_URL=http://localhost:8080` (H
 | --- | --- | --- | --- |
 | Sign-in restore Your places. | `places_list_by_email` | `{ ownerEmail }` | `{ email, places: [...] }` |
 | Register a new house. | `places_register` | `{ ownerEmail, placeName, app, country, region, city }` | place record with `placeId` |
-| Delete the house. | `places_unregister` | `{ placeId }` or `{ placeName, ownerEmail }` | removed |
+| Delete the house. | `places_unregister` | `{ ownerEmail, placeId }` (or `{ ownerEmail, placeName }` if Hub has no id) | removed |
+| Delete the house. | `house_state_delete` | `{ ownerEmail, placeId }` (required) | house state gone |
+
+Both delete calls use the **placeId Hub currently holds** for that place (directory / vault). Live Kortrijk ids change across re-seeds — never hardcode. Order either way. Soft-fail either miss; local still clears.
+
+**Log off.** wipes Hub local + session keys on this origin (vault, places cache, session). Next email sign-in calls `places_list_by_email` again.
 
 `app` is `eatery` \| `farm` \| `reseller` \| `maker` (Hub mints Eatery today).
 
@@ -33,6 +38,8 @@ If the house node is down, slow (>6s), or CORS-blocked:
 - Sign-in still opens the hub on what’s already on this device
 - Empty Your places. stays exactly **No house on this hub yet.**
 - Register / Delete still update local Your places. Other browsers catch up when the node is back
+- **Log off.** still returns to the email door if the node is down
+- **Delete the house.** still clears local Hub place records if unregister / house_state_delete fail
 
 No new door copy. No protocol words on Your places.
 

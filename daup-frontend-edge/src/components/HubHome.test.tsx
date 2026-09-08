@@ -11,9 +11,13 @@ import {
   resetIdentityVault,
   UserIdentityVault,
   registerPlaceOnPlatform,
-  listRegisteredPlaces
+  listRegisteredPlaces,
+  VAULT_STORAGE_KEY,
+  PLATFORM_ENTITIES_KEY
 } from '../stores/identityStore';
 import { OWNER_SESSION_STORAGE_KEY } from '../hub/ownerSession';
+import { HUB_INSTALLED_APPS_KEY } from '../hub/hubStorage';
+import { HOUSE_MCP_TOOLS } from '../hub/houseMcp';
 import {
   GET_APPS_KICKER,
   GET_LABEL,
@@ -453,6 +457,16 @@ describe('hub home after email', () => {
   });
 
   it('Log off. returns to the email door and expires the hub cookie', async () => {
+    registerPlaceOnPlatform({
+      placeName: 'The Olive',
+      app: 'eatery',
+      country: 'South Africa',
+      region: 'Western Cape',
+      city: 'Stellenbosch',
+      placeId: 'place-olive'
+    });
+    localStorage.setItem(HUB_INSTALLED_APPS_KEY, JSON.stringify({ 'daup-eatout': true }));
+    sessionStorage.setItem('daup:hub:scratch', '1');
     persistOwnerCookie(
       mintOwnerArrivalToken({ email: 'owner@theolive.co.za', house: 'The Olive' }),
       'localhost'
@@ -476,6 +490,13 @@ describe('hub home after email', () => {
     expect(container.querySelector('label[for="hub-email"]')?.textContent).toBe('Your email.');
     expect(container.querySelector('[data-testid="open-your-hub"]')?.textContent).toContain('Open your hub.');
     expect(localStorage.getItem(OWNER_SESSION_STORAGE_KEY)).toBeNull();
+    expect(localStorage.getItem(VAULT_STORAGE_KEY)).toBeNull();
+    expect(localStorage.getItem(PLATFORM_ENTITIES_KEY)).toBeNull();
+    expect(localStorage.getItem(HUB_INSTALLED_APPS_KEY)).toBeNull();
+    expect(sessionStorage.getItem('daup:hub:scratch')).toBeNull();
+    expect(listRegisteredPlaces()).toEqual([]);
+    expect(container.querySelector('[data-testid="eatery-place-row"]')).toBeNull();
+    expect(container.textContent).not.toContain('The Olive');
     unmount();
   });
 
@@ -1042,6 +1063,116 @@ describe('Your places. from the house node', () => {
     expect(container.querySelector('[data-testid="eatery-place-row"]')).toBeNull();
     expect(container.querySelector('[data-testid="your-places-empty-copy"]')?.textContent).toBe(YOUR_PLACES_EMPTY);
     expect(container.querySelector('[data-testid="your-places-unreachable"]')).toBeNull();
+    expect(container.textContent).not.toMatch(/\b(peer|node|DID|DHT|wallet|MCP|npm|hydrate|neon)\b/i);
+    unmount();
+  });
+
+  it('Log off. wipes local Hub data so the next email sign-in asks the house list again', async () => {
+    saveIdentityVault(houseVault);
+    localStorage.setItem(OWNER_SESSION_STORAGE_KEY, JSON.stringify({
+      email: 'you@gmail.com',
+      signedInAt: Date.now()
+    }));
+    registerPlaceOnPlatform({
+      placeName: 'The Olive',
+      app: 'eatery',
+      country: 'South Africa',
+      region: 'Western Cape',
+      city: 'Stellenbosch',
+      placeId: 'place-olive',
+      ownerEmail: 'you@gmail.com'
+    });
+    mockHouseList([{
+      placeId: 'place-kortrijk',
+      ownerEmail: 'you@gmail.com',
+      placeName: 'Kortrijk',
+      app: 'eatery',
+      country: 'South Africa',
+      region: 'Western Cape',
+      city: 'Stellenbosch'
+    }]);
+
+    const { container, unmount } = render(<App />);
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 80));
+    });
+
+    expect(container.querySelector('[data-testid="eatery-place-name"]')?.textContent).toContain('The Olive');
+    act(() => {
+      (container.querySelector('[data-testid="hub-log-off"]') as HTMLButtonElement).click();
+    });
+
+    expect(container.querySelector('[data-testid="hub-email-door"]')).toBeTruthy();
+    expect(listRegisteredPlaces()).toEqual([]);
+
+    typeInto(container.querySelector('#hub-email') as HTMLInputElement, 'you@gmail.com');
+    await act(async () => {
+      Simulate.submit(container.querySelector('[data-testid="hub-email-form"]') as HTMLFormElement);
+      await new Promise(resolve => setTimeout(resolve, 40));
+    });
+
+    expect(container.querySelector('[data-testid="eatery-place-name"]')?.textContent).toContain('Kortrijk');
+    expect(listRegisteredPlaces()[0]).toMatchObject({
+      placeName: 'Kortrijk',
+      placeId: 'place-kortrijk'
+    });
+    expect((fetch as unknown as { mock: { calls: unknown[] } }).mock.calls.length).toBeGreaterThan(0);
+    unmount();
+  });
+
+  it('Delete the house. unregisters and deletes house state, then clears local', async () => {
+    saveIdentityVault(houseVault);
+    localStorage.setItem(OWNER_SESSION_STORAGE_KEY, JSON.stringify({
+      email: 'you@gmail.com',
+      signedInAt: Date.now()
+    }));
+    registerPlaceOnPlatform({
+      placeName: 'The Olive',
+      app: 'eatery',
+      country: 'South Africa',
+      region: 'Western Cape',
+      city: 'Stellenbosch',
+      placeId: 'place-reseed-now',
+      ownerEmail: 'you@gmail.com'
+    });
+
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body || '{}'));
+      return new Response(JSON.stringify({
+        jsonrpc: '2.0',
+        id: body.id || 1,
+        result: { content: [{ type: 'text', text: JSON.stringify({ ok: true }) }] }
+      }), { status: 200, headers: { 'content-type': 'application/json' } });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { container, unmount } = render(<App />);
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 80));
+    });
+
+    act(() => {
+      (container.querySelector('[data-testid="delete-the-house"]') as HTMLButtonElement).click();
+    });
+    typeInto(container.querySelector('[data-testid="delete-house-name"]') as HTMLInputElement, 'The Olive');
+    await act(async () => {
+      (container.querySelector('[data-testid="delete-house-confirm"]') as HTMLButtonElement).click();
+      await new Promise(resolve => setTimeout(resolve, 40));
+    });
+
+    const calls = fetchMock.mock.calls.map(call => JSON.parse(String(call[1]?.body || '{}')));
+    const names = calls.map(body => body.params.name);
+    expect(names).toContain(HOUSE_MCP_TOOLS.unregister);
+    expect(names).toContain(HOUSE_MCP_TOOLS.deleteState);
+    const held = { ownerEmail: 'you@gmail.com', placeId: 'place-reseed-now' };
+    const unregisterCall = calls.find(body => body.params?.name === HOUSE_MCP_TOOLS.unregister);
+    expect(unregisterCall?.params.arguments).toEqual(held);
+    expect(unregisterCall?.params.arguments).not.toHaveProperty('placeName');
+    const stateCall = calls.find(body => body.params?.name === HOUSE_MCP_TOOLS.deleteState);
+    expect(stateCall?.params.arguments).toEqual(held);
+    expect(held.placeId).not.toBe('3b2ee9b8-8c92-4cda-a862-66fe10fc6f59');
+    expect(listRegisteredPlaces()).toEqual([]);
+    expect(container.querySelector('[data-testid="your-places-empty-copy"]')?.textContent).toBe(YOUR_PLACES_EMPTY);
     expect(container.textContent).not.toMatch(/\b(peer|node|DID|DHT|wallet|MCP|npm|hydrate|neon)\b/i);
     unmount();
   });

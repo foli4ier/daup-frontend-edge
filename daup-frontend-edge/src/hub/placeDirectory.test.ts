@@ -21,6 +21,8 @@ import {
   getRegisteredLegalNames,
   listRegisteredPlaces,
   mergeHousePlacesIntoPlatform,
+  heldPlaceIdForHouse,
+  placeIdFromHubWallet,
   registerLegalNameOnPlatform,
   registerPlaceOnPlatform,
   unregisterLegalNameOnPlatform,
@@ -161,6 +163,16 @@ describe('applyHousePlacesToVault', () => {
     expect(next.activeWallet?.legalName).toBe('The Olive');
     expect(next.profile.demographics.email).toBe('you@gmail.com');
     expect(next.profile.location.city).toBe('Stellenbosch');
+    expect(placeIdFromHubWallet(next.activeWallet)).toBe('place-olive');
+  });
+
+  it('reads the placeId Hub currently holds after a re-seed, never a hardcoded seed', () => {
+    localStorage.clear();
+    registerPlaceOnPlatform({ ...olive, placeId: 'place-old-seed' });
+    expect(heldPlaceIdForHouse('The Olive')).toBe('place-old-seed');
+    registerPlaceOnPlatform({ ...olive, placeId: 'place-reseed-now' });
+    expect(heldPlaceIdForHouse('The Olive')).toBe('place-reseed-now');
+    expect(heldPlaceIdForHouse('The Olive')).not.toBe('3b2ee9b8-8c92-4cda-a862-66fe10fc6f59');
   });
 
   it('does not overwrite an existing named house', () => {

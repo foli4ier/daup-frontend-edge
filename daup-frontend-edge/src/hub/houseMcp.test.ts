@@ -6,7 +6,9 @@ import {
   callHouseMcpTool,
   housePlaceToPlatform,
   listPlacesByEmail,
+  deleteHouseState,
   registerHousePlace,
+  removeHouseFromNetwork,
   resolveHouseMcpBaseUrl,
   resolveHouseMcpUrl,
   unregisterHousePlace
@@ -127,11 +129,21 @@ describe('house MCP JSON-RPC client', () => {
     });
   });
 
-  it('unregisters by placeId, or placeName + ownerEmail', async () => {
+  it('unregisters by ownerEmail + placeId, or placeName when Hub has no id', async () => {
     fetchMock.mockResolvedValue(jsonResponse(jsonRpcText({ removed: true })));
-    const byId = await unregisterHousePlace({ placeId: 'place-kortrijk' }, { fetch: fetchMock });
+    const byId = await unregisterHousePlace({
+      ownerEmail: 'You@Gmail.com',
+      placeId: 'place-held-now',
+      placeName: 'Kortrijk'
+    }, { fetch: fetchMock });
     expect(byId.ok).toBe(true);
-    expect(JSON.parse(String(fetchMock.mock.calls[0][1].body)).params.name).toBe(HOUSE_MCP_TOOLS.unregister);
+    const byIdBody = JSON.parse(String(fetchMock.mock.calls[0][1].body));
+    expect(byIdBody.params.name).toBe(HOUSE_MCP_TOOLS.unregister);
+    expect(byIdBody.params.arguments).toEqual({
+      ownerEmail: 'you@gmail.com',
+      placeId: 'place-held-now'
+    });
+    expect(byIdBody.params.arguments).not.toHaveProperty('placeName');
 
     fetchMock.mockResolvedValue(jsonResponse(jsonRpcText({ removed: true })));
     const byName = await unregisterHousePlace({
@@ -141,6 +153,58 @@ describe('house MCP JSON-RPC client', () => {
     expect(byName.ok).toBe(true);
     const args = JSON.parse(String(fetchMock.mock.calls[1][1].body)).params.arguments;
     expect(args).toEqual({ placeName: 'Kortrijk', ownerEmail: 'you@gmail.com' });
+  });
+
+  it('deletes house state with signed-in email and placeId', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(jsonRpcText({ deleted: true })));
+    const removed = await deleteHouseState({
+      ownerEmail: 'You@Gmail.com',
+      placeId: 'place-kortrijk'
+    }, { fetch: fetchMock });
+    expect(removed.ok).toBe(true);
+    const body = JSON.parse(String(fetchMock.mock.calls[0][1].body));
+    expect(body.params.name).toBe(HOUSE_MCP_TOOLS.deleteState);
+    expect(body.params.arguments).toEqual({
+      ownerEmail: 'you@gmail.com',
+      placeId: 'place-kortrijk'
+    });
+  });
+
+  it('unregisters and deletes house state together', async () => {
+    fetchMock.mockImplementation(async () => jsonResponse(jsonRpcText({ ok: true })));
+    const removed = await removeHouseFromNetwork({
+      ownerEmail: 'you@gmail.com',
+      placeId: 'place-kortrijk',
+      placeName: 'Kortrijk'
+    }, { fetch: fetchMock });
+    expect(removed.unregister.ok).toBe(true);
+    expect(removed.state.ok).toBe(true);
+    const names = fetchMock.mock.calls.map(call => JSON.parse(String(call[1].body)).params.name);
+    expect(names).toContain(HOUSE_MCP_TOOLS.unregister);
+    expect(names).toContain(HOUSE_MCP_TOOLS.deleteState);
+    const stateArgs = fetchMock.mock.calls
+      .map(call => JSON.parse(String(call[1].body)))
+      .find(body => body.params.name === HOUSE_MCP_TOOLS.deleteState)
+      ?.params.arguments;
+    expect(stateArgs).toEqual({ ownerEmail: 'you@gmail.com', placeId: 'place-kortrijk' });
+    const unregisterArgs = fetchMock.mock.calls
+      .map(call => JSON.parse(String(call[1].body)))
+      .find(body => body.params.name === HOUSE_MCP_TOOLS.unregister)
+      ?.params.arguments;
+    expect(unregisterArgs).toEqual({ ownerEmail: 'you@gmail.com', placeId: 'place-kortrijk' });
+    expect(unregisterArgs).not.toHaveProperty('placeName');
+  });
+
+  it('skips house_state_delete when placeId is missing and still unregisters by name', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(jsonRpcText({ removed: true })));
+    const removed = await removeHouseFromNetwork({
+      ownerEmail: 'you@gmail.com',
+      placeName: 'Kortrijk'
+    }, { fetch: fetchMock });
+    expect(removed.unregister.ok).toBe(true);
+    expect(removed.state).toEqual({ ok: false, reason: 'skipped' });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(String(fetchMock.mock.calls[0][1].body)).params.name).toBe(HOUSE_MCP_TOOLS.unregister);
   });
 
   it('fails soft when the house node is down or times out', async () => {
