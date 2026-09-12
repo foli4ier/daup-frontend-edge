@@ -66,35 +66,35 @@ export const COUNTRY_CURRENCY_MAP: Record<string, Omit<CurrencyInfo, 'format'>> 
   'colombia': { code: 'COP', symbol: 'COL$', name: 'Colombian Peso', exchangeRateToUSD: 4100.0 },
 };
 
+function formatMoney(symbol: string, amount: number): string {
+  return `${symbol} ${amount.toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
 export function getCurrencyForCountry(country?: string): CurrencyInfo {
   const clean = (country || '').trim().toLowerCase();
-  
+
   if (clean && COUNTRY_CURRENCY_MAP[clean]) {
     const found = COUNTRY_CURRENCY_MAP[clean];
     return {
       ...found,
-      format: (amount: number) => `${found.symbol} ${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+      format: (amount: number) => formatMoney(found.symbol, amount)
     };
   }
 
-  // Check substring matches
   if (clean) {
     for (const [key, val] of Object.entries(COUNTRY_CURRENCY_MAP)) {
       if (clean.includes(key) || (key.length > 3 && clean.startsWith(key))) {
         return {
           ...val,
-          format: (amount: number) => `${val.symbol} ${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+          format: (amount: number) => formatMoney(val.symbol, amount)
         };
       }
     }
   }
 
-  // Default fallback to USD
+  const zar = COUNTRY_CURRENCY_MAP['south africa'];
   return {
-    code: 'USD',
-    symbol: '$',
-    name: 'US Dollar',
-    exchangeRateToUSD: 1.0,
-    format: (amount: number) => `$ ${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    ...zar,
+    format: (amount: number) => formatMoney(zar.symbol, amount)
   };
 }

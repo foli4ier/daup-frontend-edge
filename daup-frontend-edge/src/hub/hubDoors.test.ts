@@ -14,7 +14,7 @@ import {
   HUB_HOME_COPY,
   LOG_OFF_LABEL,
   OPEN_LABEL,
-  OPEN_THE_HOUSE_LABEL,
+  PLUS_REGISTER_LABEL,
   OPEN_YOUR_HUB_LABEL,
   REGISTER_A_NEW_HOUSE_LABEL,
   RESERVE_A_TABLE_LABEL,
@@ -74,8 +74,14 @@ describe('hub email door copy', () => {
     expect(SAME_CHAIN_CAPTION).toBe('Same chain. Not live yet.');
     expect(DELETE_THE_HOUSE_LABEL).toBe('Delete the house.');
     expect(REGISTER_A_NEW_HOUSE_LABEL).toBe('Register a new house.');
+    expect(PLUS_REGISTER_LABEL).toBe('+ Register');
     expect(YOUR_PLACES_KICKER).toBe('Your places.');
     expect(HUB_HOME_COPY).toContain('No house on this hub yet.');
+    expect(HUB_HOME_COPY).toContain('+ Register');
+    expect(HUB_HOME_COPY).toContain('Home');
+    expect(HUB_HOME_COPY).toContain('Places');
+    expect(HUB_HOME_COPY).toContain('Apps');
+    expect(HUB_HOME_COPY).toContain('You');
     expect(GET_APPS_KICKER).toBe('Get apps.');
     expect(GET_LABEL).toBe('Get.');
     expect(OPEN_LABEL).toBe('Open.');
@@ -302,13 +308,16 @@ describe('eatery row on hub home', () => {
     const rows = listOwnerPlaces({
       email: 'owner@theolive.co.za',
       placeName: 'The Olive',
+      city: 'Stellenbosch',
       origin: 'https://eatery.daup.co.za'
     });
     expect(rows[0].title).toBe('The Olive');
     expect(rows[0].title).not.toBe('Eatery');
-    expect(rows[0].actionLabel).toBe(OPEN_THE_HOUSE_LABEL);
+    expect(rows[0].city).toBe('Stellenbosch');
+    expect(rows[0].status).toBe('LIVE');
+    expect(rows[0].actionLabel).toBe(OPEN_LABEL);
     expect(rows[0].href).toMatch(/^https:\/\/eatery\.daup\.co\.za\/owner\?token=/);
-    expect(hasBannedDoorCopy(rows[0].title + rows[0].body + (rows[0].actionLabel || ''))).toBe(false);
+    expect(hasBannedDoorCopy(rows[0].title + rows[0].city + rows[0].status + (rows[0].actionLabel || ''))).toBe(false);
   });
 });
 

@@ -7,7 +7,8 @@ import {
   CHAIN_APP_RESELLER,
   EATERY_ROW_BODY,
   HUB_HOME_FALLBACK,
-  OPEN_THE_HOUSE_LABEL
+  LIVE_STATUS_LABEL,
+  OPEN_LABEL
 } from './copy';
 import { EATOUT_SEARCH_HOME } from './eatoutUrls';
 import { buildOpenTheHouseUrl } from './ownerArrival';
@@ -15,8 +16,10 @@ import { buildOpenTheHouseUrl } from './ownerArrival';
 export interface HubPlaceRow {
   id: 'eatery' | 'farm' | 'reseller' | 'maker';
   title: string;
+  city: string;
   body: string;
   live: boolean;
+  status: string;
   actionLabel?: string;
   href?: string;
 }
@@ -40,6 +43,7 @@ export function eateryRowTitle(placeName?: string | null): string {
 export function listOwnerPlaces(args: {
   email: string;
   placeName: string;
+  city?: string;
   origin?: string;
 }): HubPlaceRow[] {
   const title = eateryRowTitle(args.placeName);
@@ -55,18 +59,20 @@ export function listOwnerPlaces(args: {
     {
       id: 'eatery',
       title,
+      city: (args.city || '').trim(),
       body: EATERY_ROW_BODY,
       live: true,
-      actionLabel: OPEN_THE_HOUSE_LABEL,
+      status: LIVE_STATUS_LABEL,
+      actionLabel: OPEN_LABEL,
       href
     }
   ];
 }
 
 export const COMING_APPS: HubPlaceRow[] = [
-  { id: 'farm', title: CHAIN_APP_FARM, body: '', live: false },
-  { id: 'reseller', title: CHAIN_APP_RESELLER, body: '', live: false },
-  { id: 'maker', title: CHAIN_APP_MAKER, body: '', live: false }
+  { id: 'farm', title: CHAIN_APP_FARM, city: '', body: '', live: false, status: '' },
+  { id: 'reseller', title: CHAIN_APP_RESELLER, city: '', body: '', live: false, status: '' },
+  { id: 'maker', title: CHAIN_APP_MAKER, city: '', body: '', live: false, status: '' }
 ];
 
 /** Shop catalog for Get apps. Live first. Coming never Get. or Open. */

@@ -20,6 +20,14 @@ export const OPEN_YOUR_HUB_LABEL = 'Open your hub.';
 export const HUB_DOOR_TITLE = 'Your hub.';
 export const HUB_DOOR_BODY = 'Social and business apps. Your places live here.';
 export const OPEN_THE_HOUSE_LABEL = 'Open the house';
+export const PLUS_REGISTER_LABEL = '+ Register';
+export const LIVE_STATUS_LABEL = 'LIVE';
+export const NAV_HOME_LABEL = 'Home';
+export const NAV_PLACES_LABEL = 'Places';
+export const NAV_APPS_LABEL = 'Apps';
+export const NAV_YOU_LABEL = 'You';
+export const YOU_KICKER = 'You.';
+export const MONEY_IN_R_LABEL = 'Prices in R.';
 export const SEE_YOUR_APPS_LABEL = 'See your apps';
 export const STAFF_INVITE_LABEL = 'I have a staff invite';
 export const STAFF_INVITE_HREF = 'https://www.daup.co.za/invite';
@@ -106,11 +114,10 @@ export const HUB_EMAIL_DOOR_COPY = [
 export const HUB_HOME_COPY = [
   YOUR_PLACES_KICKER,
   YOUR_PLACES_EMPTY,
-  OPEN_THE_HOUSE_LABEL,
-  EATERY_ROW_BODY,
+  PLUS_REGISTER_LABEL,
+  OPEN_LABEL,
   GET_APPS_KICKER,
   GET_LABEL,
-  OPEN_LABEL,
   COMING_KICKER,
   SAME_CHAIN_CAPTION,
   SEE_THE_MENU_LABEL,
@@ -127,7 +134,14 @@ export const HUB_HOME_COPY = [
   CHAIN_APP_RESELLER,
   CHAIN_APP_MAKER,
   CHAIN_APP_CHAT,
-  ASK_FOR_ENHANCEMENT_LABEL
+  ASK_FOR_ENHANCEMENT_LABEL,
+  NAV_HOME_LABEL,
+  NAV_PLACES_LABEL,
+  NAV_APPS_LABEL,
+  NAV_YOU_LABEL,
+  YOU_KICKER,
+  MONEY_IN_R_LABEL,
+  LIVE_STATUS_LABEL
 ];
 
 export const ASK_PAGE_COPY = [

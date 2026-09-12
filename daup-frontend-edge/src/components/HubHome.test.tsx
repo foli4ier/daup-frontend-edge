@@ -25,7 +25,8 @@ import {
   ON_THE_CHAIN_EMPTY,
   ON_THE_CHAIN_KICKER,
   OPEN_LABEL,
-  OPEN_THE_HOUSE_LABEL,
+  OPEN_LABEL,
+  PLUS_REGISTER_LABEL,
   REGISTER_A_NEW_HOUSE_LABEL,
   RESERVE_A_TABLE_LABEL,
   SAME_CHAIN_CAPTION,
@@ -128,6 +129,16 @@ function typeInto(input: HTMLInputElement, value: string) {
   });
 }
 
+function clickTestId(container: HTMLElement, testId: string) {
+  act(() => {
+    (container.querySelector(`[data-testid="${testId}"]`) as HTMLButtonElement | HTMLAnchorElement | null)?.click();
+  });
+}
+
+function openYou(container: HTMLElement) {
+  clickTestId(container, 'hub-nav-you');
+}
+
 describe('hub home after email', () => {
   beforeEach(() => {
     resetIdentityVault();
@@ -138,6 +149,51 @@ describe('hub home after email', () => {
       email: 'owner@theolive.co.za',
       signedInAt: Date.now()
     }));
+  });
+
+  it('orders context, CTA, Your places, Get apps, On the chain, then thumb nav', async () => {
+    const { container, unmount } = render(<App />);
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 80));
+    });
+
+    const context = container.querySelector('[data-testid="hub-context"]');
+    const home = container.querySelector('[data-testid="hub-home"]');
+    const thumb = container.querySelector('[data-testid="hub-thumb-nav"]');
+    expect(context?.textContent).toContain('The Olive');
+    expect(context?.textContent).toContain('Stellenbosch');
+    expect(context?.textContent).toContain('owner@theolive.co.za');
+    expect(home?.querySelector('[data-testid="hub-home-cta"]')?.textContent).toBe(OPEN_LABEL);
+    expect(home?.querySelector('[data-testid="hub-home-open"]')?.className).toContain('btn-primary');
+    expect(home?.querySelector('[data-testid="open-the-house"]')?.className).toContain('btn-outline');
+    expect(home?.querySelector('[data-testid="open-app-eatery"]')?.className).toContain('btn-outline');
+    expect(home?.textContent).toContain(YOUR_PLACES_KICKER);
+    expect(home?.textContent).toContain(GET_APPS_KICKER);
+    expect(home?.textContent).toContain(ON_THE_CHAIN_KICKER);
+    expect(thumb?.textContent).toContain('Home');
+    expect(thumb?.textContent).toContain('Places');
+    expect(thumb?.textContent).toContain('Apps');
+    expect(thumb?.textContent).toContain('You');
+
+    expect(context && home && context.compareDocumentPosition(home) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(home && thumb && home.compareDocumentPosition(thumb) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const cta = home?.querySelector('[data-testid="hub-home-cta"]') as HTMLElement;
+    const placesKicker = Array.from(home?.querySelectorAll('.kicker') || []).find(node => node.textContent === YOUR_PLACES_KICKER);
+    const apps = home?.querySelector('[data-testid="get-apps"]') as HTMLElement;
+    const chain = home?.querySelector('[data-testid="on-the-chain"]') as HTMLElement;
+    expect(cta.compareDocumentPosition(placesKicker as Node) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect((placesKicker as Node).compareDocumentPosition(apps) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(apps.compareDocumentPosition(chain) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    expect(container.querySelector('[data-testid="owner-advanced-nav"]')).toBeNull();
+    expect(container.querySelector('.protocol-console')).toBeNull();
+    expect(container.textContent).not.toContain('Advanced');
+    expect(container.textContent).not.toMatch(/\b(peer|node|DID|DHT|wallet|MCP|npm|hydrate|neon)\b/i);
+
+    openYou(container);
+    expect(container.querySelector('[data-testid="hub-you-money"]')?.textContent).toBe('Prices in R.');
+    expect(container.querySelector('[data-testid="hub-you-date"]')?.textContent).toMatch(/^Ends \d{1,2} Dec 2023\.$/);
+    unmount();
   });
 
   it('shows the eatery row as the place name and Open the house to /owner', async () => {
@@ -155,8 +211,15 @@ describe('hub home after email', () => {
     const open = container.querySelector('[data-testid="open-the-house"]') as HTMLAnchorElement | null;
     expect(name?.textContent).toContain('The Olive');
     expect(name?.textContent).not.toContain('Eatery');
-    expect(open?.textContent).toContain(OPEN_THE_HOUSE_LABEL);
+    expect(container.querySelector('[data-testid="eatery-place-city"]')?.textContent).toBe('Stellenbosch');
+    expect(container.querySelector('[data-testid="eatery-place-status"]')?.textContent).toBe('LIVE');
+    expect(open?.textContent).toBe(OPEN_LABEL);
+    expect(container.querySelector('[data-testid="hub-home-cta"]')?.textContent).toBe(OPEN_LABEL);
+    expect(container.querySelector('[data-testid="hub-home-open"]')?.className).toContain('btn-primary');
+    expect(open?.className).toContain('btn-outline');
     expect(open?.getAttribute('href') || '').toMatch(/\/owner\?token=/);
+    expect(container.textContent).not.toContain('Tables, tickets, kitchen, stock.');
+    expect(container.textContent).not.toContain('Walk me through');
 
     const href = open?.getAttribute('href') || '';
     const token = new URL(href, 'https://eatery.daup.co.za').searchParams.get('token') || '';
@@ -171,17 +234,15 @@ describe('hub home after email', () => {
     expect(shop?.querySelector('[data-testid="shop-app-eatery"]')?.textContent).toContain('Eatery');
     expect(shop?.querySelector('[data-testid="get-app-eatery"]')).toBeNull();
     expect(shop?.querySelector('[data-testid="open-app-eatery"]')?.textContent).toBe(OPEN_LABEL);
+    expect(shop?.querySelector('[data-testid="open-app-eatery"]')?.className).toContain('btn-outline');
     expect(shop?.querySelector('[data-testid="subscribe-app-eatery"]')).toBeNull();
     const eatout = shop?.querySelector('[data-testid="shop-app-eatout"]');
     expect(eatout?.textContent).toContain('EatOut');
     expect(eatout?.textContent).toContain('LIVE');
     const eatoutGet = eatout?.querySelector('[data-testid="get-app-eatout"]');
-    const eatoutOpen = eatout?.querySelector('[data-testid="open-app-eatout"]') as HTMLAnchorElement | null;
     expect(eatoutGet?.textContent).toBe(GET_LABEL);
-    expect(eatoutGet?.className).toContain('btn-outline');
-    expect(eatoutOpen?.textContent).toBe(OPEN_LABEL);
-    expect(eatoutOpen?.className).toContain('btn-primary');
-    expect(eatoutOpen?.getAttribute('href')).toBe('https://eatout.daup.co.za/');
+    expect(eatoutGet?.className).toContain('btn-primary');
+    expect(eatout?.querySelector('[data-testid="open-app-eatout"]')).toBeNull();
     expect(eatout?.querySelector('[data-testid="subscribe-app-eatout"]')).toBeNull();
     expect(shop?.textContent).not.toMatch(/Subscribe/i);
     expect(shop?.textContent).not.toMatch(/Subscribed/i);
@@ -199,14 +260,11 @@ describe('hub home after email', () => {
     expect(container.querySelector('[data-testid="same-chain-caption"]')?.textContent).toBe(SAME_CHAIN_CAPTION);
     expect(container.textContent).not.toContain('Decentralized Edge App Registry');
     expect(container.textContent).not.toContain('Marketplace');
-    expect(container.querySelector('[data-testid="delete-the-house"]')?.textContent).toBe('Delete the house.');
-    expect(container.querySelector('[data-testid="register-new-house"]')?.textContent).toBe('Register a new house.');
+    expect(container.querySelector('[data-testid="delete-the-house"]')).toBeNull();
+    expect(container.querySelector('[data-testid="register-new-house"]')).toBeNull();
+    expect(container.querySelector('[data-testid="ask-for-enhancement"]')).toBeNull();
     expect(container.querySelector('[data-testid="on-the-chain"]')?.textContent).toContain(ON_THE_CHAIN_KICKER);
     expect(container.querySelector('[data-testid="on-the-chain-empty"]')?.textContent).toBe(ON_THE_CHAIN_EMPTY);
-    const door = container.querySelector('[data-testid="ask-for-enhancement"]') as HTMLAnchorElement | null;
-    expect(door?.textContent).toBe('Ask for an enhancement.');
-    expect(door?.getAttribute('href')).toBe('/asks');
-    expect(container.querySelector('.place-row-controls')?.contains(door)).toBe(true);
     expect(container.querySelector('[data-testid="ask-page"]')).toBeNull();
     expect(container.textContent).not.toMatch(/\b(peer|node|DID|DHT|wallet|MCP|npm|hydrate|neon)\b/i);
     unmount();
@@ -273,7 +331,7 @@ describe('hub home after email', () => {
     expect(text).toContain('The Olive');
     expect(text).not.toMatch(/\b(peer|node|DID|DHT|wallet|MCP|npm|hydrate|neon)\b/i);
     expect(container.querySelector('[data-testid="hub-home"]')).toBeTruthy();
-    expect(container.querySelector('[data-testid="ask-for-enhancement"]')?.textContent).toBe('Ask for an enhancement.');
+    expect(container.querySelector('[data-testid="ask-for-enhancement"]')).toBeNull();
 
     const eateryDoor = container.querySelector('[data-testid="chain-app-door-eatery"]') as HTMLButtonElement;
     act(() => {
@@ -350,9 +408,8 @@ describe('hub home after email', () => {
     expect(container.querySelector('[data-testid="coming-app-eatout"]')).toBeNull();
     expect(container.querySelector('[data-testid="shop-app-eatout"]')?.textContent).toContain('EatOut');
     expect(container.querySelector('[data-testid="get-app-eatout"]')?.textContent).toBe(GET_LABEL);
-    expect(container.querySelector('[data-testid="get-app-eatout"]')?.className).toContain('btn-outline');
-    expect(container.querySelector('[data-testid="open-app-eatout"]')?.textContent).toBe(OPEN_LABEL);
-    expect(container.querySelector('[data-testid="open-app-eatout"]')?.className).toContain('btn-primary');
+    expect(container.querySelector('[data-testid="get-app-eatout"]')?.className).toContain('btn-primary');
+    expect(container.querySelector('[data-testid="open-app-eatout"]')).toBeNull();
     expect(container.querySelector('[data-testid="subscribe-app-eatout"]')).toBeNull();
     expect(container.querySelector('[data-testid="get-apps"]')?.textContent).not.toMatch(/Subscribe/i);
     expect(container.textContent).not.toMatch(/Subscribed/i);
@@ -365,7 +422,7 @@ describe('hub home after email', () => {
     unmount();
   });
 
-  it('shows Get. outline and Open. terracotta when a live app is not held', () => {
+  it('shows one Get. primary when a live app is not held, never dual Get.+Open.', () => {
     const { container, unmount } = render(
       <GetAppsSection
         hasHouse={false}
@@ -375,20 +432,15 @@ describe('hub home after email', () => {
       />
     );
     const eateryGet = container.querySelector('[data-testid="get-app-eatery"]');
-    const eateryOpen = container.querySelector('[data-testid="open-app-eatery"]');
     expect(eateryGet?.textContent).toBe(GET_LABEL);
-    expect(eateryGet?.className).toContain('btn-outline');
-    expect(eateryOpen?.textContent).toBe(OPEN_LABEL);
-    expect(eateryOpen?.className).toContain('btn-primary');
+    expect(eateryGet?.className).toContain('btn-primary');
+    expect(container.querySelector('[data-testid="open-app-eatery"]')).toBeNull();
     expect(container.querySelector('[data-testid="subscribe-app-eatery"]')).toBeNull();
     const eatoutGet = container.querySelector('[data-testid="get-app-eatout"]');
-    const eatoutOpen = container.querySelector('[data-testid="open-app-eatout"]') as HTMLAnchorElement | null;
     expect(container.querySelector('[data-testid="shop-app-eatout"]')?.textContent).toContain('EatOut');
     expect(eatoutGet?.textContent).toBe(GET_LABEL);
-    expect(eatoutGet?.className).toContain('btn-outline');
-    expect(eatoutOpen?.textContent).toBe(OPEN_LABEL);
-    expect(eatoutOpen?.className).toContain('btn-primary');
-    expect(eatoutOpen?.getAttribute('href')).toBe('https://eatout.daup.co.za/');
+    expect(eatoutGet?.className).toContain('btn-primary');
+    expect(container.querySelector('[data-testid="open-app-eatout"]')).toBeNull();
     expect(container.querySelector('[data-testid="subscribe-app-eatout"]')).toBeNull();
     expect(container.querySelector('[data-testid="get-apps"]')?.textContent).not.toMatch(/Subscribe/i);
     expect(container.querySelector('[data-testid="get-apps"]')?.textContent).not.toContain('Marketplace');
@@ -417,7 +469,9 @@ describe('hub home after email', () => {
     expect(open?.getAttribute('href') || '').not.toMatch(/\/place\/|#menu|#book|eatery\.daup\.co\.za|\/owner|\/floor/i);
     expect(eatout?.querySelector('[data-testid="get-app-eatout"]')).toBeNull();
     expect(eatout?.querySelector('[data-testid="subscribe-app-eatout"]')).toBeNull();
+    expect(open?.className).toContain('btn-primary');
     expect(container.querySelector('[data-testid="open-app-eatery"]')?.textContent).toBe(OPEN_LABEL);
+    expect(container.querySelector('[data-testid="open-app-eatery"]')?.className).toContain('btn-primary');
     expect(container.querySelector('[data-testid="get-app-eatery"]')).toBeNull();
     expect(container.querySelector('[data-testid="coming-app-eatout"]')).toBeNull();
     unmount();
@@ -429,12 +483,9 @@ describe('hub home after email', () => {
       await new Promise(resolve => setTimeout(resolve, 80));
     });
     const beforeGet = container.querySelector('[data-testid="get-app-eatout"]');
-    const beforeOpen = container.querySelector('[data-testid="open-app-eatout"]') as HTMLAnchorElement | null;
     expect(beforeGet?.textContent).toBe(GET_LABEL);
-    expect(beforeGet?.className).toContain('btn-outline');
-    expect(beforeOpen?.textContent).toBe(OPEN_LABEL);
-    expect(beforeOpen?.className).toContain('btn-primary');
-    expect(beforeOpen?.getAttribute('href')).toBe('https://eatout.daup.co.za/');
+    expect(beforeGet?.className).toContain('btn-primary');
+    expect(container.querySelector('[data-testid="open-app-eatout"]')).toBeNull();
     expect(container.querySelector('[data-testid="subscribe-app-eatout"]')).toBeNull();
     act(() => {
       (container.querySelector('[data-testid="get-app-eatout"]') as HTMLButtonElement).click();
@@ -450,8 +501,11 @@ describe('hub home after email', () => {
     expect(open?.getAttribute('href')).toBe('https://eatout.daup.co.za/');
     expect(open?.getAttribute('target')).toBe('_self');
     expect(open?.getAttribute('href') || '').not.toMatch(/\/place\/|#menu|#book|eatery\.daup\.co\.za|\/owner/i);
+    expect(open?.className).toContain('btn-outline');
+    expect(container.querySelector('[data-testid="hub-home-open"]')?.className).toContain('btn-primary');
     expect(JSON.parse(localStorage.getItem('daup_installed_apps') || '{}')['daup-eatout']).toBe(true);
     expect(container.querySelector('[data-testid="open-app-eatery"]')?.textContent).toBe(OPEN_LABEL);
+    expect(container.querySelector('[data-testid="open-app-eatery"]')?.className).toContain('btn-outline');
     expect(container.querySelector('[data-testid="coming-app-eatout"]')).toBeNull();
     unmount();
   });
@@ -479,6 +533,8 @@ describe('hub home after email', () => {
 
     expect(container.querySelector('[data-testid="hub-home"]')).toBeTruthy();
     expect(container.querySelector('[data-testid="other-apps"]')?.textContent).toContain('Farm');
+    expect(container.querySelector('[data-testid="hub-log-off"]')).toBeNull();
+    openYou(container);
     const logOff = container.querySelector('[data-testid="hub-log-off"]') as HTMLButtonElement | null;
     expect(logOff?.textContent).toBe('Log off.');
 
@@ -508,6 +564,8 @@ describe('hub home after email', () => {
     });
 
     expect(container.querySelector('[data-testid="hub-home"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="ask-for-enhancement"]')).toBeNull();
+    openYou(container);
     const door = container.querySelector('[data-testid="ask-for-enhancement"]') as HTMLAnchorElement;
     expect(door).toBeTruthy();
     expect(door.getAttribute('href')).toBe('/asks');
@@ -537,6 +595,8 @@ describe('hub home after email', () => {
     expect(window.location.pathname).toBe('/');
     expect(container.querySelector('[data-testid="hub-home"]')).toBeTruthy();
     expect(container.querySelector('[data-testid="ask-page"]')).toBeNull();
+    expect(container.querySelector('[data-testid="ask-for-enhancement"]')).toBeNull();
+    openYou(container);
     expect(container.querySelector('[data-testid="ask-for-enhancement"]')).toBeTruthy();
     unmount();
   });
@@ -565,13 +625,16 @@ describe('signed-in hub does not assume eatery', () => {
     expect(container.querySelector('[data-testid="open-the-house"]')).toBeNull();
     expect(container.textContent).toContain(YOUR_PLACES_KICKER);
     expect(container.querySelector('[data-testid="your-places-empty-copy"]')?.textContent).toBe(YOUR_PLACES_EMPTY);
-    expect(container.querySelector('[data-testid="register-new-house"]')?.textContent).toBe(REGISTER_A_NEW_HOUSE_LABEL);
+    expect(container.querySelector('[data-testid="register-new-house"]')?.textContent).toBe(PLUS_REGISTER_LABEL);
     expect(container.querySelector('[data-testid="get-apps"]')?.textContent).toContain(GET_APPS_KICKER);
     expect(container.querySelector('[data-testid="shop-app-eatery"]')?.textContent).toContain('Eatery');
     expect(container.querySelector('[data-testid="shop-app-eatout"]')?.textContent).toContain('EatOut');
     expect(container.querySelector('[data-testid="shop-app-eatout"]')?.textContent).toContain('LIVE');
     expect(container.querySelector('[data-testid="on-the-chain"]')?.textContent).toContain(ON_THE_CHAIN_KICKER);
     expect(container.querySelector('[data-testid="on-the-chain-empty"]')?.textContent).toBe(ON_THE_CHAIN_EMPTY);
+    expect(container.querySelector('[data-testid="ask-for-enhancement"]')).toBeNull();
+    expect(container.querySelector('[data-testid="delete-the-house"]')).toBeNull();
+    openYou(container);
     expect(container.querySelector('[data-testid="ask-for-enhancement"]')?.textContent).toBe('Ask for an enhancement.');
     expect(container.querySelector('[data-testid="delete-the-house"]')).toBeNull();
     expect(container.textContent).not.toContain(WHERE_IS_THE_EATERY);
@@ -624,7 +687,11 @@ describe('signed-in hub does not assume eatery', () => {
     expect(container.querySelector('[data-testid="hub-home"]')).toBeTruthy();
     expect(container.querySelector('[data-testid="hub-wizard"]')).toBeNull();
     expect(container.querySelector('[data-testid="eatery-place-name"]')?.textContent).toContain('The Olive');
-    expect(container.querySelector('[data-testid="open-the-house"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="eatery-place-city"]')?.textContent).toBe('Stellenbosch');
+    expect(container.querySelector('[data-testid="open-the-house"]')?.textContent).toBe(OPEN_LABEL);
+    expect(container.querySelector('[data-testid="register-new-house"]')).toBeNull();
+    expect(container.querySelector('[data-testid="delete-the-house"]')).toBeNull();
+    openYou(container);
     expect(container.querySelector('[data-testid="register-new-house"]')?.textContent).toBe(REGISTER_A_NEW_HOUSE_LABEL);
     expect(container.querySelector('[data-testid="delete-the-house"]')?.textContent).toBe('Delete the house.');
     expect(container.textContent).not.toContain(WHERE_IS_THE_EATERY);
@@ -661,6 +728,8 @@ describe('ask door only on signed home', () => {
       await new Promise(resolve => setTimeout(resolve, 80));
     });
     expect(container.querySelector('[data-testid="hub-home"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="ask-for-enhancement"]')).toBeNull();
+    openYou(container);
     expect(container.querySelector('[data-testid="ask-for-enhancement"]')).toBeTruthy();
     act(() => {
       (container.querySelector('[data-testid="register-new-house"]') as HTMLButtonElement).click();
@@ -735,6 +804,7 @@ describe('delete and register a house from hub home', () => {
     });
 
     expect(container.querySelector('[data-testid="hub-home"]')).toBeTruthy();
+    openYou(container);
     const openDelete = container.querySelector('[data-testid="delete-the-house"]') as HTMLButtonElement;
     act(() => {
       openDelete.click();
@@ -761,8 +831,8 @@ describe('delete and register a house from hub home', () => {
     expect(container.querySelector('[data-testid="hub-wizard"]')).toBeNull();
     expect(container.querySelector('[data-testid="your-places-empty"]')).toBeTruthy();
     expect(container.querySelector('[data-testid="your-places-empty-copy"]')?.textContent).toBe(YOUR_PLACES_EMPTY);
-    expect(container.querySelector('[data-testid="register-new-house"]')?.textContent).toBe('Register a new house.');
-    expect(container.textContent).not.toMatch(/\bLIVE\b/);
+    expect(container.querySelector('[data-testid="register-new-house"]')?.textContent).toBe(PLUS_REGISTER_LABEL);
+    expect(container.querySelector('[data-testid="eatery-place-status"]')).toBeNull();
     expect(localStorage.getItem(OWNER_SESSION_STORAGE_KEY)).toContain('owner@theolive.co.za');
     expect(cookieWrites.some(write =>
       write.includes('Max-Age=0') && write.startsWith('daup_owner=') && !/Domain=/i.test(write)
@@ -780,8 +850,10 @@ describe('delete and register a house from hub home', () => {
     });
 
     expect(container.querySelector('[data-testid="hub-home"]')).toBeTruthy();
+    openYou(container);
     const register = container.querySelector('[data-testid="register-new-house"]') as HTMLButtonElement;
     expect(register).toBeTruthy();
+    expect(register.textContent).toBe(REGISTER_A_NEW_HOUSE_LABEL);
 
     act(() => {
       register.click();
@@ -907,6 +979,7 @@ describe('On the chain. from register and delete', () => {
     expect(container.querySelector('[data-testid="on-the-chain-place"]')?.textContent).toContain('The Olive');
     expect(listRegisteredPlaces()).toHaveLength(1);
 
+    openYou(container);
     act(() => {
       (container.querySelector('[data-testid="delete-the-house"]') as HTMLButtonElement).click();
     });
@@ -942,10 +1015,15 @@ describe('Advanced is protocol only', () => {
       await new Promise(resolve => setTimeout(resolve, 80));
     });
 
-    const advanced = Array.from(container.querySelectorAll('button')).find(button =>
+    expect(container.querySelector('[data-testid="get-apps"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="owner-advanced-nav"]')).toBeNull();
+    expect(Array.from(container.querySelectorAll('button')).some(button =>
       (button.textContent || '').trim() === 'Advanced'
-    );
-    expect(advanced).toBeTruthy();
+    )).toBe(false);
+
+    openYou(container);
+    const advanced = container.querySelector('[data-testid="hub-advanced"]') as HTMLButtonElement | null;
+    expect(advanced?.textContent).toBe('Advanced');
     act(() => {
       advanced?.click();
     });
@@ -958,7 +1036,7 @@ describe('Advanced is protocol only', () => {
     expect(nav?.textContent).not.toContain('Other apps');
     expect(nav?.textContent).not.toContain(GET_APPS_KICKER);
     expect(nav?.textContent).not.toMatch(/Subscribe/i);
-    expect(container.querySelector('[data-testid="get-apps"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="get-apps"]')).toBeNull();
 
     const licenses = Array.from(nav?.querySelectorAll('button') || []).find(button =>
       (button.textContent || '').includes('Licenses')
@@ -1098,6 +1176,7 @@ describe('Your places. from the house node', () => {
     });
 
     expect(container.querySelector('[data-testid="eatery-place-name"]')?.textContent).toContain('The Olive');
+    openYou(container);
     act(() => {
       (container.querySelector('[data-testid="hub-log-off"]') as HTMLButtonElement).click();
     });
@@ -1151,6 +1230,7 @@ describe('Your places. from the house node', () => {
       await new Promise(resolve => setTimeout(resolve, 80));
     });
 
+    openYou(container);
     act(() => {
       (container.querySelector('[data-testid="delete-the-house"]') as HTMLButtonElement).click();
     });

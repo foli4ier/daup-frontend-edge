@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Key, Activity, Compass, HardDrive, Terminal,
-  Shield, User
+  Shield
 } from 'lucide-react';
 import { DIDWalletProvider, useDIDWallet } from './components/DIDWalletProvider';
 import { UserProfileProvider, useUserProfile } from './context/UserProfileContext';
@@ -16,21 +16,32 @@ import { LicenseManagementView } from './components/LicenseManagementView';
 import { McpProvider, getSubscriptionForDidAndModule } from './hooks/useMcpClient';
 import { FarmerWorkspace, ResellerWorkspace, ManufacturingWorkspace } from './components/VerticalAppWorkspaces';
 import { ProfileModal } from './components/ProfileModal';
+import { HubThumbNav } from './components/HubThumbNav';
+import { HubYouView } from './components/HubYouView';
 import { MODULE_METADATA } from './components/withLicenseCheck';
 import { deriveSeedNode, deployAppInstance } from './stores/identityStore';
 import { navigateToEatOutHome } from './hub/eatoutUrls';
 import { navigateToTheHouse } from './hub/ownerArrival';
-import { LOG_OFF_LABEL } from './hub/copy';
+import { HUB_HOME_FALLBACK } from './hub/copy';
 import { goToAsks, goToHubHome, readHubPage } from './hub/asksPath';
+import type { HubPane } from './hub/hubPane';
 
 const DashboardContent: React.FC = () => {
   const { did, seed, connectWallet, wasmLoaded, isLoadingWasm } = useDIDWallet();
-  const { instanceName, activeWallet, identityKeySeedNode, setIsProfileModalOpen, ownerSession, logOffHub } = useUserProfile();
+  const {
+    instanceName,
+    activeWallet,
+    identityKeySeedNode,
+    ownerSession,
+    hasHouse,
+    profile
+  } = useUserProfile();
 
   const [activeTab, setActiveTab] = useState<'home' | 'licenses' | 'telemetry' | 'dht' | 'dcdn' | 'mcp'>('home');
   const [launchedApp, setLaunchedApp] = useState<string | null>(null);
   const [isAdvanced, setIsAdvanced] = useState(false);
   const [hubPage, setHubPage] = useState<'home' | 'ask'>(() => readHubPage());
+  const [hubPane, setHubPane] = useState<HubPane>('home');
 
   const [installedApps, setInstalledApps] = useState<Record<string, boolean>>(() => {
     try {
@@ -68,6 +79,17 @@ const DashboardContent: React.FC = () => {
     setHubPage('home');
     setActiveTab('home');
     setLaunchedApp(null);
+    setHubPane('home');
+    setIsAdvanced(false);
+  };
+
+  const openPane = (pane: HubPane) => {
+    goToHubHome();
+    setHubPage('home');
+    setActiveTab('home');
+    setLaunchedApp(null);
+    setHubPane(pane);
+    if (pane !== 'you') setIsAdvanced(false);
   };
 
   const openAsks = () => {
@@ -75,6 +97,7 @@ const DashboardContent: React.FC = () => {
     setHubPage('ask');
     setActiveTab('home');
     setLaunchedApp(null);
+    setHubPane('you');
   };
 
   const loadSubscriptions = useCallback(() => {
@@ -123,55 +146,28 @@ const DashboardContent: React.FC = () => {
 
   const handleExitApp = () => setLaunchedApp(null);
 
-  const houseName = activeWallet?.legalName || instanceName || 'Your hub';
+  const houseName = (activeWallet?.legalName || instanceName || '').trim() || HUB_HOME_FALLBACK;
+  const city = (profile.location?.city || '').trim();
+  const email = ownerSession?.email || '';
+  const contextPlace = hasHouse ? houseName : HUB_HOME_FALLBACK;
+  const contextMeta = [city, email].filter(Boolean).join(' · ');
 
   const showProtocol = isAdvanced && !launchedApp && activeTab !== 'home';
+  const showThumb = !launchedApp;
+  const thumbPane: HubPane = hubPage === 'ask' ? 'you' : hubPane;
 
   return (
-    <div className="owner-shell">
+    <div className={showThumb ? 'owner-shell has-thumb' : 'owner-shell'}>
       <ProfileModal />
 
-      <header className="owner-top">
-        <div className="wrap owner-nav">
+      <header className="owner-context" data-testid="hub-context">
+        <div className="wrap owner-context-row">
           <div>
             <div className="logo">DAUP</div>
-            <p className="owner-house">{houseName}</p>
-          </div>
-          <div className="owner-nav-actions">
-            <button
-              type="button"
-              className="owner-quiet"
-              aria-pressed={isAdvanced}
-              onClick={() => {
-                const next = !isAdvanced;
-                setIsAdvanced(next);
-                if (!next) {
-                  openHome();
-                }
-              }}
-              title="Advanced tools — off by default"
-            >
-              Advanced
-            </button>
-            <button
-              type="button"
-              className="owner-quiet"
-              data-testid="hub-log-off"
-              onClick={() => {
-                openHome();
-                logOffHub();
-              }}
-            >
-              {LOG_OFF_LABEL}
-            </button>
-            <button
-              type="button"
-              className="btn btn-outline"
-              onClick={() => setIsProfileModalOpen(true)}
-            >
-              <User size={16} />
-              {activeWallet?.legalName || 'Profile'}
-            </button>
+            <p className="owner-context-place" data-testid="hub-context-place">{contextPlace}</p>
+            {contextMeta ? (
+              <p className="owner-context-meta" data-testid="hub-context-meta">{contextMeta}</p>
+            ) : null}
           </div>
         </div>
       </header>
@@ -222,8 +218,22 @@ const DashboardContent: React.FC = () => {
             {(!isAdvanced || activeTab === 'home') && (
               hubPage === 'ask' ? (
                 <AskForEnhancementView onBack={openHome} />
+              ) : hubPane === 'you' ? (
+                <HubYouView
+                  onOpenAsk={openAsks}
+                  isAdvanced={isAdvanced}
+                  onHouseCleared={openHome}
+                  onToggleAdvanced={() => {
+                    const next = !isAdvanced;
+                    setIsAdvanced(next);
+                    if (!next) {
+                      setActiveTab('home');
+                    }
+                  }}
+                />
               ) : (
                 <SubscribedAppsView
+                  pane={hubPane}
                   onOpenAsk={openAsks}
                   installedApps={installedApps}
                   onSubscribeApp={handleInstallApp}
@@ -248,6 +258,9 @@ const DashboardContent: React.FC = () => {
         )}
       </main>
 
+      {showThumb ? (
+        <HubThumbNav pane={thumbPane} onPane={openPane} />
+      ) : null}
     </div>
   );
 };

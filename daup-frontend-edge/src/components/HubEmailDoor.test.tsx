@@ -26,8 +26,14 @@ describe('HubEmailDoor', () => {
     const { container, unmount } = render(<HubEmailDoor onOpenHub={() => {}} />);
     const label = container.querySelector('label[for="hub-email"]');
     const button = container.querySelector('[data-testid="open-your-hub"]') as HTMLButtonElement | null;
+    const invite = container.querySelector('[data-testid="hub-staff-invite"]');
     expect(label?.textContent).toBe(YOUR_EMAIL_LABEL);
     expect(button?.textContent).toContain(OPEN_YOUR_HUB_LABEL);
+    expect(button?.className).toContain('btn-primary');
+    expect(invite?.textContent).toContain('I have a staff invite');
+    expect(invite?.className).toContain('btn-outline');
+    expect(invite?.className).toContain('btn-wide');
+    expect(container.querySelector('[data-testid="hub-door-island"]')).toBeTruthy();
     const tap = getComputedStyle(document.documentElement).getPropertyValue('--tap').trim();
     expect(tap === '' || tap === '48px').toBe(true);
     const text = container.textContent || '';

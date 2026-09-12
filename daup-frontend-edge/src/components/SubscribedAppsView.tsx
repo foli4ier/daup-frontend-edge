@@ -1,30 +1,27 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useUserProfile } from '../context/UserProfileContext';
 import {
-  ASK_FOR_ENHANCEMENT_LABEL,
-  DELETE_THE_HOUSE_LABEL,
-  REGISTER_A_NEW_HOUSE_LABEL,
+  OPEN_LABEL,
+  PLUS_REGISTER_LABEL,
   YOUR_PLACES_EMPTY,
   YOUR_PLACES_KICKER
 } from '../hub/copy';
-import { ASKS_PATH } from '../hub/asksPath';
+import type { HubPane } from '../hub/hubPane';
 import { ShopApp, listOwnerPlaces } from '../hub/places';
 import { listPlacesOnTheChain } from '../hub/placeDirectory';
 import { navigateToEatOutHome } from '../hub/eatoutUrls';
 import { navigateToTheHouse } from '../hub/ownerArrival';
-import { DeleteHouseModal } from './DeleteHouseModal';
 import { GetAppsSection } from './GetApps';
 import { OnTheChainSection } from './OnTheChain';
 
-const DOCS_SHIFT = 'https://www.daup.co.za/docs/eatery/tuesday-lunch';
-
 export const SubscribedAppsView: React.FC<{
+  pane?: Exclude<HubPane, 'you'>;
   onOpenAsk?: () => void;
   installedApps?: Record<string, boolean>;
   onSubscribeApp?: (moduleKey: string) => void;
   onLaunchApp?: (moduleKey: string) => void;
 }> = ({
-  onOpenAsk,
+  pane = 'home',
   installedApps = {},
   onSubscribeApp,
   onLaunchApp
@@ -34,14 +31,17 @@ export const SubscribedAppsView: React.FC<{
     hasHouse,
     ownerSession,
     beginNamingPlace,
-    clearHouse
+    profile
   } = useUserProfile();
   const houseName = (activeWallet?.legalName || '').trim();
   const email = ownerSession?.email || '';
-  const places = listOwnerPlaces({ email, placeName: houseName });
+  const city = (profile.location?.city || '').trim();
+  const places = listOwnerPlaces({ email, placeName: houseName, city });
   const eatery = places[0];
   const chainPlaces = listPlacesOnTheChain();
-  const [deleteOpen, setDeleteOpen] = useState(false);
+  const showPlaces = pane === 'home' || pane === 'places';
+  const showApps = pane === 'home' || pane === 'apps';
+  const showChain = pane === 'home';
 
   const openTheHouse = (event: React.MouseEvent<HTMLAnchorElement>) => {
     event.preventDefault();
@@ -79,103 +79,94 @@ export const SubscribedAppsView: React.FC<{
   };
 
   return (
-    <div className="apps-home" data-testid="hub-home">
-      <div className="section-head">
-        <span className="kicker">{YOUR_PLACES_KICKER}</span>
-        <span className="rule" />
-      </div>
+    <div className="apps-home" data-testid="hub-home" data-pane={pane}>
+      {pane === 'home' ? (
+        <div className="hub-home-cta" data-testid="hub-home-cta">
+          {hasHouse ? (
+            <a
+              className="btn btn-primary btn-wide"
+              href={eatery.href || undefined}
+              data-testid="hub-home-open"
+              onClick={openTheHouse}
+            >
+              {OPEN_LABEL}
+            </a>
+          ) : (
+            <button
+              type="button"
+              className="btn btn-primary btn-wide"
+              data-testid="register-new-house"
+              onClick={beginNamingPlace}
+            >
+              {PLUS_REGISTER_LABEL}
+            </button>
+          )}
+        </div>
+      ) : null}
 
-      <article
-        className={hasHouse ? 'card' : 'card places-empty'}
-        data-testid={hasHouse ? 'eatery-place-row' : 'your-places-empty'}
-      >
-        {hasHouse ? (
-          <>
-            <div className="card-top">
-              <span className="ico-sq" aria-hidden="true">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M3 11h18" />
-                  <path d="M5 11V7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v4" />
-                  <path d="M5 11v8h4v-4h6v4h4v-8" />
-                </svg>
-              </span>
-              <div>
-                <h3 data-testid="eatery-place-name">
-                  {eatery.title} <span className="live">LIVE</span>
-                </h3>
-                <p>{eatery.body}</p>
+      {showPlaces ? (
+        <>
+          <div className="section-head">
+            <span className="kicker">{YOUR_PLACES_KICKER}</span>
+            <span className="rule" />
+          </div>
+
+          {hasHouse ? (
+            <article className="place-card" data-testid="eatery-place-row">
+              <div className="place-card-copy">
+                <h3 data-testid="eatery-place-name">{eatery.title}</h3>
+                {eatery.city ? (
+                  <p data-testid="eatery-place-city">{eatery.city}</p>
+                ) : null}
               </div>
-            </div>
-            <div className="place-row-action">
+              <span className="live" data-testid="eatery-place-status">{eatery.status}</span>
               <a
-                className="btn btn-primary btn-wide"
+                className={pane === 'home' ? 'btn btn-outline' : 'btn btn-primary'}
                 href={eatery.href || undefined}
                 data-testid="open-the-house"
                 onClick={openTheHouse}
               >
                 {eatery.actionLabel}
               </a>
-            </div>
-          </>
-        ) : (
-          <p className="caption" data-testid="your-places-empty-copy">{YOUR_PLACES_EMPTY}</p>
-        )}
-        <div className="place-row-controls">
-          {hasHouse ? (
-            <button
-              type="button"
-              className="owner-quiet"
-              data-testid="delete-the-house"
-              onClick={() => setDeleteOpen(true)}
-            >
-              {DELETE_THE_HOUSE_LABEL}
-            </button>
-          ) : null}
-          <button
-            type="button"
-            className="owner-quiet"
-            data-testid="register-new-house"
-            onClick={beginNamingPlace}
-          >
-            {REGISTER_A_NEW_HOUSE_LABEL}
-          </button>
-          <a
-            className="owner-quiet"
-            href={ASKS_PATH}
-            data-testid="ask-for-enhancement"
-            onClick={(event) => {
-              event.preventDefault();
-              onOpenAsk?.();
-            }}
-          >
-            {ASK_FOR_ENHANCEMENT_LABEL}
-          </a>
-        </div>
-        {hasHouse ? (
-          <div className="card-links">
-            <a href={DOCS_SHIFT}>Walk me through it ›</a>
-          </div>
-        ) : null}
-      </article>
+            </article>
+          ) : (
+            <article className="place-card places-empty" data-testid="your-places-empty">
+              <p className="caption" data-testid="your-places-empty-copy">{YOUR_PLACES_EMPTY}</p>
+              {pane === 'places' ? (
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  data-testid="register-new-house"
+                  onClick={beginNamingPlace}
+                >
+                  {PLUS_REGISTER_LABEL}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  data-testid="register-new-house-empty"
+                  onClick={beginNamingPlace}
+                >
+                  {PLUS_REGISTER_LABEL}
+                </button>
+              )}
+            </article>
+          )}
+        </>
+      ) : null}
 
-      <DeleteHouseModal
-        isOpen={deleteOpen}
-        houseName={eatery.title}
-        onClose={() => setDeleteOpen(false)}
-        onConfirm={() => {
-          setDeleteOpen(false);
-          clearHouse();
-        }}
-      />
+      {showApps ? (
+        <GetAppsSection
+          hasHouse={hasHouse}
+          installedApps={installedApps}
+          onGet={handleGet}
+          onOpen={handleOpen}
+          demoteOpen={pane === 'home'}
+        />
+      ) : null}
 
-      <GetAppsSection
-        hasHouse={hasHouse}
-        installedApps={installedApps}
-        onGet={handleGet}
-        onOpen={handleOpen}
-      />
-
-      <OnTheChainSection places={chainPlaces} />
+      {showChain ? <OnTheChainSection places={chainPlaces} /> : null}
     </div>
   );
 };
