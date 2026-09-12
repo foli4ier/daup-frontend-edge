@@ -221,8 +221,8 @@ describe('hub home after email', () => {
     expect(container.textContent).not.toContain('Admin');
     const logOff = container.querySelector('[data-testid="hub-log-off"]') as HTMLElement;
     const advanced = container.querySelector('[data-testid="hub-advanced"]') as HTMLElement;
-    expect(settings && logOff.compareDocumentPosition(settings) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(settings && advanced && settings.compareDocumentPosition(advanced) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(settings && settings.compareDocumentPosition(logOff) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(logOff.compareDocumentPosition(advanced) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     unmount();
   });
 

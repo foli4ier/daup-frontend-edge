@@ -54,15 +54,6 @@ export const HubYouView: React.FC<{
         ) : null}
       </article>
 
-      <button
-        type="button"
-        className="btn btn-primary btn-wide"
-        data-testid="hub-log-off"
-        onClick={logOffHub}
-      >
-        {LOG_OFF_LABEL}
-      </button>
-
       <section className="hub-settings" data-testid="hub-settings">
         <div className="section-head">
           <span className="kicker">{SETTINGS_KICKER}</span>
@@ -100,6 +91,15 @@ export const HubYouView: React.FC<{
           </a>
         </div>
       </section>
+
+      <button
+        type="button"
+        className="btn btn-outline btn-wide"
+        data-testid="hub-log-off"
+        onClick={logOffHub}
+      >
+        {LOG_OFF_LABEL}
+      </button>
 
       <button
         type="button"

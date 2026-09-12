@@ -228,7 +228,8 @@ body {
 }
 
 .place-card.places-empty .btn {
-  flex: 1 1 140px;
+  flex: 0 1 auto;
+  min-width: 140px;
 }
 
 .get-apps .card {
