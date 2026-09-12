@@ -141,7 +141,7 @@ body {
 }
 
 .has-thumb {
-  padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
 }
 
 .owner-advanced-nav {

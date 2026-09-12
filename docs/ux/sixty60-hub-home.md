@@ -28,6 +28,7 @@ Full-viewport cream. Desktop island 640px. **Open your hub.** is a 48px primary.
 ![Signed-in home desktop](sixty60-home-desktop.png)
 ![Signed-in home mobile](sixty60-home-mobile.png)
 ![Empty home](sixty60-home-empty.png)
+![Empty home mobile](sixty60-home-empty-mobile.png)
 ![You pane](sixty60-you.png)
 ![Email gate desktop](sixty60-gate-desktop.png)
 ![Email gate mobile](sixty60-gate-mobile.png)
