@@ -4,8 +4,8 @@ Signed-in owner who already has a house.
 
 - Lands on hub **home** after email. Does **not** open **Where is the eatery?**
 - **Context** is the house name, city, and email — no protocol chrome
-- **Open.** is the first tap, then a dense **Your places.** row (name / city / LIVE / Open.)
-- **Get apps.** — Eatery + EatOut LIVE
+- **Open.** is the first tap (terracotta). Place and held-app **Open.** are outline on Home.
+- **Get apps.** — held: **Open.** only. Not held: one **Get.** as primary. Never both.
 - **On the chain.**
 - Bottom thumb nav: **Home / Places / Apps / You**
 - **Log off.** **Register a new house.** **Delete the house.** **Ask for an enhancement.** live on **You.**

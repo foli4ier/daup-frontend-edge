@@ -121,7 +121,7 @@ export const SubscribedAppsView: React.FC<{
               </div>
               <span className="live" data-testid="eatery-place-status">{eatery.status}</span>
               <a
-                className="btn btn-primary"
+                className={pane === 'home' ? 'btn btn-outline' : 'btn btn-primary'}
                 href={eatery.href || undefined}
                 data-testid="open-the-house"
                 onClick={openTheHouse}
@@ -162,6 +162,7 @@ export const SubscribedAppsView: React.FC<{
           installedApps={installedApps}
           onGet={handleGet}
           onOpen={handleOpen}
+          demoteOpen={pane === 'home'}
         />
       ) : null}
 

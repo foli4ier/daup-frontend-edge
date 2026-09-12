@@ -29,20 +29,25 @@ export interface GetAppsProps {
   installedApps: Record<string, boolean>;
   onGet: (app: ShopApp) => void;
   onOpen: (app: ShopApp) => void;
+  /** Home demotes Open. so the page CTA is the only terracotta primary. */
+  demoteOpen?: boolean;
 }
 
 function OpenControl({
   app,
-  onOpen
+  onOpen,
+  demoteOpen
 }: {
   app: ShopApp;
   onOpen: (app: ShopApp) => void;
+  demoteOpen?: boolean;
 }) {
   const openHref = shopAppOpenHref(app);
+  const className = demoteOpen ? 'btn btn-outline btn-wide' : 'btn btn-primary btn-wide';
   if (openHref) {
     return (
       <a
-        className="btn btn-primary btn-wide"
+        className={className}
         href={openHref}
         target="_self"
         data-testid={`open-app-${app.id}`}
@@ -54,7 +59,7 @@ function OpenControl({
   return (
     <button
       type="button"
-      className="btn btn-primary btn-wide"
+      className={className}
       data-testid={`open-app-${app.id}`}
       onClick={() => onOpen(app)}
     >
@@ -67,7 +72,8 @@ export function GetAppsSection({
   hasHouse,
   installedApps,
   onGet,
-  onOpen
+  onOpen,
+  demoteOpen
 }: GetAppsProps) {
   const heldOf = (app: ShopApp) => shopAppIsHeld(app, { hasHouse, installed: installedApps });
 
@@ -101,19 +107,16 @@ export function GetAppsSection({
               </div>
               <div className="shop-app-actions">
                 {!held ? (
-                  <>
-                    <button
-                      type="button"
-                      className="btn btn-outline btn-wide"
-                      data-testid={`get-app-${app.id}`}
-                      onClick={() => onGet(app)}
-                    >
-                      {GET_LABEL}
-                    </button>
-                    <OpenControl app={app} onOpen={onOpen} />
-                  </>
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-wide"
+                    data-testid={`get-app-${app.id}`}
+                    onClick={() => onGet(app)}
+                  >
+                    {GET_LABEL}
+                  </button>
                 ) : (
-                  <OpenControl app={app} onOpen={onOpen} />
+                  <OpenControl app={app} onOpen={onOpen} demoteOpen={demoteOpen} />
                 )}
               </div>
             </article>

@@ -5,9 +5,9 @@ Signed-in **app.daup.co.za** home. Cream / terracotta / forest only — `daup-th
 ## Hierarchy
 
 1. **Place context** — house name, city, email. No Advanced, Profile, or Log off.
-2. **CTA** — **Open.** when a house is live. **+ Register** when Your places is empty.
-3. **Your places.** — dense row: name / city / LIVE / one **Open.**
-4. **Get apps.**
+2. **CTA** — **Open.** when a house is live. **+ Register** when Your places is empty. This is the terracotta primary on Home.
+3. **Your places.** — dense row: name / city / LIVE / one **Open.** (outline on Home so it does not fight the page CTA).
+4. **Get apps.** — held app: **Open.** only. Not held: one **Get.** as primary. Never Get.+Open. together.
 5. **On the chain.**
 6. **Thumb nav** — Home / Places / Apps / You
 
