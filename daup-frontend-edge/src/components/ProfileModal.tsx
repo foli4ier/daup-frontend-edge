@@ -8,6 +8,7 @@ import { useUserProfile } from '../context/UserProfileContext';
 import { useDIDWallet } from './DIDWalletProvider';
 import { BankWalletConfig, CryptoWalletConfig, SexType, WalletEntry, UserDemographics, UserLocation, SocialLinks } from '../types/profile';
 import { getCurrencyForCountry } from '../utils/currency';
+import { formatDayFirstDate } from '../hub/zaFormat';
 
 const SUPPORTED_LANGUAGES = [
   { code: 'en', label: 'English (US)' },
@@ -704,7 +705,7 @@ export const ProfileModal: React.FC = () => {
                     </div>
                     <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '3px' }}>
                       {trialState.isTrialActive && trialState.trialExpiresAt ? (
-                        <span>Expires on {new Date(trialState.trialExpiresAt).toLocaleDateString()} &bull; Full Pro tier unlocked for all workspaces</span>
+                        <span>Expires on {formatDayFirstDate(trialState.trialExpiresAt)} &bull; Full Pro tier unlocked for all workspaces</span>
                       ) : (
                         <span>Initiate your 30-day all-inclusive ecosystem trial.</span>
                       )}
