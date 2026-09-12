@@ -27,6 +27,7 @@ export const NAV_PLACES_LABEL = 'Places';
 export const NAV_APPS_LABEL = 'Apps';
 export const NAV_YOU_LABEL = 'You';
 export const YOU_KICKER = 'You.';
+export const SETTINGS_KICKER = 'Settings.';
 export const MONEY_IN_R_LABEL = 'Prices in R.';
 export const SEE_YOUR_APPS_LABEL = 'See your apps';
 export const STAFF_INVITE_LABEL = 'I have a staff invite';
@@ -140,6 +141,7 @@ export const HUB_HOME_COPY = [
   NAV_APPS_LABEL,
   NAV_YOU_LABEL,
   YOU_KICKER,
+  SETTINGS_KICKER,
   MONEY_IN_R_LABEL,
   LIVE_STATUS_LABEL
 ];

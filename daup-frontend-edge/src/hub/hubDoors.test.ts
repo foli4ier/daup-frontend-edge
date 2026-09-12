@@ -22,6 +22,7 @@ import {
   SEE_THE_MENU_LABEL,
   YOUR_EMAIL_LABEL,
   YOUR_PLACES_KICKER,
+  SETTINGS_KICKER,
   WHERE_IS_THE_EATERY,
   hasBannedDoorCopy,
   hasBannedDoorName,
@@ -76,6 +77,8 @@ describe('hub email door copy', () => {
     expect(REGISTER_A_NEW_HOUSE_LABEL).toBe('Register a new house.');
     expect(PLUS_REGISTER_LABEL).toBe('+ Register');
     expect(YOUR_PLACES_KICKER).toBe('Your places.');
+    expect(SETTINGS_KICKER).toBe('Settings.');
+    expect(HUB_HOME_COPY).toContain('Settings.');
     expect(HUB_HOME_COPY).toContain('No house on this hub yet.');
     expect(HUB_HOME_COPY).toContain('+ Register');
     expect(HUB_HOME_COPY).toContain('Home');

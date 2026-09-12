@@ -5,17 +5,18 @@ Signed-in **app.daup.co.za** home. Cream / terracotta / forest only — `daup-th
 ## Hierarchy
 
 1. **Place context** — house name, city, email. No Advanced, Profile, or Log off.
-2. **CTA** — **Open.** when a house is live. **+ Register** when Your places is empty. This is the terracotta primary on Home.
-3. **Your places.** — dense row: name / city / LIVE / one **Open.** (outline on Home so it does not fight the page CTA).
-4. **Get apps.** — held app: **Open.** only. Not held: one **Get.** as primary. Never Get.+Open. together.
-5. **On the chain.**
-6. **Thumb nav** — Home / Places / Apps / You
+2. **CTA** — **Open.** when a house is live. **+ Register** when there is no house. This is the terracotta primary on Home.
+3. **Get apps.** — held app: **Open.** only. Not held: one **Get.** as primary. Never Get.+Open. together.
+4. **On the chain.**
+5. **Thumb nav** — Home / Places / Apps / You
 
-Protocol stays off this surface. Advanced, Log off, Delete, Ask, and Profile live on **You.**
+**Your places.** is not on Home. The dense place list lives only under thumb **Places.**
+
+Protocol stays off this surface. **You.** holds visible **Log off.**, then **Settings.** (**Register a new house.** / **Delete the house.** / **Ask for an enhancement.**), then Advanced.
 
 ## Empty
 
-No house: *No house on this hub yet.* plus **+ Register**.
+No house: *No house on this hub yet.* plus **+ Register**. Register stays as that empty CTA only — not a loose **Register a new house.** link on a populated Home.
 
 ## Money and dates
 

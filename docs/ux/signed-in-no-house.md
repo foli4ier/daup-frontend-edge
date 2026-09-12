@@ -5,10 +5,12 @@ Email session, no named house.
 - Hub **home** first — not the naming wizard
 - Context is **Your hub** plus email
 - First tap is **+ Register**
-- **Your places.** is empty: *No house on this hub yet.* plus **+ Register**
+- Empty Home: *No house on this hub yet.* plus **+ Register** — no **Your places.** section
 - **Get apps.** (Eatery + EatOut LIVE) — not held, so one **Get.** each. **On the chain.** still shows
-- **Ask for an enhancement.** and **Register a new house.** live on **You.**
+- Thumb **Places.** keeps the empty place list
+- **Settings.** on **You.** holds **Ask for an enhancement.** and **Register a new house.**
 - **Delete the house.** is hidden until there is a house
+- **Log off.** stays visible on You. Advanced stays below Settings.
 - Door copy does not assume an eatery-only node
 
 ![Signed-in, no house](signed-in-no-house.png)
