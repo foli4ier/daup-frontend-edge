@@ -6,6 +6,7 @@ import {
   LOG_OFF_LABEL,
   MONEY_IN_R_LABEL,
   REGISTER_A_NEW_HOUSE_LABEL,
+  SETTINGS_KICKER,
   YOU_KICKER
 } from '../hub/copy';
 import { ASKS_PATH } from '../hub/asksPath';
@@ -25,7 +26,6 @@ export const HubYouView: React.FC<{
     beginNamingPlace,
     clearHouse,
     logOffHub,
-    setIsProfileModalOpen,
     trialState,
     currency
   } = useUserProfile();
@@ -54,63 +54,63 @@ export const HubYouView: React.FC<{
         ) : null}
       </article>
 
-      <div className="hub-you-actions">
-        <button
-          type="button"
-          className="btn btn-outline btn-wide"
-          data-testid="hub-you-profile"
-          onClick={() => setIsProfileModalOpen(true)}
-        >
-          Profile
-        </button>
-        <button
-          type="button"
-          className="btn btn-primary btn-wide"
-          data-testid="hub-log-off"
-          onClick={logOffHub}
-        >
-          {LOG_OFF_LABEL}
-        </button>
-        <button
-          type="button"
-          className="btn btn-outline btn-wide"
-          data-testid="register-new-house"
-          onClick={beginNamingPlace}
-        >
-          {REGISTER_A_NEW_HOUSE_LABEL}
-        </button>
-        {hasHouse ? (
+      <section className="hub-settings" data-testid="hub-settings">
+        <div className="section-head">
+          <span className="kicker">{SETTINGS_KICKER}</span>
+          <span className="rule" />
+        </div>
+        <div className="hub-settings-list">
           <button
             type="button"
-            className="owner-quiet"
-            data-testid="delete-the-house"
-            onClick={() => setDeleteOpen(true)}
+            className="hub-settings-row"
+            data-testid="register-new-house"
+            onClick={beginNamingPlace}
           >
-            {DELETE_THE_HOUSE_LABEL}
+            {REGISTER_A_NEW_HOUSE_LABEL}
           </button>
-        ) : null}
-        <a
-          className="owner-quiet"
-          href={ASKS_PATH}
-          data-testid="ask-for-enhancement"
-          onClick={(event) => {
-            event.preventDefault();
-            onOpenAsk?.();
-          }}
-        >
-          {ASK_FOR_ENHANCEMENT_LABEL}
-        </a>
-        <button
-          type="button"
-          className="owner-quiet"
-          aria-pressed={isAdvanced}
-          data-testid="hub-advanced"
-          onClick={onToggleAdvanced}
-          title="Advanced tools — off by default"
-        >
-          Advanced
-        </button>
-      </div>
+          {hasHouse ? (
+            <button
+              type="button"
+              className="hub-settings-row"
+              data-testid="delete-the-house"
+              onClick={() => setDeleteOpen(true)}
+            >
+              {DELETE_THE_HOUSE_LABEL}
+            </button>
+          ) : null}
+          <a
+            className="hub-settings-row"
+            href={ASKS_PATH}
+            data-testid="ask-for-enhancement"
+            onClick={(event) => {
+              event.preventDefault();
+              onOpenAsk?.();
+            }}
+          >
+            {ASK_FOR_ENHANCEMENT_LABEL}
+          </a>
+        </div>
+      </section>
+
+      <button
+        type="button"
+        className="btn btn-outline btn-wide"
+        data-testid="hub-log-off"
+        onClick={logOffHub}
+      >
+        {LOG_OFF_LABEL}
+      </button>
+
+      <button
+        type="button"
+        className="owner-quiet hub-you-advanced"
+        aria-pressed={isAdvanced}
+        data-testid="hub-advanced"
+        onClick={onToggleAdvanced}
+        title="Advanced tools — off by default"
+      >
+        Advanced
+      </button>
 
       <DeleteHouseModal
         isOpen={deleteOpen}

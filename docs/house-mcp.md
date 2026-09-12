@@ -36,8 +36,8 @@ Client: `daup-frontend-edge/src/hub/houseMcp.ts`.
 If the house node is down, slow (>6s), or CORS-blocked:
 
 - Sign-in still opens the hub on what’s already on this device
-- Empty Your places. stays exactly **No house on this hub yet.**
-- Register / Delete still update local Your places. Other browsers catch up when the node is back
+- Empty Home / Places stays exactly **No house on this hub yet.**
+- Register / Delete still update local places. Other browsers catch up when the node is back
 - **Log off.** still returns to the email door if the node is down
 - **Delete the house.** still clears local Hub place records if unregister / house_state_delete fail
 

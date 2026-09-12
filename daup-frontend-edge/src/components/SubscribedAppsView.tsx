@@ -39,7 +39,7 @@ export const SubscribedAppsView: React.FC<{
   const places = listOwnerPlaces({ email, placeName: houseName, city });
   const eatery = places[0];
   const chainPlaces = listPlacesOnTheChain();
-  const showPlaces = pane === 'home' || pane === 'places';
+  const showPlaces = pane === 'places';
   const showApps = pane === 'home' || pane === 'apps';
   const showChain = pane === 'home';
 
@@ -92,14 +92,17 @@ export const SubscribedAppsView: React.FC<{
               {OPEN_LABEL}
             </a>
           ) : (
-            <button
-              type="button"
-              className="btn btn-primary btn-wide"
-              data-testid="register-new-house"
-              onClick={beginNamingPlace}
-            >
-              {PLUS_REGISTER_LABEL}
-            </button>
+            <article className="place-card places-empty" data-testid="your-places-empty">
+              <p className="caption" data-testid="your-places-empty-copy">{YOUR_PLACES_EMPTY}</p>
+              <button
+                type="button"
+                className="btn btn-primary"
+                data-testid="register-new-house"
+                onClick={beginNamingPlace}
+              >
+                {PLUS_REGISTER_LABEL}
+              </button>
+            </article>
           )}
         </div>
       ) : null}
@@ -121,7 +124,7 @@ export const SubscribedAppsView: React.FC<{
               </div>
               <span className="live" data-testid="eatery-place-status">{eatery.status}</span>
               <a
-                className={pane === 'home' ? 'btn btn-outline' : 'btn btn-primary'}
+                className="btn btn-primary"
                 href={eatery.href || undefined}
                 data-testid="open-the-house"
                 onClick={openTheHouse}
@@ -132,25 +135,14 @@ export const SubscribedAppsView: React.FC<{
           ) : (
             <article className="place-card places-empty" data-testid="your-places-empty">
               <p className="caption" data-testid="your-places-empty-copy">{YOUR_PLACES_EMPTY}</p>
-              {pane === 'places' ? (
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  data-testid="register-new-house"
-                  onClick={beginNamingPlace}
-                >
-                  {PLUS_REGISTER_LABEL}
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  data-testid="register-new-house-empty"
-                  onClick={beginNamingPlace}
-                >
-                  {PLUS_REGISTER_LABEL}
-                </button>
-              )}
+              <button
+                type="button"
+                className="btn btn-primary"
+                data-testid="register-new-house"
+                onClick={beginNamingPlace}
+              >
+                {PLUS_REGISTER_LABEL}
+              </button>
             </article>
           )}
         </>
