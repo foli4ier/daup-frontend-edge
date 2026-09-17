@@ -1,5 +1,5 @@
 import React from 'react';
-import { Factory, MessageCircle, Store, Utensils, UtensilsCrossed, Wheat } from 'lucide-react';
+import { Factory, FolderKanban, MessageCircle, Store, Utensils, UtensilsCrossed, Wheat } from 'lucide-react';
 import {
   COMING_KICKER,
   GET_APPS_KICKER,
@@ -14,10 +14,12 @@ import {
   shopAppIsHeld,
   shopAppOpenHref
 } from '../hub/places';
+import type { ProjectOpenHandshake } from '../hub/projectUrls';
 
 const SHOP_ICONS = {
   eatery: Utensils,
   eatout: UtensilsCrossed,
+  project: FolderKanban,
   farm: Wheat,
   reseller: Store,
   maker: Factory,
@@ -31,18 +33,22 @@ export interface GetAppsProps {
   onOpen: (app: ShopApp) => void;
   /** Home demotes Open. so the page CTA is the only terracotta primary. */
   demoteOpen?: boolean;
+  /** Hub facts for Project Open. query (email / house / place / instance). */
+  openHandshake?: ProjectOpenHandshake;
 }
 
 function OpenControl({
   app,
   onOpen,
-  demoteOpen
+  demoteOpen,
+  openHandshake
 }: {
   app: ShopApp;
   onOpen: (app: ShopApp) => void;
   demoteOpen?: boolean;
+  openHandshake?: ProjectOpenHandshake;
 }) {
-  const openHref = shopAppOpenHref(app);
+  const openHref = shopAppOpenHref(app, openHandshake);
   const className = demoteOpen ? 'btn btn-outline btn-wide' : 'btn btn-primary btn-wide';
   if (openHref) {
     return (
@@ -73,7 +79,8 @@ export function GetAppsSection({
   installedApps,
   onGet,
   onOpen,
-  demoteOpen
+  demoteOpen,
+  openHandshake
 }: GetAppsProps) {
   const heldOf = (app: ShopApp) => shopAppIsHeld(app, { hasHouse, installed: installedApps });
 
@@ -116,7 +123,12 @@ export function GetAppsSection({
                     {GET_LABEL}
                   </button>
                 ) : (
-                  <OpenControl app={app} onOpen={onOpen} demoteOpen={demoteOpen} />
+                  <OpenControl
+                    app={app}
+                    onOpen={onOpen}
+                    demoteOpen={demoteOpen}
+                    openHandshake={openHandshake}
+                  />
                 )}
               </div>
             </article>

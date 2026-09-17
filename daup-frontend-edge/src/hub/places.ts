@@ -4,6 +4,7 @@ import {
   CHAIN_APP_EATOUT,
   CHAIN_APP_FARM,
   CHAIN_APP_MAKER,
+  CHAIN_APP_PROJECT,
   CHAIN_APP_RESELLER,
   EATERY_ROW_BODY,
   HUB_HOME_FALLBACK,
@@ -12,6 +13,7 @@ import {
 } from './copy';
 import { EATOUT_SEARCH_HOME } from './eatoutUrls';
 import { buildOpenTheHouseUrl } from './ownerArrival';
+import { PROJECT_HOME, PROJECT_MODULE_KEY, ProjectOpenHandshake, buildProjectOpenUrl } from './projectUrls';
 
 export interface HubPlaceRow {
   id: 'eatery' | 'farm' | 'reseller' | 'maker';
@@ -24,9 +26,10 @@ export interface HubPlaceRow {
   href?: string;
 }
 
-export type ShopAppId = 'eatery' | 'eatout' | 'farm' | 'reseller' | 'maker' | 'chat';
+export type ShopAppId = 'eatery' | 'eatout' | 'project' | 'farm' | 'reseller' | 'maker' | 'chat';
 
 export const EATOUT_MODULE_KEY = 'daup-eatout';
+export { PROJECT_MODULE_KEY };
 
 export interface ShopApp {
   id: ShopAppId;
@@ -79,6 +82,7 @@ export const COMING_APPS: HubPlaceRow[] = [
 export const SHOP_APPS: ShopApp[] = [
   { id: 'eatery', title: CHAIN_APP_EATERY, live: true, moduleKey: 'daup-eatery' },
   { id: 'eatout', title: CHAIN_APP_EATOUT, live: true, moduleKey: EATOUT_MODULE_KEY },
+  { id: 'project', title: CHAIN_APP_PROJECT, live: true, moduleKey: PROJECT_MODULE_KEY },
   { id: 'farm', title: CHAIN_APP_FARM, live: false, moduleKey: 'daup-farmer' },
   { id: 'reseller', title: CHAIN_APP_RESELLER, live: false, moduleKey: 'daup-reseller' },
   { id: 'maker', title: CHAIN_APP_MAKER, live: false, moduleKey: 'daup-manufacturing' },
@@ -97,12 +101,20 @@ export function shopAppIsHeld(app: ShopApp, held: {
   if (app.id === 'eatout') {
     return Boolean(held.installed?.[app.moduleKey || EATOUT_MODULE_KEY]);
   }
+  if (app.id === 'project') {
+    return Boolean(held.installed?.[app.moduleKey || PROJECT_MODULE_KEY]);
+  }
   if (!app.moduleKey) return false;
   return Boolean(held.installed?.[app.moduleKey]);
 }
 
-/** EatOut Open. is search home. Eatery Open. stays a house button — never this href. */
-export function shopAppOpenHref(app: ShopApp): string | undefined {
-  if (app.id !== 'eatout') return undefined;
-  return EATOUT_SEARCH_HOME;
+/**
+ * EatOut Open. is search home. Project Open. is project.daup.co.za
+ * (email + house → /d/hub?token= — see projectUrls.ts).
+ * Eatery Open. stays a house button — never this href.
+ */
+export function shopAppOpenHref(app: ShopApp, handshake?: ProjectOpenHandshake): string | undefined {
+  if (app.id === 'eatout') return EATOUT_SEARCH_HOME;
+  if (app.id === 'project') return buildProjectOpenUrl(handshake) || PROJECT_HOME;
+  return undefined;
 }

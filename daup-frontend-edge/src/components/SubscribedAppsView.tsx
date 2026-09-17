@@ -11,6 +11,8 @@ import { ShopApp, listOwnerPlaces } from '../hub/places';
 import { listPlacesOnTheChain } from '../hub/placeDirectory';
 import { navigateToEatOutHome } from '../hub/eatoutUrls';
 import { navigateToTheHouse } from '../hub/ownerArrival';
+import { navigateToProjectHome, projectOpenHandshakeFromHub } from '../hub/projectUrls';
+import { listRegisteredPlaces } from '../stores/identityStore';
 import { GetAppsSection } from './GetApps';
 import { OnTheChainSection } from './OnTheChain';
 
@@ -42,6 +44,13 @@ export const SubscribedAppsView: React.FC<{
   const showPlaces = pane === 'places';
   const showApps = pane === 'home' || pane === 'apps';
   const showChain = pane === 'home';
+  const openHandshake = projectOpenHandshakeFromHub({
+    email,
+    house: houseName,
+    placeIds: listRegisteredPlaces()
+      .map(place => (place.placeId || '').trim())
+      .filter(Boolean)
+  });
 
   const openTheHouse = (event: React.MouseEvent<HTMLAnchorElement>) => {
     event.preventDefault();
@@ -55,7 +64,7 @@ export const SubscribedAppsView: React.FC<{
       navigateToTheHouse({ email, house: houseName });
       return;
     }
-    if (app.live && app.id === 'eatout' && app.moduleKey) {
+    if (app.live && (app.id === 'eatout' || app.id === 'project') && app.moduleKey) {
       if (!installedApps[app.moduleKey]) onSubscribeApp?.(app.moduleKey);
       return;
     }
@@ -73,6 +82,10 @@ export const SubscribedAppsView: React.FC<{
     }
     if (app.id === 'eatout') {
       navigateToEatOutHome();
+      return;
+    }
+    if (app.id === 'project') {
+      navigateToProjectHome(openHandshake);
       return;
     }
     if (app.moduleKey) onLaunchApp?.(app.moduleKey);
@@ -155,6 +168,7 @@ export const SubscribedAppsView: React.FC<{
           onGet={handleGet}
           onOpen={handleOpen}
           demoteOpen={pane === 'home'}
+          openHandshake={openHandshake}
         />
       ) : null}
 

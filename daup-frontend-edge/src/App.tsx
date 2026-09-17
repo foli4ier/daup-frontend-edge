@@ -22,6 +22,8 @@ import { MODULE_METADATA } from './components/withLicenseCheck';
 import { deriveSeedNode, deployAppInstance } from './stores/identityStore';
 import { navigateToEatOutHome } from './hub/eatoutUrls';
 import { navigateToTheHouse } from './hub/ownerArrival';
+import { navigateToProjectHome, projectOpenHandshakeFromHub } from './hub/projectUrls';
+import { listRegisteredPlaces } from './stores/identityStore';
 import { HUB_HOME_FALLBACK } from './hub/copy';
 import { goToAsks, goToHubHome, readHubPage } from './hub/asksPath';
 import type { HubPane } from './hub/hubPane';
@@ -139,6 +141,17 @@ const DashboardContent: React.FC = () => {
     }
     if (moduleName === 'daup-eatout') {
       navigateToEatOutHome();
+      return;
+    }
+    if (moduleName === 'daup-project') {
+      const house = activeWallet?.legalName || instanceName || '';
+      navigateToProjectHome(projectOpenHandshakeFromHub({
+        email: ownerSession?.email || '',
+        house,
+        placeIds: listRegisteredPlaces()
+          .map(place => (place.placeId || '').trim())
+          .filter(Boolean)
+      }));
       return;
     }
     setLaunchedApp(moduleName);
