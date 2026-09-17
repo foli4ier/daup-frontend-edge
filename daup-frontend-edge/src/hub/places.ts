@@ -95,12 +95,18 @@ export const COMING_SHOP_APPS = SHOP_APPS.filter(app => !app.live);
 export function shopAppIsHeld(app: ShopApp, held: {
   hasHouse?: boolean;
   installed?: Record<string, boolean>;
+  enabledApps?: readonly string[];
 }): boolean {
   if (!app.live) return false;
-  if (app.id === 'eatery') return Boolean(held.hasHouse);
   if (app.id === 'eatout') {
     return Boolean(held.installed?.[app.moduleKey || EATOUT_MODULE_KEY]);
   }
+  const enabled = Array.isArray(held.enabledApps) ? held.enabledApps : [];
+  if (enabled.length > 0) {
+    return enabled.includes(app.id);
+  }
+  // Legacy houses (no enabled_apps): eatery rides hasHouse; others ride installs.
+  if (app.id === 'eatery') return Boolean(held.hasHouse);
   if (app.id === 'project') {
     return Boolean(held.installed?.[app.moduleKey || PROJECT_MODULE_KEY]);
   }

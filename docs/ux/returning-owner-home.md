@@ -2,7 +2,7 @@
 
 Signed-in owner who already has a house.
 
-- Lands on hub **home** after email. Does **not** open **Where is the eatery?**
+- Lands on hub **home** after email. Does **not** open **Create your company / place**
 - **Context** is the house name, city, and email — no protocol chrome
 - **Open.** is the first tap (terracotta). Held-app **Open.** is outline on Home so it does not fight the page CTA.
 - No **Your places.** section on Home. Dense place list lives under thumb **Places.**

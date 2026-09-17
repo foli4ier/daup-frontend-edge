@@ -5,12 +5,15 @@ import {
   DELETE_THE_HOUSE_LABEL,
   LOG_OFF_LABEL,
   MONEY_IN_R_LABEL,
+  PLACE_PAUSED,
+  PLACE_PAYMENT_DUE,
   REGISTER_A_NEW_HOUSE_LABEL,
   SETTINGS_KICKER,
   YOU_KICKER
 } from '../hub/copy';
 import { ASKS_PATH } from '../hub/asksPath';
 import { formatTrialEndsOn } from '../hub/zaFormat';
+import { resolveNodeSubscriptionStatus } from '../hub/entitlements';
 import { DeleteHouseModal } from './DeleteHouseModal';
 
 export const HubYouView: React.FC<{
@@ -27,14 +30,25 @@ export const HubYouView: React.FC<{
     clearHouse,
     logOffHub,
     trialState,
-    currency
+    currency,
+    nodeEntitlement
   } = useUserProfile();
   const houseName = (activeWallet?.legalName || '').trim();
   const email = ownerSession?.email || '';
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const trialEnds = trialState.isTrialActive && trialState.trialExpiresAt
-    ? formatTrialEndsOn(trialState.trialExpiresAt)
-    : '';
+  const nodeStatus = nodeEntitlement
+    ? resolveNodeSubscriptionStatus(nodeEntitlement)
+    : null;
+  const trialEnds = (nodeStatus === 'trial' && nodeEntitlement?.trial_ends_at)
+    ? formatTrialEndsOn(nodeEntitlement.trial_ends_at)
+    : (!nodeEntitlement && trialState.isTrialActive && trialState.trialExpiresAt
+      ? formatTrialEndsOn(trialState.trialExpiresAt)
+      : '');
+  const placeStatus = nodeStatus === 'past_due'
+    ? PLACE_PAYMENT_DUE
+    : nodeStatus === 'suspended'
+      ? PLACE_PAUSED
+      : '';
 
   return (
     <section className="hub-you" data-testid="hub-you">
@@ -48,6 +62,9 @@ export const HubYouView: React.FC<{
         {houseName ? <p className="hub-you-house">{houseName}</p> : null}
         {trialEnds ? (
           <p className="caption" data-testid="hub-you-date">{trialEnds}</p>
+        ) : null}
+        {placeStatus ? (
+          <p className="caption" data-testid="hub-you-place-status">{placeStatus}</p>
         ) : null}
         {currency.symbol === 'R' ? (
           <p className="caption" data-testid="hub-you-money">{MONEY_IN_R_LABEL}</p>

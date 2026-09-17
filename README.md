@@ -6,7 +6,7 @@ This GitHub repository is the source for **Cloudflare Workers Builds**. The work
 
 Visual tokens live in [`daup-theme`](https://github.com/foli4ier/daup-theme) (`import "daup-theme/tokens.css"`).
 
-**Your places.** restore across browsers via the house MCP — see [`docs/house-mcp.md`](docs/house-mcp.md).
+**Licensing (A+B).** Place-first company / place, node entitlements, month-1 trial — see [`docs/license-pivot.md`](docs/license-pivot.md).
 
 ## Local
 

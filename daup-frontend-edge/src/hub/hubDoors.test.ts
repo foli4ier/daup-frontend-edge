@@ -24,6 +24,8 @@ import {
   YOUR_PLACES_KICKER,
   SETTINGS_KICKER,
   WHERE_IS_THE_EATERY,
+  CREATE_YOUR_PLACE_TITLE,
+  HUB_WIZARD_COPY,
   hasBannedDoorCopy,
   hasBannedDoorName,
   houseNameMatchesConfirm
@@ -141,7 +143,11 @@ describe('hub surface', () => {
     if (!signedIn.ok) return;
     expect(resolveHubSurface({ session: signedIn.session, hasHouse: false })).toBe('home');
     expect(resolveHubSurface({ session: signedIn.session, hasHouse: false })).not.toBe('wizard');
-    expect(WHERE_IS_THE_EATERY).toBe('Where is the eatery?');
+    expect(WHERE_IS_THE_EATERY).toBe('Create your company / place');
+    expect(CREATE_YOUR_PLACE_TITLE).toBe('Create your company / place');
+    for (const line of HUB_WIZARD_COPY) {
+      expect(hasBannedDoorCopy(line), `banned word in "${line}"`).toBe(false);
+    }
   });
 
   it('opens the wizard only when naming a place', () => {

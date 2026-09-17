@@ -46,6 +46,19 @@ import {
   saveOwnerSession,
   writeOwnerCompanionCookie
 } from '../hub/ownerSession';
+import { bindCompanyId, normalizeEnabledApps, primaryChainApp, type EnableableAppId } from '../hub/companyNode';
+import {
+  attachHostedSeednodeStub,
+  isSeednodeAttached,
+  saveSeednodeConfig
+} from '../hub/seednode';
+import {
+  assertNodeWrite,
+  loadNodeEntitlement,
+  maybeFireNodeTrialStarted,
+  patchNodeEntitlement,
+  type NodeEntitlement
+} from '../hub/entitlements';
 
 
 export interface UserProfileContextType {
@@ -71,6 +84,9 @@ export interface UserProfileContextType {
   formatCurrency: (amount: number) => string;
   isDetectingLocation: boolean;
   trialDaysRemaining: number;
+  nodeEntitlement: NodeEntitlement | null;
+  enabledApps: EnableableAppId[];
+  companyId: string | null;
   validateLegalName: (legalName: string, excludeWalletId?: string | null) => { isUnique: boolean; reason?: string };
   updateDemographics: (demographics: Partial<UserDemographics>) => void;
   updateLocation: (location: Partial<UserLocation>) => void;
@@ -79,7 +95,8 @@ export interface UserProfileContextType {
   updateWallet: (id: string, updates: Partial<WalletEntry>) => void;
   removeWallet: (id: string) => void;
   setPrimaryWallet: (id: string) => void;
-  completeOnboarding: (finalProfileData?: Partial<UserProfile>) => Promise<void>;
+  enableApp: (appId: string) => { ok: boolean; reason?: string };
+  completeOnboarding: (finalProfileData?: Partial<UserProfile>, extras?: { enabledApps?: readonly string[] }) => Promise<void>;
   startFreeTrial: (durationDays?: number) => void;
   detectLocation: () => Promise<UserLocation>;
   resetProfile: () => void;
@@ -190,7 +207,14 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
     try {
       const listed = await listPlacesByEmail(session.email);
       if (listed.ok) {
-        applyListedHousePlaces(withEmail, session.email, listed.places.map(housePlaceToPlatform));
+        const next = applyListedHousePlaces(withEmail, session.email, listed.places.map(housePlaceToPlatform));
+        const heldId = next.companyNode?.companyId || '';
+        if (heldId && !isSeednodeAttached(next.seednode)) {
+          const seednode = saveSeednodeConfig(attachHostedSeednodeStub(heldId));
+          const withSeed = { ...next, seednode, updatedAt: Date.now() };
+          saveIdentityVault(withSeed);
+          setVault(withSeed);
+        }
       }
     } catch {
       // keep local Your places.
@@ -491,7 +515,7 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
     });
   }, [commitVault]);
 
-  // Start 30-day Free Trial
+  // Deprecated as the primary gate. Node trial is `node.trial_started` only.
   const startFreeTrial = useCallback((durationDays = 30) => {
     const now = Date.now();
     const trialExpiresAt = now + durationDays * 24 * 60 * 60 * 1000;
@@ -509,30 +533,70 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
       trialState: newTrial,
       updatedAt: Date.now()
     }));
-
-    // Also update all MCP module subscriptions
-    try {
-      const rawSubs = localStorage.getItem('daup_subscriptions_db');
-      const allSubs = rawSubs ? JSON.parse(rawSubs) : {};
-      const targetDid = localStorage.getItem('daup_active_did') || 'did:daup:node-primary';
-      if (!allSubs[targetDid]) allSubs[targetDid] = {};
-      ['daup-farmer', 'daup-reseller', 'daup-eatery', 'daup-manufacturing'].forEach(mod => {
-        allSubs[targetDid][mod] = {
-          did: targetDid,
-          module: mod,
-          tier: 'Trial',
-          expirationTimestamp: trialExpiresAt
-        };
-      });
-      localStorage.setItem('daup_subscriptions_db', JSON.stringify(allSubs));
-    } catch (e) {}
   }, [commitVault]);
 
-  // Complete Onboarding
-  const completeOnboarding = useCallback(async (finalProfileData?: Partial<UserProfile>) => {
+  const enableApp = useCallback((appId: string): { ok: boolean; reason?: string } => {
+    const companyId = vault.companyNode?.companyId || '';
+    if (!companyId) return { ok: false, reason: 'no-company' };
+    const entitlement = loadNodeEntitlement(companyId);
+    const gate = assertNodeWrite(entitlement);
+    if (!gate.allowed) return { ok: false, reason: gate.reason };
+    commitVault(prev => {
+      if (!prev.companyNode?.companyId) return prev;
+      const nextApps = normalizeEnabledApps([...(prev.companyNode.enabledApps || []), appId]);
+      patchNodeEntitlement(prev.companyNode.companyId, { enabled_apps: nextApps });
+      const house = (prev.activeWallet?.legalName || '').trim();
+      if (house) {
+        registerPlaceOnPlatform({
+          placeName: house,
+          app: primaryChainApp(nextApps),
+          country: prev.profile.location.country,
+          region: prev.profile.location.provinceState,
+          city: prev.profile.location.city,
+          companyId: prev.companyNode.companyId,
+          enabledApps: nextApps,
+          ownerEmail: prev.profile.demographics.email
+        });
+      }
+      return {
+        ...prev,
+        companyNode: {
+          ...prev.companyNode,
+          enabledApps: nextApps
+        },
+        updatedAt: Date.now()
+      };
+    });
+    return { ok: true };
+  }, [commitVault, vault.companyNode?.companyId]);
+
+  // Place-first registration: mint companyId once, persist enabled_apps, attach hosted seed stub.
+  const completeOnboarding = useCallback(async (
+    finalProfileData?: Partial<UserProfile>,
+    extras?: { enabledApps?: readonly string[] }
+  ) => {
     const now = Date.now();
-    const trialDurationDays = 30;
-    const trialExpiresAt = now + trialDurationDays * 24 * 60 * 60 * 1000;
+    const enabledApps = normalizeEnabledApps(extras?.enabledApps);
+    const house = (finalProfileData?.wallets?.[0]?.legalName
+      || vault.activeWallet?.legalName
+      || '').trim();
+    const email = (finalProfileData?.demographics?.email
+      || ownerSession?.email
+      || vault.profile.demographics.email
+      || '').trim();
+    const location = finalProfileData?.location || vault.profile.location;
+
+    if (!house) {
+      setIsNamingPlace(false);
+      return;
+    }
+
+    const bound = bindCompanyId(vault.companyNode?.companyId);
+    const companyId = bound.companyId;
+    const minted = bound.minted;
+    const seednode = saveSeednodeConfig(attachHostedSeednodeStub(companyId));
+    const seedAttached = isSeednodeAttached(seednode);
+    const chainApp = primaryChainApp(enabledApps);
 
     commitVault(prev => {
       const mergedWallets = finalProfileData?.wallets || prev.registeredWallets;
@@ -540,6 +604,7 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
       const active = resolveActiveWallet(mergedWallets, primaryId);
       const seedNode = active ? deriveSeedNode(active.legalName) : (prev.identityKeySeedNode || deriveSeedNode());
       const nextName = normalizeLegalName(active?.legalName);
+      const heldCompanyId = prev.companyNode?.companyId || companyId;
 
       prev.registeredWallets.forEach(wallet => {
         if (wallet.legalName && normalizeLegalName(wallet.legalName) !== nextName) {
@@ -547,16 +612,17 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
         }
       });
 
-      // Register the named place on the chain (wizard location + Eatery today)
       if (active?.legalName) {
         registerLegalNameOnPlatform(active.legalName);
-        const location = finalProfileData?.location || prev.profile.location;
         registerPlaceOnPlatform({
           placeName: active.legalName,
-          app: 'eatery',
+          app: chainApp,
           country: location?.country || '',
           region: location?.provinceState || '',
-          city: location?.city || ''
+          city: location?.city || '',
+          companyId: heldCompanyId,
+          enabledApps,
+          ownerEmail: email
         });
       }
 
@@ -569,15 +635,6 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
         updatedAt: now
       };
 
-      const updatedTrial: SubscriptionTrialState = prev.trialState.hasStartedTrial ? prev.trialState : {
-        hasStartedTrial: true,
-        trialStartedAt: now,
-        trialExpiresAt,
-        isTrialActive: true,
-        tier: 'Trial',
-        isSubscribed: true
-      };
-
       return {
         ...prev,
         hasCompletedOnboarding: true,
@@ -587,58 +644,73 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
         registeredWallets: mergedWallets,
         activeWallet: active,
         identityKeySeedNode: seedNode,
-        trialState: updatedTrial
+        companyNode: {
+          companyId: heldCompanyId,
+          enabledApps,
+          billableLocations: prev.companyNode?.billableLocations || 1
+        },
+        seednode: {
+          ...seednode,
+          companyId: heldCompanyId
+        }
       };
     });
 
-    // Auto-update MCP subscriptions database for all modules
-    try {
-      const rawSubs = localStorage.getItem('daup_subscriptions_db');
-      const allSubs = rawSubs ? JSON.parse(rawSubs) : {};
-      const targetDid = localStorage.getItem('daup_active_did') || 'did:daup:node-primary';
-      if (!allSubs[targetDid]) allSubs[targetDid] = {};
-      ['daup-farmer', 'daup-reseller', 'daup-eatery', 'daup-manufacturing'].forEach(mod => {
-        allSubs[targetDid][mod] = {
-          did: targetDid,
-          module: mod,
-          tier: 'Trial',
-          expirationTimestamp: trialExpiresAt
-        };
-      });
-      localStorage.setItem('daup_subscriptions_db', JSON.stringify(allSubs));
-    } catch (e) {}
+    const hydrated = Boolean(house && companyId);
+    const trial = maybeFireNodeTrialStarted({
+      companyId,
+      minted,
+      hydrated,
+      seednodeAttached: seedAttached,
+      enabledApps,
+      billableLocations: 1,
+      now
+    });
 
-    const house = (finalProfileData?.wallets?.[0]?.legalName
-      || vault.activeWallet?.legalName
-      || '').trim();
-    const email = (finalProfileData?.demographics?.email
-      || ownerSession?.email
-      || vault.profile.demographics.email
-      || '').trim();
+    if (trial.event) {
+      commitVault(prev => ({
+        ...prev,
+        trialState: {
+          hasStartedTrial: true,
+          trialStartedAt: trial.event!.trial_started_at,
+          trialExpiresAt: trial.event!.trial_ends_at,
+          isTrialActive: trial.event!.trial_ends_at > Date.now(),
+          tier: 'Trial',
+          isSubscribed: true
+        },
+        updatedAt: Date.now()
+      }));
+    }
+
     if (email && house) {
       writeOwnerCompanionCookie(email, house);
     }
 
-    const location = finalProfileData?.location || vault.profile.location;
     if (email && house) {
       try {
-        const minted = await registerHousePlace({
+        const registered = await registerHousePlace({
           ownerEmail: email,
           placeName: house,
-          app: 'eatery',
+          app: chainApp,
           country: location?.country || '',
           region: location?.provinceState || '',
-          city: location?.city || ''
+          city: location?.city || '',
+          companyId,
+          enabledApps
         });
-        if (minted.ok) {
+        if (registered.ok) {
+          const returnedId = registered.place.companyId;
+          const boundId = returnedId && returnedId === companyId ? returnedId : companyId;
           registerPlaceOnPlatform({
-            placeName: minted.place.placeName,
-            app: minted.place.app,
-            country: minted.place.country,
-            region: minted.place.region,
-            city: minted.place.city,
-            placeId: minted.place.placeId,
-            ownerEmail: minted.place.ownerEmail || email
+            placeName: registered.place.placeName,
+            app: registered.place.app,
+            country: registered.place.country,
+            region: registered.place.region,
+            city: registered.place.city,
+            placeId: registered.place.placeId,
+            ownerEmail: registered.place.ownerEmail || email,
+            companyId: boundId,
+            enabledApps: registered.place.enabledApps || enabledApps
           });
         }
       } catch {
@@ -647,7 +719,7 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
 
     setIsNamingPlace(false);
-  }, [commitVault, ownerSession?.email, vault.activeWallet?.legalName, vault.profile.demographics.email, vault.profile.location]);
+  }, [commitVault, ownerSession?.email, vault.activeWallet?.legalName, vault.companyNode?.companyId, vault.profile.demographics.email, vault.profile.location]);
 
   // Geolocation Auto-Enrichment
   const detectLocation = useCallback(async (): Promise<UserLocation> => {
@@ -754,6 +826,13 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
     setVault(DEFAULT_VAULT);
   }, [activeWallet?.legalName]);
 
+  const companyId = vault.companyNode?.companyId || null;
+  const enabledApps = vault.companyNode?.enabledApps || [];
+  const nodeEntitlement = useMemo(
+    () => (companyId ? loadNodeEntitlement(companyId) : null),
+    [companyId, vault.updatedAt]
+  );
+
   return (
     <UserProfileContext.Provider
       value={{
@@ -779,6 +858,9 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
         formatCurrency,
         isDetectingLocation,
         trialDaysRemaining,
+        nodeEntitlement,
+        enabledApps,
+        companyId,
         validateLegalName,
         updateDemographics,
         updateLocation,
@@ -787,6 +869,7 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
         updateWallet,
         removeWallet,
         setPrimaryWallet,
+        enableApp,
         completeOnboarding,
         startFreeTrial,
         detectLocation,

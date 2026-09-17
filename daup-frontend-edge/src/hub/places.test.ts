@@ -63,6 +63,15 @@ describe('Get apps. shop catalog', () => {
     expect(shopAppOpenHref(eatery)).toBeUndefined();
   });
 
+  it('holds operator apps from enabled_apps when the company node has them', () => {
+    const eatery = SHOP_APPS.find(app => app.id === 'eatery')!;
+    const project = SHOP_APPS.find(app => app.id === 'project')!;
+    expect(shopAppIsHeld(eatery, { hasHouse: true, enabledApps: ['farm'] })).toBe(false);
+    expect(shopAppIsHeld(eatery, { hasHouse: true, enabledApps: ['eatery', 'farm'] })).toBe(true);
+    expect(shopAppIsHeld(project, { hasHouse: true, installed: {}, enabledApps: ['project'] })).toBe(true);
+    expect(shopAppIsHeld(project, { hasHouse: true, installed: { 'daup-project': true }, enabledApps: ['farm'] })).toBe(false);
+  });
+
   it('Open. for EatOut is search home, never a place page or the hub', () => {
     const eatout = SHOP_APPS.find(app => app.id === 'eatout')!;
     const href = shopAppOpenHref(eatout);

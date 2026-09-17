@@ -6,6 +6,18 @@ import {
   UserLocation, 
   SocialLinks 
 } from '../types/profile';
+import {
+  asCompanyId,
+  asCompanyNodeRecord,
+  normalizeEnabledApps,
+  preferHeldCompanyId,
+  type CompanyNodeRecord,
+  type EnableableAppId
+} from '../hub/companyNode';
+import {
+  asSeednodeConfig,
+  type SeednodeConfig
+} from '../hub/seednode';
 
 export const VAULT_STORAGE_KEY = 'daup_user_vault_v1';
 export const LEGACY_PROFILE_KEY = 'daup_user_profile';
@@ -26,6 +38,9 @@ export interface PlatformPlaceRecord {
   city: string;
   placeId?: string;
   ownerEmail?: string;
+  /** Bound once for the company node. Never remint. */
+  companyId?: string;
+  enabledApps?: EnableableAppId[];
 }
 
 export type PlatformEntityEntry = string | PlatformPlaceRecord;
@@ -40,6 +55,8 @@ export interface UserIdentityVault {
   activeWallet: WalletEntry | null;
   identityKeySeedNode: string | null;
   trialState: SubscriptionTrialState;
+  companyNode?: CompanyNodeRecord | null;
+  seednode?: SeednodeConfig | null;
 }
 
 export interface AppInstanceRecord {
@@ -183,7 +200,9 @@ export const DEFAULT_VAULT: UserIdentityVault = {
   registeredWallets: [],
   activeWallet: null,
   identityKeySeedNode: null,
-  trialState: DEFAULT_TRIAL_STATE
+  trialState: DEFAULT_TRIAL_STATE,
+  companyNode: null,
+  seednode: null
 };
 
 /**
@@ -260,7 +279,7 @@ function writePlatformEntities(entries: PlatformEntityEntry[]): void {
 
 export function asPlatformPlaceRecord(value: unknown): PlatformPlaceRecord | null {
   if (!isPlatformPlaceRecord(value)) return null;
-  const rec = value as PlatformPlaceRecord;
+  const rec = value as PlatformPlaceRecord & { enabled_apps?: unknown; company_id?: unknown };
   const record: PlatformPlaceRecord = {
     placeName: rec.placeName.trim(),
     app: isPlatformAppId(rec.app) ? rec.app : 'eatery',
@@ -270,8 +289,12 @@ export function asPlatformPlaceRecord(value: unknown): PlatformPlaceRecord | nul
   };
   const placeId = typeof rec.placeId === 'string' ? rec.placeId.trim() : '';
   const ownerEmail = typeof rec.ownerEmail === 'string' ? rec.ownerEmail.trim().toLowerCase() : '';
+  const companyId = asCompanyId(rec.companyId ?? rec.company_id);
+  const enabledApps = normalizeEnabledApps(rec.enabledApps ?? rec.enabled_apps);
   if (placeId) record.placeId = placeId;
   if (ownerEmail) record.ownerEmail = ownerEmail;
+  if (companyId) record.companyId = companyId;
+  if (enabledApps.length) record.enabledApps = enabledApps;
   return record;
 }
 
@@ -302,6 +325,8 @@ export function registerPlaceOnPlatform(place: {
   city?: string;
   placeId?: string;
   ownerEmail?: string;
+  companyId?: string;
+  enabledApps?: readonly string[];
 }): PlatformPlaceRecord | null {
   if (typeof window === 'undefined') return null;
   const record = asPlatformPlaceRecord({
@@ -311,7 +336,9 @@ export function registerPlaceOnPlatform(place: {
     region: place.region,
     city: place.city,
     placeId: place.placeId,
-    ownerEmail: place.ownerEmail
+    ownerEmail: place.ownerEmail,
+    companyId: place.companyId,
+    enabledApps: place.enabledApps
   });
   if (!record) return null;
   try {
@@ -319,6 +346,7 @@ export function registerPlaceOnPlatform(place: {
     const existing = readPlatformEntities();
     const idx = existing.findIndex(entry => {
       const current = asPlatformPlaceRecord(entry);
+      if (record.companyId && current?.companyId && current.companyId === record.companyId) return true;
       if (record.placeId && current?.placeId && current.placeId === record.placeId) return true;
       return normalizeLegalName(platformEntityName(entry)) === norm;
     });
@@ -327,8 +355,15 @@ export function registerPlaceOnPlatform(place: {
       const merged: PlatformPlaceRecord = {
         ...record,
         ...(previous?.placeId && !record.placeId ? { placeId: previous.placeId } : {}),
-        ...(previous?.ownerEmail && !record.ownerEmail ? { ownerEmail: previous.ownerEmail } : {})
+        ...(previous?.ownerEmail && !record.ownerEmail ? { ownerEmail: previous.ownerEmail } : {}),
+        // Never remint: Hub-held companyId always wins.
+        companyId: preferHeldCompanyId(previous?.companyId, record.companyId) || undefined,
+        enabledApps: (record.enabledApps && record.enabledApps.length)
+          ? record.enabledApps
+          : previous?.enabledApps
       };
+      if (!merged.companyId) delete merged.companyId;
+      if (!merged.enabledApps?.length) delete merged.enabledApps;
       existing[idx] = merged;
       writePlatformEntities(existing);
       return merged;
@@ -406,6 +441,18 @@ export function applyHousePlacesToVault(
     createdAt: now
   };
 
+  const companyId = preferHeldCompanyId(prev.companyNode?.companyId, primary.companyId);
+  const enabledApps = (primary.enabledApps && primary.enabledApps.length)
+    ? primary.enabledApps
+    : (prev.companyNode?.enabledApps || []);
+  const companyNode: CompanyNodeRecord | null = companyId
+    ? {
+        companyId,
+        enabledApps,
+        billableLocations: prev.companyNode?.billableLocations || 1
+      }
+    : (prev.companyNode || null);
+
   return {
     ...prev,
     hasCompletedOnboarding: true,
@@ -430,7 +477,9 @@ export function applyHousePlacesToVault(
     },
     registeredWallets: [wallet],
     activeWallet: wallet,
-    identityKeySeedNode: deriveSeedNode(primary.placeName)
+    identityKeySeedNode: deriveSeedNode(primary.placeName),
+    companyNode,
+    seednode: prev.seednode || null
   };
 }
 
@@ -577,7 +626,9 @@ export function loadIdentityVault(): UserIdentityVault {
         trialState: {
           ...DEFAULT_TRIAL_STATE,
           ...(parsed.trialState || {})
-        }
+        },
+        companyNode: asCompanyNodeRecord(parsed.companyNode) || null,
+        seednode: asSeednodeConfig(parsed.seednode) || null
       };
     }
 
@@ -619,7 +670,9 @@ export function loadIdentityVault(): UserIdentityVault {
         registeredWallets: wallets,
         activeWallet: active,
         identityKeySeedNode: seedNode,
-        trialState: trial
+        trialState: trial,
+        companyNode: null,
+        seednode: null
       };
 
       // Register active wallet in platform entities registry
@@ -699,7 +752,9 @@ export function clearHouseFromVault(keepEmail = ''): UserIdentityVault {
     registeredWallets: [],
     activeWallet: null,
     identityKeySeedNode: null,
-    trialState: { ...DEFAULT_TRIAL_STATE }
+    trialState: { ...DEFAULT_TRIAL_STATE },
+    companyNode: null,
+    seednode: null
   };
 
   saveIdentityVault(next);

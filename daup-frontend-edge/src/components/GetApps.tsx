@@ -35,6 +35,7 @@ export interface GetAppsProps {
   demoteOpen?: boolean;
   /** Hub facts for Project Open. query (email / house / place / instance). */
   openHandshake?: ProjectOpenHandshake;
+  enabledApps?: readonly string[];
 }
 
 function OpenControl({
@@ -80,9 +81,10 @@ export function GetAppsSection({
   onGet,
   onOpen,
   demoteOpen,
-  openHandshake
+  openHandshake,
+  enabledApps
 }: GetAppsProps) {
-  const heldOf = (app: ShopApp) => shopAppIsHeld(app, { hasHouse, installed: installedApps });
+  const heldOf = (app: ShopApp) => shopAppIsHeld(app, { hasHouse, installed: installedApps, enabledApps });
 
   return (
     <section className="get-apps" data-testid="get-apps">

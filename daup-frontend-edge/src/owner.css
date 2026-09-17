@@ -623,8 +623,32 @@ body {
   color: var(--forest);
 }
 
-.wizard-review dd {
-  margin: 0 0 8px;
+.wizard-apps {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 1fr 1fr;
+}
+
+.wizard-app {
+  min-height: var(--tap);
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  background: var(--white);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  font-weight: 650;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 14px;
+  text-align: left;
+}
+
+.wizard-app.is-on {
+  border-color: var(--forest);
+  background: var(--peach);
 }
 
 .owner-preview {

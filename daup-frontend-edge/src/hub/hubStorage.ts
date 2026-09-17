@@ -14,6 +14,8 @@ import {
 import { ASK_STORAGE_KEY } from './askStore';
 import { expireOwnerCookie } from './ownerArrival';
 import { OWNER_SESSION_STORAGE_KEY } from './ownerSession';
+import { NODE_ENTITLEMENTS_KEY, NODE_TRIAL_EVENTS_KEY } from './entitlements';
+import { SEEDNODE_STORAGE_KEY } from './seednode';
 
 export const HUB_INSTALLED_APPS_KEY = 'daup_installed_apps';
 export const HUB_ACTIVE_DID_KEY = 'daup_active_did';
@@ -28,7 +30,10 @@ export const HUB_KNOWN_STORAGE_KEYS = [
   OWNER_SESSION_STORAGE_KEY,
   ASK_STORAGE_KEY,
   HUB_INSTALLED_APPS_KEY,
-  HUB_ACTIVE_DID_KEY
+  HUB_ACTIVE_DID_KEY,
+  NODE_ENTITLEMENTS_KEY,
+  NODE_TRIAL_EVENTS_KEY,
+  SEEDNODE_STORAGE_KEY
 ] as const;
 
 export function isHubStorageKey(key: string): boolean {

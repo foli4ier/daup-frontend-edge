@@ -1,8 +1,22 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Shield, ShieldAlert, Key, Loader2, CheckCircle, CreditCard } from 'lucide-react';
+import { Shield, ShieldAlert, Loader2, CheckCircle, CreditCard } from 'lucide-react';
 import { useDIDWallet } from './DIDWalletProvider';
 import { useMcp } from '../hooks/useMcpClient';
 import { getModuleEndpoint } from '../utils/envResolver';
+import { useUserProfile } from '../context/UserProfileContext';
+import {
+  assertNodeWrite,
+  enabledAppForModule,
+  hasFullAppAccess,
+  isAppEnabled,
+  resolveNodeSubscriptionStatus
+} from '../hub/entitlements';
+
+/**
+ * Per-app SKU / verify_subscription_access is DEPRECATED as the primary gate.
+ * Prefer node entitlement + enabled_apps (slice B). SKU paywall remains a
+ * fallback for Advanced protocol workspaces with no company node yet.
+ */
 
 // Module configuration metadata and feature lists
 export const MODULE_METADATA: Record<string, {
@@ -75,6 +89,8 @@ interface LicenseCheckWrapperProps {
 export const LicenseCheck: React.FC<LicenseCheckWrapperProps> = ({ moduleName, children }) => {
   const { isConnected, did } = useDIDWallet();
   const { sendRequest } = useMcp();
+  const { nodeEntitlement } = useUserProfile();
+  const enabledAppId = enabledAppForModule(moduleName);
 
   const [loading, setLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
@@ -166,7 +182,43 @@ export const LicenseCheck: React.FC<LicenseCheckWrapperProps> = ({ moduleName, c
     }
   };
 
-  // 1. Wallet not connected state
+  // Primary gate: node subscription + enabled_apps. Per-app SKU below is deprecated.
+  if (nodeEntitlement && enabledAppId) {
+    const status = resolveNodeSubscriptionStatus(nodeEntitlement);
+    const enabled = isAppEnabled(nodeEntitlement, enabledAppId);
+    const write = assertNodeWrite(nodeEntitlement, enabledAppId);
+    if (!enabled) {
+      return (
+        <div className="glass-panel" style={{ padding: '40px', textAlign: 'center', maxWidth: '650px', margin: '40px auto' }}>
+          <ShieldAlert size={48} color="var(--neon-amber)" style={{ marginBottom: '15px' }} />
+          <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#fff', marginBottom: '10px' }}>App not enabled</h2>
+          <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: '1.6' }}>
+            This place has not enabled this app. Enable it from your hub — no separate app license.
+          </p>
+        </div>
+      );
+    }
+    if (!write.allowed) {
+      return (
+        <div className="glass-panel" style={{ padding: '40px', textAlign: 'center', maxWidth: '650px', margin: '40px auto' }} data-testid="node-write-blocked">
+          <ShieldAlert size={48} color="var(--neon-red)" style={{ marginBottom: '15px' }} />
+          <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#fff', marginBottom: '10px' }}>
+            {status === 'past_due' ? 'Payment is due' : 'This place is paused'}
+          </h2>
+          <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: '1.6' }} data-testid="node-write-reason">
+            {status === 'past_due'
+              ? 'This place is read-only until payment is on file.'
+              : 'Writes are closed while the place subscription is suspended.'}
+          </p>
+        </div>
+      );
+    }
+    if (hasFullAppAccess(nodeEntitlement, enabledAppId)) {
+      return <>{children}</>;
+    }
+  }
+
+  // 1. Wallet not connected state (deprecated SKU fallback)
   if (!isConnected) {
     return (
       <div className="glass-panel" style={{ padding: '40px', textAlign: 'center', maxWidth: '650px', margin: '40px auto' }}>

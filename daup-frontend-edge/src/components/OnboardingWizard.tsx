@@ -10,9 +10,15 @@ import {
   ASK_BACK_LABEL,
   SEE_YOUR_APPS_LABEL,
   STAY_WITH_THE_HOUSE_LABEL,
-  WHERE_IS_THE_EATERY,
-  WHERE_IS_THE_EATERY_SUB
+  CREATE_YOUR_PLACE_TITLE,
+  CREATE_YOUR_PLACE_SUB,
+  ENABLE_APPS_TITLE,
+  ENABLE_APPS_SUB,
+  PICK_AN_APP_MESSAGE,
+  ENABLED_APPS_LABEL
 } from '../hub/copy';
+import { ENABLEABLE_APP_IDS, type EnableableAppId } from '../hub/companyNode';
+import { SHOP_APPS } from '../hub/places';
 
 const EATERY = 'https://eatery.daup.co.za/';
 
@@ -35,8 +41,14 @@ const CRYPTO_CHAINS = [
   { id: 'daup-edge', name: 'DAUP Native Edge Chain' }
 ];
 
+const ENABLEABLE_SHOP = ENABLEABLE_APP_IDS.map(id => {
+  const shop = SHOP_APPS.find(app => app.id === id);
+  return { id, title: shop?.title || id, live: Boolean(shop?.live) };
+});
+
 const STEP_COPY = [
-  { title: WHERE_IS_THE_EATERY, sub: WHERE_IS_THE_EATERY_SUB },
+  { title: CREATE_YOUR_PLACE_TITLE, sub: CREATE_YOUR_PLACE_SUB },
+  { title: ENABLE_APPS_TITLE, sub: ENABLE_APPS_SUB },
   { title: 'Who should we reach?', sub: 'A phone for the house. WhatsApp is how staff join.' },
   { title: 'Invite tonight’s floor', sub: 'You send a WhatsApp. They never join as a new business.' },
   { title: 'You’re ready', sub: 'See your apps. Then open the house from the hub.' }
@@ -60,6 +72,7 @@ export const OnboardingWizard: React.FC = () => {
   const [saving, setSaving] = useState(false);
 
   const [placeName, setPlaceName] = useState<string>('');
+  const [enabledApps, setEnabledApps] = useState<EnableableAppId[]>([]);
 
   const [locationForm, setLocationForm] = useState<UserLocation>({
     country: '',
@@ -118,7 +131,7 @@ export const OnboardingWizard: React.FC = () => {
       return false;
     }
     if (!locationForm.country.trim()) {
-      setErrorMsg('Which country is the eatery in?');
+      setErrorMsg('Which country is the place in?');
       return false;
     }
     if (!locationForm.city.trim()) {
@@ -130,6 +143,15 @@ export const OnboardingWizard: React.FC = () => {
   };
 
   const validateStep2 = () => {
+    if (enabledApps.length === 0) {
+      setErrorMsg(PICK_AN_APP_MESSAGE);
+      return false;
+    }
+    setErrorMsg(null);
+    return true;
+  };
+
+  const validateStep3 = () => {
     if (!demographicsForm.contactNumber.trim()) {
       setErrorMsg('Add a phone number.');
       return false;
@@ -138,7 +160,7 @@ export const OnboardingWizard: React.FC = () => {
     return true;
   };
 
-  const validateStep3 = () => {
+  const validateStep4 = () => {
     if (!placeName.trim()) {
       setErrorMsg('Name the place.');
       return false;
@@ -162,6 +184,7 @@ export const OnboardingWizard: React.FC = () => {
     if (step === 1 && !validateStep1()) return;
     if (step === 2 && !validateStep2()) return;
     if (step === 3 && !validateStep3()) return;
+    if (step === 4 && !validateStep4()) return;
     setErrorMsg(null);
     setStep(prev => prev + 1);
   };
@@ -205,14 +228,14 @@ export const OnboardingWizard: React.FC = () => {
         },
         wallets: [initialWallet],
         primaryWalletId: newWalletId
-      });
+      }, { enabledApps });
     } finally {
       setSaving(false);
     }
   };
 
   const copy = STEP_COPY[step - 1];
-  const progress = (step / 4) * 100;
+  const progress = (step / 5) * 100;
 
   return (
     <div className="owner-wizard">
@@ -244,7 +267,7 @@ export const OnboardingWizard: React.FC = () => {
       </header>
 
       <div className="wizard-wrap" data-testid="hub-wizard">
-        <p className="wizard-progress-label">Step {step} of 4</p>
+        <p className="wizard-progress-label">Step {step} of 5</p>
         <div className="wizard-bar" aria-hidden="true">
           <span style={{ width: `${progress}%` }} />
         </div>
@@ -370,6 +393,33 @@ export const OnboardingWizard: React.FC = () => {
           )}
 
           {step === 2 && (
+            <div className="wizard-apps" data-testid="enable-apps">
+              {ENABLEABLE_SHOP.map(app => {
+                const on = enabledApps.includes(app.id);
+                return (
+                  <button
+                    key={app.id}
+                    type="button"
+                    className={on ? 'wizard-app is-on' : 'wizard-app'}
+                    data-testid={`enable-app-${app.id}`}
+                    aria-pressed={on}
+                    onClick={() => {
+                      setEnabledApps(prev => (
+                        prev.includes(app.id)
+                          ? prev.filter(id => id !== app.id)
+                          : [...prev, app.id]
+                      ));
+                    }}
+                  >
+                    <span>{app.title}</span>
+                    {app.live ? <span className="live">LIVE</span> : <span className="coming-flag">Coming</span>}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {step === 3 && (
             <>
               <div className="wizard-grid two">
                 <div className="owner-field">
@@ -436,7 +486,7 @@ export const OnboardingWizard: React.FC = () => {
             </>
           )}
 
-          {step === 3 && (
+          {step === 4 && (
             <>
               <p style={{ margin: 0 }}>
                 Staff open a WhatsApp from you. That message is their login. They land on the floor for {houseLabel} — tables, tickets, kitchen.
@@ -501,7 +551,7 @@ export const OnboardingWizard: React.FC = () => {
             </>
           )}
 
-          {step === 4 && (
+          {step === 5 && (
             <>
               <dl className="wizard-review">
                 <dt>Place</dt>
@@ -514,6 +564,10 @@ export const OnboardingWizard: React.FC = () => {
                 </dd>
                 <dt>Reach you</dt>
                 <dd>{ownerSession?.email || demographicsForm.email} · {demographicsForm.contactNumber}</dd>
+                <dt>{ENABLED_APPS_LABEL}</dt>
+                <dd data-testid="review-enabled-apps">
+                  {ENABLEABLE_SHOP.filter(app => enabledApps.includes(app.id)).map(app => app.title).join(', ')}
+                </dd>
               </dl>
               <p className="caption" style={{ margin: 0 }}>
                 After this, open the house from your hub. Invite tonight’s floor when you are ready.
@@ -536,7 +590,7 @@ export const OnboardingWizard: React.FC = () => {
             )}
           </div>
           <div>
-            {step < 4 ? (
+            {step < 5 ? (
               <button type="button" className="btn btn-primary" onClick={handleNext}>
                 Continue <ArrowRight size={16} />
               </button>
