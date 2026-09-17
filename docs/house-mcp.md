@@ -27,7 +27,9 @@ Both delete calls use the **placeId Hub currently holds** for that place (direct
 
 **Log off.** wipes Hub local + session keys on this origin (vault, places cache, session). Next email sign-in calls `places_list_by_email` again.
 
-`app` is `eatery` \| `farm` \| `reseller` \| `maker` (Hub mints Eatery today).
+`app` is `eatery` \| `farm` \| `reseller` \| `maker` (Hub still sends a primary chain app). Slice A also sends `companyId` and `enabledApps[]` on register when present. Hub mints `companyId` once locally; never remint if MCP returns a different id.
+
+Default hosted seed attach (slice A stub): `{ endpoint: "https://mcp.daup.co.za", mode: "hosted", companyId }`. Do not block registration on `seednode_status`. See [`docs/license-pivot.md`](license-pivot.md).
 
 Client: `daup-frontend-edge/src/hub/houseMcp.ts`.
 

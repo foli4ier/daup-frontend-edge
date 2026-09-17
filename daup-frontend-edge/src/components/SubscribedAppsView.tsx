@@ -33,7 +33,9 @@ export const SubscribedAppsView: React.FC<{
     hasHouse,
     ownerSession,
     beginNamingPlace,
-    profile
+    profile,
+    enabledApps,
+    enableApp
   } = useUserProfile();
   const houseName = (activeWallet?.legalName || '').trim();
   const email = ownerSession?.email || '';
@@ -44,6 +46,8 @@ export const SubscribedAppsView: React.FC<{
   const showPlaces = pane === 'places';
   const showApps = pane === 'home' || pane === 'apps';
   const showChain = pane === 'home';
+  const eateryEnabled = enabledApps.length === 0 || enabledApps.includes('eatery');
+  const showHouseOpen = hasHouse && eateryEnabled;
   const openHandshake = projectOpenHandshakeFromHub({
     email,
     house: houseName,
@@ -59,6 +63,11 @@ export const SubscribedAppsView: React.FC<{
   };
 
   const handleGet = (app: ShopApp) => {
+    if (app.live && app.id !== 'eatout' && hasHouse && !enabledApps.includes(app.id)) {
+      enableApp(app.id);
+      if (app.moduleKey && !installedApps[app.moduleKey]) onSubscribeApp?.(app.moduleKey);
+      return;
+    }
     if (app.live && app.id === 'eatery') {
       if (!email.trim() || !houseName.trim()) return;
       navigateToTheHouse({ email, house: houseName });
@@ -95,7 +104,7 @@ export const SubscribedAppsView: React.FC<{
     <div className="apps-home" data-testid="hub-home" data-pane={pane}>
       {pane === 'home' ? (
         <div className="hub-home-cta" data-testid="hub-home-cta">
-          {hasHouse ? (
+          {showHouseOpen ? (
             <a
               className="btn btn-primary btn-wide"
               href={eatery.href || undefined}
@@ -104,7 +113,7 @@ export const SubscribedAppsView: React.FC<{
             >
               {OPEN_LABEL}
             </a>
-          ) : (
+          ) : hasHouse ? null : (
             <article className="place-card places-empty" data-testid="your-places-empty">
               <p className="caption" data-testid="your-places-empty-copy">{YOUR_PLACES_EMPTY}</p>
               <button
@@ -136,6 +145,7 @@ export const SubscribedAppsView: React.FC<{
                 ) : null}
               </div>
               <span className="live" data-testid="eatery-place-status">{eatery.status}</span>
+              {eateryEnabled ? (
               <a
                 className="btn btn-primary"
                 href={eatery.href || undefined}
@@ -144,6 +154,7 @@ export const SubscribedAppsView: React.FC<{
               >
                 {eatery.actionLabel}
               </a>
+              ) : null}
             </article>
           ) : (
             <article className="place-card places-empty" data-testid="your-places-empty">
@@ -169,6 +180,7 @@ export const SubscribedAppsView: React.FC<{
           onOpen={handleOpen}
           demoteOpen={pane === 'home'}
           openHandshake={openHandshake}
+          enabledApps={enabledApps}
         />
       ) : null}
 

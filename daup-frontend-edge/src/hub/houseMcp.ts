@@ -13,6 +13,7 @@ import {
   type PlatformAppId,
   type PlatformPlaceRecord
 } from '../stores/identityStore';
+import { asCompanyId, normalizeEnabledApps, type EnableableAppId } from './companyNode';
 
 export const DEFAULT_HOUSE_MCP_BASE = 'https://mcp.daup.co.za';
 export const HOUSE_MCP_PATH = '/mcp';
@@ -22,7 +23,10 @@ export const HOUSE_MCP_TOOLS = {
   listByEmail: 'places_list_by_email',
   register: 'places_register',
   unregister: 'places_unregister',
-  deleteState: 'house_state_delete'
+  deleteState: 'house_state_delete',
+  /** Slice C wires this for the Connected badge. Slice A does not block on it. */
+  seedAttach: 'seednode_attach',
+  seedStatus: 'seednode_status'
 } as const;
 
 export type HouseMcpFetch = (input: string, init?: RequestInit) => Promise<Response>;
@@ -44,6 +48,8 @@ export interface HousePlace {
   city: string;
   registeredAt?: number;
   updatedAt?: number;
+  companyId?: string;
+  enabledApps?: EnableableAppId[];
 }
 
 export type HouseMcpFailure = { ok: false; reason: string };
@@ -84,7 +90,9 @@ export function housePlaceToPlatform(place: HousePlace): PlatformPlaceRecord | n
     region: place.region,
     city: place.city,
     placeId: place.placeId,
-    ownerEmail: place.ownerEmail
+    ownerEmail: place.ownerEmail,
+    companyId: place.companyId,
+    enabledApps: place.enabledApps
   });
 }
 
@@ -111,6 +119,10 @@ function asHousePlace(value: unknown): HousePlace | null {
   }
   if (typeof raw.registeredAt === 'number') place.registeredAt = raw.registeredAt;
   if (typeof raw.updatedAt === 'number') place.updatedAt = raw.updatedAt;
+  const companyId = asCompanyId(raw.companyId ?? raw.company_id);
+  if (companyId) place.companyId = companyId;
+  const enabledApps = normalizeEnabledApps(raw.enabledApps ?? raw.enabled_apps);
+  if (enabledApps.length) place.enabledApps = enabledApps;
   return place;
 }
 
@@ -229,28 +241,37 @@ export async function registerHousePlace(
     country?: string;
     region?: string;
     city?: string;
+    companyId?: string;
+    enabledApps?: readonly string[];
   },
   options: HouseMcpClientOptions = {}
 ): Promise<HouseMcpRegisterOk | HouseMcpFailure> {
   const ownerEmail = normalizeEmail(args.ownerEmail);
   const placeName = (args.placeName || '').trim();
   if (!ownerEmail || !placeName) return { ok: false, reason: 'email-and-place-required' };
+  const companyId = asCompanyId(args.companyId);
+  const enabledApps = normalizeEnabledApps(args.enabledApps);
+  const payload: Record<string, unknown> = {
+    ownerEmail,
+    placeName,
+    app: isPlatformAppId(args.app) ? args.app : 'eatery',
+    country: (args.country || '').trim(),
+    region: (args.region || '').trim(),
+    city: (args.city || '').trim()
+  };
+  if (companyId) payload.companyId = companyId;
+  if (enabledApps.length) payload.enabledApps = enabledApps;
   const called = await callHouseMcpTool(
     HOUSE_MCP_TOOLS.register,
-    {
-      ownerEmail,
-      placeName,
-      app: isPlatformAppId(args.app) ? args.app : 'eatery',
-      country: (args.country || '').trim(),
-      region: (args.region || '').trim(),
-      city: (args.city || '').trim()
-    },
+    payload,
     options
   );
   if (!called.ok) return called;
   const place = asHousePlace(called.data);
   if (!place) return { ok: false, reason: 'unreadable-place' };
   if (!place.ownerEmail) place.ownerEmail = ownerEmail;
+  if (companyId && !place.companyId) place.companyId = companyId;
+  if (enabledApps.length && !place.enabledApps?.length) place.enabledApps = enabledApps;
   return { ok: true, place };
 }
 

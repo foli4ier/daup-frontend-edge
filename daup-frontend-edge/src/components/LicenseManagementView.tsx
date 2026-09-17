@@ -18,7 +18,7 @@ export const LicenseManagementView: React.FC<LicenseManagementViewProps> = ({
 }) => {
   const { did } = useDIDWallet();
   const { sendRequest } = useMcp();
-  const { instanceName, currency } = useUserProfile();
+  const { instanceName, currency, nodeEntitlement } = useUserProfile();
 
   const [renewModalModule, setRenewModalModule] = useState<string | null>(null);
   const [renewTier, setRenewTier] = useState<'Pro' | 'Developer' | 'Enterprise'>('Pro');
@@ -71,8 +71,13 @@ export const LicenseManagementView: React.FC<LicenseManagementViewProps> = ({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      
-      {/* Header Overview Card */}
+      <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }} data-testid="node-entitlement-primary">
+        Primary gate is the company subscription
+        {nodeEntitlement
+          ? ` (${nodeEntitlement.node_subscription_status}; ${nodeEntitlement.enabled_apps.join(', ') || 'no apps'}).`
+          : '.'}
+        {' '}Per-app SKUs below are deprecated.
+      </p>
       <div 
         className="glass-panel" 
         style={{ 

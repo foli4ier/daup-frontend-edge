@@ -34,8 +34,14 @@ export const STAFF_INVITE_LABEL = 'I have a staff invite';
 export const STAFF_INVITE_HREF = 'https://www.daup.co.za/invite';
 export const DAUP_HOME_HREF = 'https://www.daup.co.za';
 export const INVALID_EMAIL_MESSAGE = 'Add the email we can reach.';
-export const WHERE_IS_THE_EATERY = 'Where is the eatery?';
+export const WHERE_IS_THE_EATERY = 'Create your company / place';
 export const WHERE_IS_THE_EATERY_SUB = 'Name the place. Staff join with a WhatsApp tap.';
+export const CREATE_YOUR_PLACE_TITLE = WHERE_IS_THE_EATERY;
+export const CREATE_YOUR_PLACE_SUB = WHERE_IS_THE_EATERY_SUB;
+export const ENABLE_APPS_TITLE = 'Which apps should this place run?';
+export const ENABLE_APPS_SUB = 'Pick one or more. Eatery is one of them — not the only path.';
+export const PICK_AN_APP_MESSAGE = 'Pick at least one app.';
+export const ENABLED_APPS_LABEL = 'Apps';
 export const YOUR_PLACES_KICKER = 'Your places.';
 export const YOUR_PLACES_EMPTY = 'No house on this hub yet.';
 export const YOUR_APPS_KICKER = YOUR_PLACES_KICKER;
@@ -164,6 +170,15 @@ export const ASK_PAGE_COPY = [
   CHAIN_APP_FARM,
   CHAIN_APP_RESELLER,
   CHAIN_APP_MAKER
+];
+
+export const HUB_WIZARD_COPY = [
+  CREATE_YOUR_PLACE_TITLE,
+  CREATE_YOUR_PLACE_SUB,
+  ENABLE_APPS_TITLE,
+  ENABLE_APPS_SUB,
+  PICK_AN_APP_MESSAGE,
+  ENABLED_APPS_LABEL
 ];
 
 export const DELETE_HOUSE_MODAL_COPY = [

@@ -12,12 +12,15 @@ import {
   UserIdentityVault,
   registerPlaceOnPlatform,
   listRegisteredPlaces,
+  loadIdentityVault,
   VAULT_STORAGE_KEY,
   PLATFORM_ENTITIES_KEY
 } from '../stores/identityStore';
 import { OWNER_SESSION_STORAGE_KEY } from '../hub/ownerSession';
 import { HUB_INSTALLED_APPS_KEY } from '../hub/hubStorage';
 import { HOUSE_MCP_TOOLS } from '../hub/houseMcp';
+import { bindCompanyId } from '../hub/companyNode';
+import { NODE_TRIAL_STARTED, loadTrialEvent } from '../hub/entitlements';
 import {
   GET_APPS_KICKER,
   GET_LABEL,
@@ -1077,6 +1080,12 @@ describe('On the chain. from register and delete', () => {
     typeInto(container.querySelector('#city') as HTMLInputElement, 'Stellenbosch');
     clickContinue(container);
 
+    expect(container.querySelector('[data-testid="enable-apps"]')).toBeTruthy();
+    act(() => {
+      (container.querySelector('[data-testid="enable-app-eatery"]') as HTMLButtonElement).click();
+    });
+    clickContinue(container);
+
     typeInto(container.querySelector('#phone') as HTMLInputElement, '+27820000000');
     clickContinue(container);
     clickContinue(container);
@@ -1096,13 +1105,72 @@ describe('On the chain. from register and delete', () => {
     expect(row?.textContent).toContain('Stellenbosch, Western Cape, South Africa');
     expect(row?.textContent).toContain('Eatery');
     expect(container.querySelector('[data-testid="on-the-chain-empty"]')).toBeNull();
-    expect(listRegisteredPlaces()).toEqual([{
+    const registered = listRegisteredPlaces()[0];
+    expect(registered).toMatchObject({
       placeName: 'The Olive',
       app: 'eatery',
       country: 'South Africa',
       region: 'Western Cape',
-      city: 'Stellenbosch'
-    }]);
+      city: 'Stellenbosch',
+      enabledApps: ['eatery']
+    });
+    expect(registered.companyId).toMatch(/^co_/);
+    expect(bindCompanyId(registered.companyId).minted).toBe(false);
+    expect(bindCompanyId(registered.companyId).companyId).toBe(registered.companyId);
+    expect(loadTrialEvent(registered.companyId || '')?.event).toBe(NODE_TRIAL_STARTED);
+    expect(loadIdentityVault().companyNode?.companyId).toBe(registered.companyId);
+    expect(loadIdentityVault().seednode).toMatchObject({
+      endpoint: 'https://mcp.daup.co.za',
+      mode: 'hosted',
+      companyId: registered.companyId
+    });
+    expect(container.textContent).not.toMatch(/\b(peer|node|DID|DHT|wallet|MCP|npm|hydrate|neon)\b/i);
+    unmount();
+  });
+
+  it('registers a non-eatery place and persists enabled_apps', async () => {
+    const { container, unmount } = render(<App />);
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 80));
+    });
+
+    act(() => {
+      (container.querySelector('[data-testid="register-new-house"]') as HTMLButtonElement).click();
+    });
+    typeInto(container.querySelector('#place-name') as HTMLInputElement, 'Green Field');
+    typeInto(container.querySelector('#country') as HTMLInputElement, 'Kenya');
+    typeInto(container.querySelector('#province') as HTMLInputElement, 'Nairobi');
+    typeInto(container.querySelector('#city') as HTMLInputElement, 'Nairobi');
+    clickContinue(container);
+    act(() => {
+      (container.querySelector('[data-testid="enable-app-farm"]') as HTMLButtonElement).click();
+    });
+    clickContinue(container);
+    typeInto(container.querySelector('#phone') as HTMLInputElement, '+254700000000');
+    clickContinue(container);
+    clickContinue(container);
+    act(() => {
+      (container.querySelector('[data-testid="see-your-apps"]') as HTMLButtonElement | null)?.click();
+    });
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 80));
+    });
+
+    const registered = listRegisteredPlaces()[0];
+    expect(registered).toMatchObject({
+      placeName: 'Green Field',
+      app: 'farm',
+      country: 'Kenya',
+      region: 'Nairobi',
+      city: 'Nairobi',
+      enabledApps: ['farm']
+    });
+    expect(registered.companyId).toMatch(/^co_/);
+    expect(container.querySelector('[data-testid="on-the-chain-place"]')?.textContent).toContain('Farm');
+    expect(container.querySelector('[data-testid="get-app-eatery"]')?.textContent).toBe(GET_LABEL);
+    expect(container.querySelector('[data-testid="open-app-eatery"]')).toBeNull();
+    expect(container.querySelector('[data-testid="hub-home-open"]')).toBeNull();
+    expect(loadIdentityVault().companyNode?.enabledApps).toEqual(['farm']);
     expect(container.textContent).not.toMatch(/\b(peer|node|DID|DHT|wallet|MCP|npm|hydrate|neon)\b/i);
     unmount();
   });
