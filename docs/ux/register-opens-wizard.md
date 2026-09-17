@@ -9,4 +9,6 @@ From hub home, **Register a new house.** starts the naming wizard.
 - Already has a house: **Stay with this house.** returns to home
 - Completing the wizard names the house, binds `companyId` once, and returns to home
 
-![Register opens Where is the eatery?](register-opens-wizard.png)
+![Register opens Create your company / place](register-opens-wizard.png)
+
+PR 18 pack (desktop + mobile): [pr-18/kitchen.md](pr-18/kitchen.md)

@@ -42,6 +42,8 @@ export const ENABLE_APPS_TITLE = 'Which apps should this place run?';
 export const ENABLE_APPS_SUB = 'Pick one or more. Eatery is one of them — not the only path.';
 export const PICK_AN_APP_MESSAGE = 'Pick at least one app.';
 export const ENABLED_APPS_LABEL = 'Apps';
+export const PLACE_PAYMENT_DUE = 'Payment is due. This place is read-only.';
+export const PLACE_PAUSED = 'This place is paused. Writes are closed.';
 export const YOUR_PLACES_KICKER = 'Your places.';
 export const YOUR_PLACES_EMPTY = 'No house on this hub yet.';
 export const YOUR_APPS_KICKER = YOUR_PLACES_KICKER;
@@ -151,6 +153,8 @@ export const HUB_HOME_COPY = [
   YOU_KICKER,
   SETTINGS_KICKER,
   MONEY_IN_R_LABEL,
+  PLACE_PAYMENT_DUE,
+  PLACE_PAUSED,
   LIVE_STATUS_LABEL
 ];
 

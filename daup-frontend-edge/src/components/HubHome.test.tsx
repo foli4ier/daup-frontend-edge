@@ -20,7 +20,7 @@ import { OWNER_SESSION_STORAGE_KEY } from '../hub/ownerSession';
 import { HUB_INSTALLED_APPS_KEY } from '../hub/hubStorage';
 import { HOUSE_MCP_TOOLS } from '../hub/houseMcp';
 import { bindCompanyId } from '../hub/companyNode';
-import { NODE_TRIAL_STARTED, loadTrialEvent } from '../hub/entitlements';
+import { NODE_TRIAL_STARTED, loadTrialEvent, saveNodeEntitlement } from '../hub/entitlements';
 import {
   GET_APPS_KICKER,
   GET_LABEL,
@@ -37,7 +37,9 @@ import {
   YOUR_PLACES_EMPTY,
   YOUR_PLACES_KICKER,
   SETTINGS_KICKER,
-  WHERE_IS_THE_EATERY
+  WHERE_IS_THE_EATERY,
+  PLACE_PAYMENT_DUE,
+  PLACE_PAUSED
 } from '../hub/copy';
 import { App } from '../App';
 import { persistOwnerCookie, mintOwnerArrivalToken, readOwnerArrivalToken, buildOpenTheHouseUrl, cookieSetsParentDomain, expireOwnerCookie } from '../hub/ownerArrival';
@@ -227,6 +229,61 @@ describe('hub home after email', () => {
     expect(settings && settings.compareDocumentPosition(logOff) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(logOff.compareDocumentPosition(advanced) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     unmount();
+  });
+
+  it('You. uses kitchen English when payment is due or the place is paused', async () => {
+    const day = 24 * 60 * 60 * 1000;
+    saveIdentityVault({
+      ...houseVault,
+      companyNode: {
+        companyId: 'co_olive',
+        enabledApps: ['eatery'],
+        billableLocations: 1
+      },
+      trialState: {
+        ...houseVault.trialState,
+        isTrialActive: false
+      }
+    });
+    saveNodeEntitlement({
+      companyId: 'co_olive',
+      node_subscription_status: 'past_due',
+      trial_started_at: Date.now() - 40 * day,
+      trial_ends_at: Date.now() - 2 * day,
+      enabled_apps: ['eatery'],
+      billable_locations: 1,
+      payment_method_ok: false
+    });
+
+    const { container, unmount } = render(<App />);
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 80));
+    });
+    openYou(container);
+    expect(container.querySelector('[data-testid="hub-you-place-status"]')?.textContent).toBe(PLACE_PAYMENT_DUE);
+    expect(container.querySelector('[data-testid="hub-you-date"]')).toBeNull();
+    expect(container.textContent).not.toMatch(/\b(peer|node|DID|DHT|wallet|MCP|npm|hydrate|neon)\b/i);
+    expect(container.textContent).not.toContain('co_');
+    unmount();
+
+    saveNodeEntitlement({
+      companyId: 'co_olive',
+      node_subscription_status: 'suspended',
+      trial_started_at: Date.now() - 50 * day,
+      trial_ends_at: Date.now() - 10 * day,
+      enabled_apps: ['eatery'],
+      billable_locations: 1,
+      payment_method_ok: false
+    });
+    const second = render(<App />);
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 80));
+    });
+    openYou(second.container);
+    expect(second.container.querySelector('[data-testid="hub-you-place-status"]')?.textContent).toBe(PLACE_PAUSED);
+    expect(second.container.textContent).not.toMatch(/\b(peer|node|DID|DHT|wallet|MCP|npm|hydrate|neon)\b/i);
+    expect(second.container.textContent).not.toContain('co_');
+    second.unmount();
   });
 
   it('shows the eatery row as the place name and Open the house to /owner', async () => {
@@ -787,7 +844,7 @@ describe('signed-in hub does not assume eatery', () => {
     unmount();
   });
 
-  it('Register a new house. opens Where is the eatery?', async () => {
+  it('Register a new house. opens Create your company / place', async () => {
     localStorage.setItem(OWNER_SESSION_STORAGE_KEY, JSON.stringify({
       email: 'owner@theolive.co.za',
       signedInAt: Date.now()
