@@ -51,6 +51,7 @@ export const RESERVE_A_TABLE_LABEL = 'Reserve a table.';
 export const CHAIN_BACK_LABEL = 'Back.';
 export const CHAIN_APP_CHAT = 'Chat';
 export const CHAIN_APP_EATOUT = 'EatOut';
+export const CHAIN_APP_PROJECT = 'Project';
 export const EATERY_ROW_BODY = 'Tables, tickets, kitchen, stock.';
 export const HUB_HOME_FALLBACK = 'Your hub';
 export const LOG_OFF_LABEL = 'Log off.';
@@ -131,6 +132,7 @@ export const HUB_HOME_COPY = [
   ON_THE_CHAIN_EMPTY,
   CHAIN_APP_EATERY,
   CHAIN_APP_EATOUT,
+  CHAIN_APP_PROJECT,
   CHAIN_APP_FARM,
   CHAIN_APP_RESELLER,
   CHAIN_APP_MAKER,

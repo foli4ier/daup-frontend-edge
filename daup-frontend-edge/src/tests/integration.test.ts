@@ -384,6 +384,26 @@ export function runEdgePlatformTests(): TestResult[] {
       `Resolved endpoint: "${eateryUrl}"`
     );
 
+    const projectUrl = getModuleEndpoint('daup-project');
+    assert(
+      'Project endpoint resolves to project.daup.co.za or localhost:3002',
+      projectUrl.includes('project.daup.co.za') || projectUrl.includes('localhost:3002'),
+      `Resolved endpoint: "${projectUrl}"`
+    );
+
+    const projectLaunch = buildAppLaunchUrl('daup-project', {
+      legalName: 'Cape Bistro Ltd',
+      did: 'did:daup:cape-bistro-seed-pub',
+      token: 'test-license-token-123'
+    });
+    const projectParsed = new URL(projectLaunch);
+    assert(
+      'Project launch URL uses the Project origin and handshake query',
+      (projectParsed.hostname === 'project.daup.co.za' || projectParsed.origin.includes('localhost:3002')) &&
+      projectParsed.searchParams.get('instance') === 'cape-bistro-ltd.daup',
+      `Constructed URL: ${projectLaunch}`
+    );
+
     const launchUrl = buildAppLaunchUrl('daup-eatery', {
       legalName: 'Cape Bistro Ltd',
       did: 'did:daup:cape-bistro-seed-pub',

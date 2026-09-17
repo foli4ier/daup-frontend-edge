@@ -97,6 +97,7 @@ describe('hub email door copy', () => {
     expect(HUB_HOME_COPY).toContain(ASK_FOR_ENHANCEMENT_LABEL);
     expect(HUB_HOME_COPY).toContain('Chat');
     expect(HUB_HOME_COPY).toContain('EatOut');
+    expect(HUB_HOME_COPY).toContain('Project');
     for (const line of DELETE_HOUSE_MODAL_COPY) {
       expect(hasBannedDoorCopy(line), `banned word in "${line}"`).toBe(false);
     }

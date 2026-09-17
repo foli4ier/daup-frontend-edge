@@ -11,6 +11,11 @@ export function getModuleEndpoint(moduleKey: string): string {
         import.meta.env.VITE_APP_EATERY_URL || 
         (isDev ? 'http://localhost:3005' : 'https://eatery.daup.co.za')
       );
+    case 'daup-project':
+      return (
+        import.meta.env.VITE_APP_PROJECT_URL ||
+        (isDev ? 'http://localhost:3002' : 'https://project.daup.co.za')
+      );
     case 'daup-farmer':
       return (
         import.meta.env.VITE_APP_FARMER_URL || 

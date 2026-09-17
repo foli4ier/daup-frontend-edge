@@ -6,7 +6,7 @@ Signed-in **app.daup.co.za** home. Cream / terracotta / forest only — `daup-th
 
 1. **Place context** — house name, city, email. No Advanced, Profile, or Log off.
 2. **CTA** — **Open.** when a house is live. **+ Register** when there is no house. This is the terracotta primary on Home.
-3. **Get apps.** — held app: **Open.** only. Not held: one **Get.** as primary. Never Get.+Open. together.
+3. **Get apps.** — LIVE: Eatery, EatOut, Project. Held app: **Open.** only. Not held: one **Get.** as primary. Never Get.+Open. together. Project **Open.** is `https://project.daup.co.za` — or `/d/hub?token=` when Hub already has email + house (same owner arrival as Eatery; see `src/hub/projectUrls.ts`).
 4. **On the chain.**
 5. **Thumb nav** — Home / Places / Apps / You
 
