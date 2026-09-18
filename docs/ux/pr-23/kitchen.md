@@ -27,7 +27,7 @@ Kitchen English on the doors (same copy as #18 / #19):
 **You.** after mint. Kitchen English only.
 
 - Email · **The Olive**
-- *Ends … 2026.*
+- *Ends 18 Oct 2026.*
 - *Prices in R.*
 - **Settings.** **Register a new house.** · **Delete the house.** · **Ask for an enhancement.**
 - **Log off.** · Advanced (off — protocol stays behind it)
