@@ -181,6 +181,6 @@ export function seednodeDoorHost(config: SeednodeConfig | null | undefined): str
 
 /** Kitchen chrome stays free of protocol words. Advanced / tests may show this stub. */
 export function seednodePendingLabel(config: SeednodeConfig | null | undefined): string {
-  if (!config) return 'Seednode: none';
-  return `Seednode: ${config.mode} (pending)`;
+  if (!config) return 'Seed: none';
+  return `Seed: ${config.mode} (pending)`;
 }

@@ -45,12 +45,16 @@ export const PLACE_PAYMENT_DUE = 'Payment is due. This place is read-only.';
 export const PLACE_PAUSED = 'This place is paused. Writes are closed.';
 export const PLACE_TRIAL_STATUS = 'Trial.';
 export const PLACE_ACTIVE_STATUS = 'Active.';
-export const SEEDNODE_KICKER = 'Seednode.';
+export const SEED_KICKER = 'Seed.';
+export const SEEDNODE_KICKER = SEED_KICKER;
 export const SEEDNODE_MODE_HOSTED = 'Hosted.';
 export const SEEDNODE_MODE_ON_PREM = 'On this premises.';
-export const SEEDNODE_STATUS_UNKNOWN = 'Unknown.';
+export const SEED_STATUS_UNCHECKED = 'Status not checked yet.';
+export const SEEDNODE_STATUS_UNKNOWN = SEED_STATUS_UNCHECKED;
 export const SEEDNODE_STATUS_CONNECTED = 'Connected.';
-export const MANAGE_SEEDNODE_LABEL = 'Manage seednode.';
+export const MANAGE_SEED_LABEL = 'Manage seed.';
+export const CHECK_SEED_LABEL = 'Check seed.';
+export const MANAGE_SEEDNODE_LABEL = MANAGE_SEED_LABEL;
 export const SUBSCRIPTION_KICKER = 'Subscription.';
 export const MANAGE_BILLING_LABEL = 'Manage billing.';
 export const PLACE_APPS_KICKER = 'Apps';
@@ -171,12 +175,13 @@ export const HUB_HOME_COPY = [
   PLACE_PAUSED,
   PLACE_TRIAL_STATUS,
   PLACE_ACTIVE_STATUS,
-  SEEDNODE_KICKER,
+  SEED_KICKER,
   SEEDNODE_MODE_HOSTED,
   SEEDNODE_MODE_ON_PREM,
-  SEEDNODE_STATUS_UNKNOWN,
+  SEED_STATUS_UNCHECKED,
   SEEDNODE_STATUS_CONNECTED,
-  MANAGE_SEEDNODE_LABEL,
+  MANAGE_SEED_LABEL,
+  CHECK_SEED_LABEL,
   SUBSCRIPTION_KICKER,
   MANAGE_BILLING_LABEL,
   PLACE_APPS_KICKER,

@@ -331,7 +331,8 @@ describe('hub home after email', () => {
     const claims = readOwnerArrivalToken(token);
     expect(claims?.house).toBe('The Olive');
     expect(claims?.email).toBe('owner@theolive.co.za');
-    expect(container.textContent).not.toMatch(/\b(peer|DID|DHT|wallet|MCP|npm|hydrate|neon)\b/i);
+    expect(container.textContent).not.toMatch(/\b(peer|node|DID|DHT|wallet|MCP|npm|hydrate|neon)\b/i);
+    expect(container.textContent).not.toMatch(/seednode/i);
     expect(container.textContent).not.toContain('co_');
     act(() => {
       (container.querySelector('[data-testid="back-to-places"]') as HTMLButtonElement | null)?.click();
@@ -1654,8 +1655,13 @@ describe('P0/P1 place list and control plane', () => {
     });
     expect(container.querySelector('[data-testid="place-detail"]')).toBeTruthy();
     expect(container.querySelector('[data-testid="place-detail-name"]')?.textContent).toContain('Salt');
+    expect(container.querySelector('[data-testid="place-seednode"]')?.textContent).toContain('Seed.');
     expect(container.querySelector('[data-testid="place-seed-mode"]')?.textContent).toBe('Hosted.');
     expect(container.querySelector('[data-testid="place-seed-host"]')?.textContent).toBe('daup.co.za');
+    expect(container.querySelector('[data-testid="place-seed-status"]')?.textContent).toBe('Status not checked yet.');
+    expect(container.querySelector('[data-testid="manage-seed"]')?.textContent).toBe('Manage seed.');
+    expect(container.querySelector('[data-testid="place-detail"]')?.textContent).not.toMatch(/seednode/i);
+    expect(container.querySelector('[data-testid="place-detail"]')?.textContent).not.toMatch(/\bnode\b/i);
     expect(container.querySelector('[data-testid="place-sub-status"]')?.textContent).toBe('Trial.');
     expect(container.querySelector('[data-testid="place-sub-meters"]')?.textContent).toContain('No charge for 30 days.');
     expect(container.querySelector('[data-testid="place-app-project"]')?.textContent).toContain('Project');

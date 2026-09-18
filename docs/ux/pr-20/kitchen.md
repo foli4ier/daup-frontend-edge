@@ -68,7 +68,7 @@ Same doors stacked. **Open.** is a 48px terracotta tap.
 - Context switches to **Salt** · Cape Town · email
 - **Back to your places.**
 - **Salt** · Cape Town
-- **Seednode.** Hosted. · daup.co.za · Unknown. · **Manage seednode.**
+- **Seed.** Hosted. · daup.co.za · *Status not checked yet.* · **Manage seed.**
 - **Subscription.** Trial. · Ends date · *No charge for 30 days.* · **Manage billing.** Coming.
 - **Apps** Project LIVE **Open.**
 
@@ -80,4 +80,4 @@ Same three blocks stacked.
 
 ## Copy check
 
-Doors scanned in these stills: no `peer`, `DID`, `MCP`, `node`, or `co_` on Places list, create flow, or place detail. Endpoint label is **daup.co.za** (not the mcp host). **Seednode.** is one kitchen word.
+Doors scanned in these stills: no `peer`, `DID`, `MCP`, `node`, `seednode`, or `co_` on Places list, create flow, or place detail. Endpoint label is **daup.co.za** (not the mcp host). Seed section is **Seed.** — never Seednode.

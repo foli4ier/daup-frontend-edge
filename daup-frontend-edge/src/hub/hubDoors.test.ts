@@ -100,6 +100,11 @@ describe('hub email door copy', () => {
     expect(HUB_HOME_COPY).toContain('Chat');
     expect(HUB_HOME_COPY).toContain('EatOut');
     expect(HUB_HOME_COPY).toContain('Project');
+    expect(HUB_HOME_COPY).toContain('Seed.');
+    expect(HUB_HOME_COPY).toContain('Manage seed.');
+    expect(HUB_HOME_COPY).toContain('Status not checked yet.');
+    expect(HUB_HOME_COPY.join('\n')).not.toMatch(/seednode/i);
+    expect(HUB_HOME_COPY.join('\n')).not.toMatch(/\bnode\b/i);
     for (const line of DELETE_HOUSE_MODAL_COPY) {
       expect(hasBannedDoorCopy(line), `banned word in "${line}"`).toBe(false);
     }

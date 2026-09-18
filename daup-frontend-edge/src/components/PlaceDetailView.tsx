@@ -5,7 +5,7 @@ import {
   COMING_KICKER,
   LIVE_STATUS_LABEL,
   MANAGE_BILLING_LABEL,
-  MANAGE_SEEDNODE_LABEL,
+  MANAGE_SEED_LABEL,
   OPEN_LABEL,
   PLACE_ACTIVE_STATUS,
   PLACE_APPS_KICKER,
@@ -15,10 +15,10 @@ import {
   PLACE_TRIAL_LINE,
   PLACE_TRIAL_STATUS,
   SEED_HOSTED_LINE,
-  SEEDNODE_KICKER,
+  SEED_KICKER,
   SEEDNODE_MODE_HOSTED,
   SEEDNODE_MODE_ON_PREM,
-  SEEDNODE_STATUS_UNKNOWN,
+  SEED_STATUS_UNCHECKED,
   SUBSCRIPTION_KICKER
 } from '../hub/copy';
 import {
@@ -112,27 +112,27 @@ export function PlaceDetailView({
 
       <article className="card place-detail-block" data-testid="place-seednode">
         <div className="section-head">
-          <span className="kicker">{SEEDNODE_KICKER}</span>
+          <span className="kicker">{SEED_KICKER}</span>
           <span className="rule" />
         </div>
         <p data-testid="place-seed-mode">{mode === 'on-prem' ? SEEDNODE_MODE_ON_PREM : SEEDNODE_MODE_HOSTED}</p>
         <p className="caption" data-testid="place-seed-host">{host || HOSTED_SEED_DOOR_LABEL}</p>
-        <p className="caption" data-testid="place-seed-status">{SEEDNODE_STATUS_UNKNOWN}</p>
+        <p className="caption" data-testid="place-seed-status">{SEED_STATUS_UNCHECKED}</p>
         <div className="place-detail-cta">
           <button
             type="button"
             className="btn btn-outline"
-            data-testid="manage-seednode"
+            data-testid="manage-seed"
             onClick={() => setSeedSheet(open => !open)}
           >
-            {MANAGE_SEEDNODE_LABEL}
+            {MANAGE_SEED_LABEL}
           </button>
         </div>
         {seedSheet ? (
-          <div className="place-seed-sheet" data-testid="seednode-sheet">
+          <div className="place-seed-sheet" data-testid="seed-sheet">
             <p>{mode === 'on-prem' ? SEEDNODE_MODE_ON_PREM : SEEDNODE_MODE_HOSTED}</p>
             <p className="caption">{host || HOSTED_SEED_DOOR_LABEL}</p>
-            <p className="caption">{SEEDNODE_STATUS_UNKNOWN}</p>
+            <p className="caption">{SEED_STATUS_UNCHECKED}</p>
             <p className="caption">{COMING_DOT_LABEL}</p>
           </div>
         ) : null}
