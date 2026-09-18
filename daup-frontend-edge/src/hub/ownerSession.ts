@@ -94,7 +94,7 @@ export function resolveHubSurface(args: {
 }): HubSurface {
   if (!args.session) return 'email-door';
   // Wizard only when the owner starts Register a new house. / beginNamingPlace.
-  // Signed-in with no house stays on hub home — do not assume eatery-only.
+  // Signed-in hub surface (Places pane). Do not assume eatery-only or auto-open wizard.
   if (args.namingPlace) return 'wizard';
   return 'home';
 }

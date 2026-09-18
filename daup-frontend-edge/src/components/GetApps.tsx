@@ -31,8 +31,6 @@ export interface GetAppsProps {
   installedApps: Record<string, boolean>;
   onGet: (app: ShopApp) => void;
   onOpen: (app: ShopApp) => void;
-  /** Home demotes Open. so the page CTA is the only terracotta primary. */
-  demoteOpen?: boolean;
   /** Hub facts for Project Open. query (email / house / place / instance). */
   openHandshake?: ProjectOpenHandshake;
   enabledApps?: readonly string[];
@@ -41,16 +39,14 @@ export interface GetAppsProps {
 function OpenControl({
   app,
   onOpen,
-  demoteOpen,
   openHandshake
 }: {
   app: ShopApp;
   onOpen: (app: ShopApp) => void;
-  demoteOpen?: boolean;
   openHandshake?: ProjectOpenHandshake;
 }) {
   const openHref = shopAppOpenHref(app, openHandshake);
-  const className = demoteOpen ? 'btn btn-outline btn-wide' : 'btn btn-primary btn-wide';
+  const className = 'btn btn-primary btn-wide';
   if (openHref) {
     return (
       <a
@@ -80,7 +76,6 @@ export function GetAppsSection({
   installedApps,
   onGet,
   onOpen,
-  demoteOpen,
   openHandshake,
   enabledApps
 }: GetAppsProps) {
@@ -128,7 +123,6 @@ export function GetAppsSection({
                   <OpenControl
                     app={app}
                     onOpen={onOpen}
-                    demoteOpen={demoteOpen}
                     openHandshake={openHandshake}
                   />
                 )}

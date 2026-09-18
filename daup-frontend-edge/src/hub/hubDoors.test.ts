@@ -83,7 +83,7 @@ describe('hub email door copy', () => {
     expect(HUB_HOME_COPY).toContain('Settings.');
     expect(HUB_HOME_COPY).toContain('No house on this hub yet.');
     expect(HUB_HOME_COPY).toContain('+ Register');
-    expect(HUB_HOME_COPY).toContain('Home');
+    expect(HUB_HOME_COPY).not.toContain('Home');
     expect(HUB_HOME_COPY).toContain('Places');
     expect(HUB_HOME_COPY).toContain('Apps');
     expect(HUB_HOME_COPY).toContain('You');
@@ -137,7 +137,7 @@ describe('hub surface', () => {
     expect(resolveHubSurface({ session: null, hasHouse: true })).toBe('email-door');
   });
 
-  it('lands on hub home after email, even with no house', () => {
+  it('lands on the signed-in hub after email, even with no house', () => {
     const signedIn = signInWithEmail('owner@theolive.co.za');
     expect(signedIn.ok).toBe(true);
     if (!signedIn.ok) return;
@@ -166,7 +166,7 @@ describe('hub surface', () => {
     })).toBe('wizard');
   });
 
-  it('stays on home when the house is gone but email stays', () => {
+  it('stays on the signed-in hub when the house is gone but email stays', () => {
     const signedIn = signInWithEmail('owner@theolive.co.za');
     if (!signedIn.ok) return;
     expect(resolveHubSurface({ session: signedIn.session, hasHouse: false })).toBe('home');

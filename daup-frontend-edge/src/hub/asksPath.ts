@@ -22,9 +22,10 @@ export function goToAsks(): void {
   }
 }
 
+/** Leave /asks and return to the hub root. Default kitchen pane is Places. */
 export function goToHubHome(): void {
   if (typeof window === 'undefined') return;
   if (normalizeHubPath(window.location.pathname) !== HUB_HOME_PATH) {
-    window.history.pushState({ hub: 'home' }, '', HUB_HOME_PATH);
+    window.history.pushState({ hub: 'places' }, '', HUB_HOME_PATH);
   }
 }

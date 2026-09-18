@@ -1,12 +1,11 @@
 import React from 'react';
 import { useUserProfile } from '../context/UserProfileContext';
 import {
-  OPEN_LABEL,
   PLUS_REGISTER_LABEL,
   YOUR_PLACES_EMPTY,
   YOUR_PLACES_KICKER
 } from '../hub/copy';
-import type { HubPane } from '../hub/hubPane';
+import { DEFAULT_HUB_PANE, type HubPane } from '../hub/hubPane';
 import { ShopApp, listOwnerPlaces } from '../hub/places';
 import { listPlacesOnTheChain } from '../hub/placeDirectory';
 import { navigateToEatOutHome } from '../hub/eatoutUrls';
@@ -23,7 +22,7 @@ export const SubscribedAppsView: React.FC<{
   onSubscribeApp?: (moduleKey: string) => void;
   onLaunchApp?: (moduleKey: string) => void;
 }> = ({
-  pane = 'home',
+  pane = DEFAULT_HUB_PANE,
   installedApps = {},
   onSubscribeApp,
   onLaunchApp
@@ -44,10 +43,9 @@ export const SubscribedAppsView: React.FC<{
   const eatery = places[0];
   const chainPlaces = listPlacesOnTheChain();
   const showPlaces = pane === 'places';
-  const showApps = pane === 'home' || pane === 'apps';
-  const showChain = pane === 'home';
+  const showApps = pane === 'apps';
+  const showChain = pane === 'places';
   const eateryEnabled = enabledApps.length === 0 || enabledApps.includes('eatery');
-  const showHouseOpen = hasHouse && eateryEnabled;
   const openHandshake = projectOpenHandshakeFromHub({
     email,
     house: houseName,
@@ -102,33 +100,6 @@ export const SubscribedAppsView: React.FC<{
 
   return (
     <div className="apps-home" data-testid="hub-home" data-pane={pane}>
-      {pane === 'home' ? (
-        <div className="hub-home-cta" data-testid="hub-home-cta">
-          {showHouseOpen ? (
-            <a
-              className="btn btn-primary btn-wide"
-              href={eatery.href || undefined}
-              data-testid="hub-home-open"
-              onClick={openTheHouse}
-            >
-              {OPEN_LABEL}
-            </a>
-          ) : hasHouse ? null : (
-            <article className="place-card places-empty" data-testid="your-places-empty">
-              <p className="caption" data-testid="your-places-empty-copy">{YOUR_PLACES_EMPTY}</p>
-              <button
-                type="button"
-                className="btn btn-primary"
-                data-testid="register-new-house"
-                onClick={beginNamingPlace}
-              >
-                {PLUS_REGISTER_LABEL}
-              </button>
-            </article>
-          )}
-        </div>
-      ) : null}
-
       {showPlaces ? (
         <>
           <div className="section-head">
@@ -178,7 +149,6 @@ export const SubscribedAppsView: React.FC<{
           installedApps={installedApps}
           onGet={handleGet}
           onOpen={handleOpen}
-          demoteOpen={pane === 'home'}
           openHandshake={openHandshake}
           enabledApps={enabledApps}
         />
