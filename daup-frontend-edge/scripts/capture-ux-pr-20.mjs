@@ -128,15 +128,18 @@ try {
 
   await finishWizard(page, { name: 'The Olive', city: 'Stellenbosch', app: 'eatery' });
   await waitFor(page, '[data-testid="open-the-house"]');
-
+  await waitFor(page, '[data-testid="register-another-place"]');
+  await page.$eval('[data-testid="register-another-place"]', el => el.scrollIntoView({ block: 'center' }));
   await click(page, '[data-testid="register-another-place"]');
   await waitFor(page, '[data-testid="hub-wizard"]');
+  await waitFor(page, '#place-name');
   await finishWizard(page, { name: 'Salt', city: 'Cape Town', app: 'project' });
-  await page.waitForFunction(() => (
-    Array.from(document.querySelectorAll('[data-place-name]'))
-      .map(row => row.getAttribute('data-place-name'))
-      .filter(name => name === 'The Olive' || name === 'Salt').length === 2
-  ));
+  await waitFor(page, '[data-testid="owner-places-list"]');
+  await page.waitForFunction(() => {
+    const names = Array.from(document.querySelectorAll('[data-testid="owner-places-list"] [data-place-name]'))
+      .map(row => row.getAttribute('data-place-name'));
+    return names.includes('The Olive') && names.includes('Salt');
+  }, { timeout: 20000 });
   await pair(page, 'places-two', '[data-testid="owner-places-list"]');
 
   const salt = await page.$('[data-place-name="Salt"] button');
