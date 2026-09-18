@@ -53,6 +53,7 @@ export const SEEDNODE_MODE_ON_PREM = 'On this premises.';
 export const SEED_STATUS_UNCHECKED = 'Status not checked yet.';
 export const SEEDNODE_STATUS_UNKNOWN = SEED_STATUS_UNCHECKED;
 export const SEEDNODE_STATUS_CONNECTED = 'Connected.';
+export const SEED_STATUS_NOT_CONNECTED = 'Not connected yet.';
 export const MANAGE_SEED_LABEL = 'Manage seed.';
 export const CHECK_SEED_LABEL = 'Check seed.';
 export const MANAGE_SEEDNODE_LABEL = MANAGE_SEED_LABEL;
@@ -61,9 +62,15 @@ export const MANAGE_BILLING_LABEL = 'Manage billing.';
 export const PLACE_APPS_KICKER = 'Apps';
 export const BACK_TO_PLACES_LABEL = 'Back to your places.';
 export const COMING_DOT_LABEL = 'Coming.';
-export const PLACE_SUB_LINE = 'R499 a month for this place.';
-export const SEED_HOSTED_LINE = 'R199 hosted seed.';
+export const PLACE_SUB_LINE = 'R199 a month for this place.';
+export const SEED_HOSTED_LINE = 'R299 hosted seed.';
+export const SEED_HOSTED_ON_PREM_LINE = 'R0 hosted seed.';
 export const PLACE_TRIAL_LINE = 'No charge for 30 days.';
+export const APPS_SOCIAL_KICKER = 'Social.';
+export const APPS_PAID_KICKER = 'Paid.';
+export const DOWNLOAD_SEED_SETUP_LABEL = 'Download seed setup.';
+export const ON_PREM_SEED_NEXT = 'Next: download the setup and run it on this premises.';
+export const ON_PREM_SEED_DOOR_LABEL = 'This premises.';
 export const YOUR_PLACES_KICKER = 'Your places.';
 export const YOUR_PLACES_EMPTY = 'No house on this hub yet.';
 export const YOUR_APPS_KICKER = YOUR_PLACES_KICKER;
@@ -207,6 +214,7 @@ export const HUB_HOME_COPY = [
   SEEDNODE_MODE_ON_PREM,
   SEED_STATUS_UNCHECKED,
   SEEDNODE_STATUS_CONNECTED,
+  SEED_STATUS_NOT_CONNECTED,
   MANAGE_SEED_LABEL,
   CHECK_SEED_LABEL,
   SUBSCRIPTION_KICKER,
@@ -216,7 +224,13 @@ export const HUB_HOME_COPY = [
   COMING_DOT_LABEL,
   PLACE_SUB_LINE,
   SEED_HOSTED_LINE,
+  SEED_HOSTED_ON_PREM_LINE,
   PLACE_TRIAL_LINE,
+  APPS_SOCIAL_KICKER,
+  APPS_PAID_KICKER,
+  DOWNLOAD_SEED_SETUP_LABEL,
+  ON_PREM_SEED_NEXT,
+  ON_PREM_SEED_DOOR_LABEL,
   LIVE_STATUS_LABEL
 ];
 

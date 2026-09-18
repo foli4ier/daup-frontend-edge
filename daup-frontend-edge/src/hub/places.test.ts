@@ -11,8 +11,10 @@ import {
   COMING_SHOP_APPS,
   EATOUT_MODULE_KEY,
   LIVE_SHOP_APPS,
+  PAID_SHOP_APPS,
   PROJECT_MODULE_KEY,
   SHOP_APPS,
+  SOCIAL_SHOP_APPS,
   shopAppIsHeld,
   shopAppOpenHref
 } from './places';
@@ -33,6 +35,8 @@ describe('Get apps. shop catalog', () => {
     expect(project?.live).toBe(true);
     expect(project?.moduleKey).toBe(PROJECT_MODULE_KEY);
     expect(COMING_SHOP_APPS.map(app => app.id)).toEqual(['farm', 'reseller', 'maker', 'chat']);
+    expect(SOCIAL_SHOP_APPS.map(app => app.id)).toEqual(['eatout', 'chat']);
+    expect(PAID_SHOP_APPS.map(app => app.id)).toEqual(['eatery', 'project', 'farm', 'reseller', 'maker']);
     expect(COMING_SHOP_APPS.some(app => app.id === 'eatout' || app.id === 'project')).toBe(false);
     expect(SHOP_APPS.find(app => app.id === 'eatout')?.live).toBe(true);
     expect(SHOP_APPS.find(app => app.id === 'project')?.live).toBe(true);

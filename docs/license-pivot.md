@@ -10,9 +10,9 @@ You pay for the **place**, not for each app and not for each vaulted branch. Ext
 
 | Code | Stub (ex VAT) | Rule |
 | --- | --- | --- |
-| `PLACE_SUB_MONTHLY` | R499 | This place + enabled apps |
+| `PLACE_SUB_MONTHLY` | R199 | This place + enabled apps |
 | `PLACE_TRIAL` | R0 | First 30 days after `place.trial_started` |
-| `SEED_HOSTED_MONTHLY` | R199 / place | Hosted seed only; on-prem is R0 |
+| `SEED_HOSTED_MONTHLY` | R299 / place | Hosted seed only; on-prem shows R0 hosted line |
 | `LOCATION_MONTHLY` | dead | Extra branch is a new place. Do not invoice. |
 
 Catalog: `daup-frontend-edge/src/hub/priceMeters.ts`. Invoices are slice G.
@@ -37,12 +37,12 @@ Service: `daup-frontend-edge/src/hub/entitlements.ts`.
 
 ## Place-first registration
 
-Create the company / place, then enable apps (eatery is one selectable app). Hub mints a licensed place id once per place and attaches the default hosted seed `{ endpoint: "https://mcp.daup.co.za", mode: "hosted", placeId }`. Opening a place is that place’s control plane (seed + subscription + apps). Never remint on re-login, seed switch, or revisit.
+Create the company / place, then enable apps (eatery is one selectable app). Hub mints a licensed place id once per place and attaches the default hosted seed `{ endpoint: "https://mcp.daup.co.za", mode: "hosted", placeId }`. Opening a place is that place’s control plane (apps, then seed + subscription). Never remint on re-login, seed switch, or revisit. Owner may choose **Hosted.** (DAUP hosted endpoint stub) or **On this premises.** (hosted line R0; **Download seed setup.** is `https://github.com/foli4ier/daup-mcp-servers/releases/download/onprem-seed-v0/daup-onprem-seed-v0.zip` — scripts/zip v0, not an `.exe`). On-prem attach persists `{ mode, endpoint, ownerEmail, companyId, placeId }` with the opened place’s house id and never remints `companyId`. Local smoke `http://127.0.0.1:8080`; production https required. **Check seed.** polls `GET /health` then `seednode_status` (on-prem also `seednode_attach` first).
 
 An owner may create more than one place. Each place has its own trial, invoice stub, and seed attach.
 
 ## Later slices
 
-- C: `seednode_status` Connected badge and hosted ↔ on-prem switch
+- C: **Check seed.** now polls `GET /health` + `seednode_status` (on-prem also `seednode_attach`). Connected. / Not connected yet. CORS to the owner’s `127.0.0.1` may still fail from Hub origin.
 - F: migration verify, `house_state_get`
 - G: billing lines / invoices

@@ -11,7 +11,10 @@ import {
   removeHouseFromNetwork,
   resolveHouseMcpBaseUrl,
   resolveHouseMcpUrl,
-  unregisterHousePlace
+  unregisterHousePlace,
+  attachSeednode,
+  pollSeednodeStatus,
+  fetchSeedHealth
 } from './houseMcp';
 import { YOUR_PLACES_EMPTY, hasBannedDoorCopy } from './copy';
 
@@ -234,5 +237,65 @@ describe('house MCP JSON-RPC client', () => {
 
     expect(YOUR_PLACES_EMPTY).toBe('No house on this hub yet.');
     expect(hasBannedDoorCopy(YOUR_PLACES_EMPTY)).toBe(false);
+  });
+
+  it('polls health then attach then seed status for on-prem Check seed.', async () => {
+    fetchMock.mockImplementation(async (url, init) => {
+      if (String(url).endsWith('/health')) {
+        return jsonResponse({ ok: true });
+      }
+      const body = JSON.parse(String(init?.body || '{}'));
+      if (body.params?.name === HOUSE_MCP_TOOLS.seedAttach) {
+        expect(body.params.arguments).toMatchObject({
+          mode: 'on-prem',
+          endpoint: 'http://127.0.0.1:8080',
+          companyId: 'co_held',
+          placeId: 'place-olive',
+          ownerEmail: 'owner@theolive.co.za'
+        });
+        return jsonResponse(jsonRpcText({ ok: true }));
+      }
+      if (body.params?.name === HOUSE_MCP_TOOLS.seedStatus) {
+        return jsonResponse(jsonRpcText({ connected: true }));
+      }
+      return jsonResponse({ error: 'unexpected' }, 500);
+    });
+
+    const polled = await pollSeednodeStatus({
+      endpoint: 'http://127.0.0.1:8080',
+      mode: 'on-prem',
+      ownerEmail: 'Owner@TheOlive.co.za',
+      companyId: 'co_held',
+      placeId: 'place-olive',
+      attach: true
+    }, { fetch: fetchMock });
+    expect(polled).toEqual({ ok: true, connected: true });
+    expect(fetchMock.mock.calls.map(call => String(call[0]))).toEqual([
+      'http://127.0.0.1:8080/health',
+      'http://127.0.0.1:8080/mcp',
+      'http://127.0.0.1:8080/mcp'
+    ]);
+
+    fetchMock.mockImplementation(async (url) => {
+      if (String(url).endsWith('/health')) return jsonResponse({ ok: false }, 503);
+      return jsonResponse({ error: 'skip' }, 500);
+    });
+    const down = await pollSeednodeStatus({
+      endpoint: 'http://127.0.0.1:8080',
+      attach: true
+    }, { fetch: fetchMock });
+    expect(down).toEqual({ ok: true, connected: false });
+
+    const attached = await attachSeednode({
+      mode: 'on-prem',
+      endpoint: 'http://127.0.0.1:8080',
+      companyId: 'co_held',
+      placeId: 'place-olive'
+    }, { fetch: fetchMock });
+    expect(attached.ok).toBe(false);
+
+    fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
+    const unreachable = await fetchSeedHealth('http://127.0.0.1:8080', { fetch: fetchMock });
+    expect(unreachable).toEqual({ ok: false, reason: 'unreachable' });
   });
 });

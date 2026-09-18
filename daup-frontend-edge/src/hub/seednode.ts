@@ -5,14 +5,27 @@
  * Default hosted endpoint is the live house host (mcp.daup.co.za).
  * Door chrome uses daup.co.za — no MCP word on kitchen doors.
  *
- * Persist attach config. Do not block on seednode_status MCP tools.
- * Connected badge polling is slice C. Hosted↔on-prem switch is slice C —
- * this module never remints a live place id.
+ * Persist attach config. Check seed. polls GET /health then seednode_status
+ * (on-prem also POSTs seednode_attach first). Hosted ↔ on this premises is a
+ * Hub door choice (no remint). Download seed setup. is the v0 zip (scripts,
+ * not an .exe): GitHub onprem-seed-v0.zip is the primary door.
  */
+
+import { ON_PREM_SEED_DOOR_LABEL } from './copy';
 
 /** Same origin as DEFAULT_HOUSE_MCP_BASE in houseMcp.ts — Hub's canonical hosted host. */
 export const DEFAULT_HOSTED_SEEDNODE_ENDPOINT = 'https://mcp.daup.co.za';
+/** Local Kortrijk / start-house listen address. Production attach is https. Not shown on doors. */
+export const ON_PREM_SEED_ENDPOINT = 'http://127.0.0.1:8080';
 export const HOSTED_SEED_DOOR_LABEL = 'daup.co.za';
+/** Browse the operator pack (scripts + README). Prefer the zip door below. */
+export const SEED_SETUP_PACK_BROWSE = 'https://github.com/foli4ier/daup-mcp-servers/tree/main/onprem-pack';
+/** Primary Download seed setup. door — zip, not tgz, not an .exe. */
+export const SEED_SETUP_RELEASE_ZIP = 'https://github.com/foli4ier/daup-mcp-servers/releases/download/onprem-seed-v0/daup-onprem-seed-v0.zip';
+export const SEED_SETUP_ZIP_HREF = SEED_SETUP_RELEASE_ZIP;
+export const SEED_SETUP_ZIP_NAME = 'daup-onprem-seed-v0.zip';
+/** Same-origin copy Hub still ships if the GitHub release is unreachable. */
+export const SEED_SETUP_ZIP_FALLBACK = '/on-prem/daup-onprem-seed-v0.zip';
 export const SEEDNODE_STORAGE_KEY = 'daup_seednode_config';
 export const SEEDNODE_BY_PLACE_KEY = 'daup_seednode_by_place';
 
@@ -21,10 +34,16 @@ export type SeednodeMode = 'hosted' | 'on-prem';
 export interface SeednodeConfig {
   endpoint: string;
   mode: SeednodeMode;
-  /** Licensed place id (mapped from companyId). */
+  /** Opened place's house-network id (`place-*`). Required on on-prem attach. */
   placeId?: string;
-  /** Legacy A+B field. Same value as placeId when present. */
+  /** Licensed id (`co_*`). Same value forever — never remint. */
   companyId?: string;
+  /** Signed-in owner. Lookup key only. */
+  ownerEmail?: string;
+}
+
+function asEmail(value: unknown): string {
+  return typeof value === 'string' ? value.trim().toLowerCase() : '';
 }
 
 function asPlaceKey(value: unknown): string {
@@ -44,11 +63,13 @@ export function asSeednodeConfig(value: unknown): SeednodeConfig | null {
     endpoint,
     mode: asSeednodeMode(raw.mode)
   };
-  const placeId = asPlaceKey(raw.placeId ?? raw.place_id ?? raw.companyId ?? raw.company_id);
-  if (placeId) {
-    config.placeId = placeId;
-    config.companyId = placeId;
-  }
+  const companyId = asPlaceKey(raw.companyId ?? raw.company_id);
+  const placeId = asPlaceKey(raw.placeId ?? raw.place_id);
+  if (companyId) config.companyId = companyId;
+  if (placeId) config.placeId = placeId;
+  else if (companyId) config.placeId = companyId;
+  const ownerEmail = asEmail(raw.ownerEmail ?? raw.owner_email);
+  if (ownerEmail) config.ownerEmail = ownerEmail;
   return config;
 }
 
@@ -68,6 +89,72 @@ export function defaultHostedSeednode(placeId: string): SeednodeConfig {
 /** Hosted stub attach. Counts as attached for trial start. */
 export function attachHostedSeednodeStub(placeId: string): SeednodeConfig {
   return defaultHostedSeednode(placeId);
+}
+
+export function defaultOnPremSeednode(args: {
+  companyId: string;
+  placeId?: string;
+  ownerEmail?: string;
+  endpoint?: string;
+}): SeednodeConfig {
+  const companyId = asPlaceKey(args.companyId);
+  const openedPlaceId = asPlaceKey(args.placeId);
+  const ownerEmail = asEmail(args.ownerEmail);
+  const endpoint = (args.endpoint || '').trim() || ON_PREM_SEED_ENDPOINT;
+  const config: SeednodeConfig = {
+    endpoint,
+    mode: 'on-prem'
+  };
+  if (companyId) config.companyId = companyId;
+  if (openedPlaceId) config.placeId = openedPlaceId;
+  else if (companyId) config.placeId = companyId;
+  if (ownerEmail) config.ownerEmail = ownerEmail;
+  return config;
+}
+
+/** On this premises stub. Same licensed id — never remints. Pass opened house placeId. */
+export function attachOnPremSeednodeStub(args: {
+  companyId: string;
+  placeId?: string;
+  ownerEmail?: string;
+  endpoint?: string;
+}): SeednodeConfig {
+  return defaultOnPremSeednode(args);
+}
+
+export function seedConfigForMode(args: {
+  mode: SeednodeMode;
+  companyId: string;
+  placeId?: string;
+  ownerEmail?: string;
+}): SeednodeConfig {
+  if (args.mode === 'on-prem') return attachOnPremSeednodeStub(args);
+  return attachHostedSeednodeStub(args.companyId || args.placeId || '');
+}
+
+/**
+ * Fields Hub must pass after on-prem stand-up.
+ * placeId is the opened place's house-network id — not a reminted co_*.
+ * Local smoke endpoint is 127.0.0.1:8080; production requires https.
+ */
+export function onPremAttachFields(args: {
+  ownerEmail: string;
+  companyId: string;
+  placeId: string;
+  endpoint?: string;
+}): {
+  mode: 'on-prem';
+  endpoint: string;
+  ownerEmail: string;
+  companyId: string;
+  placeId: string;
+} | null {
+  const ownerEmail = asEmail(args.ownerEmail);
+  const companyId = asPlaceKey(args.companyId);
+  const placeId = asPlaceKey(args.placeId);
+  if (!ownerEmail || !companyId || !placeId) return null;
+  const endpoint = (args.endpoint || '').trim() || ON_PREM_SEED_ENDPOINT;
+  return { mode: 'on-prem', endpoint, ownerEmail, companyId, placeId };
 }
 
 export function isSeednodeAttached(config: SeednodeConfig | null | undefined): boolean {
@@ -95,25 +182,26 @@ function writeJson(key: string, value: unknown): void {
   }
 }
 
+function seednodeLookupIds(config: SeednodeConfig, extra?: string): string[] {
+  const ids = [asPlaceKey(extra), asPlaceKey(config.companyId), asPlaceKey(config.placeId)];
+  return [...new Set(ids.filter(Boolean))];
+}
+
 export function loadSeednodeMap(): Record<string, SeednodeConfig> {
   const parsed = readJson<Record<string, unknown>>(SEEDNODE_BY_PLACE_KEY, {});
   const out: Record<string, SeednodeConfig> = {};
   if (!parsed || typeof parsed !== 'object') return out;
   for (const [key, value] of Object.entries(parsed)) {
-    const config = asSeednodeConfig({
-      ...(value as object),
-      placeId: asPlaceKey((value as { placeId?: string; companyId?: string }).placeId)
-        || asPlaceKey((value as { companyId?: string }).companyId)
-        || asPlaceKey(key)
-    });
-    if (config && (config.placeId || config.companyId)) {
-      const id = config.placeId || config.companyId || key;
-      out[id] = config;
-    }
+    const config = asSeednodeConfig(value);
+    if (!config || !(config.placeId || config.companyId)) continue;
+    for (const id of seednodeLookupIds(config, key)) out[id] = config;
   }
   const legacy = loadSeednodeConfig();
-  const legacyId = legacy?.placeId || legacy?.companyId;
-  if (legacy && legacyId && !out[legacyId]) out[legacyId] = legacy;
+  if (legacy) {
+    for (const id of seednodeLookupIds(legacy)) {
+      if (!out[id]) out[id] = legacy;
+    }
+  }
   return out;
 }
 
@@ -124,12 +212,15 @@ export function loadSeednodeForPlace(placeId?: string | null): SeednodeConfig | 
 }
 
 export function saveSeednodeForPlace(placeId: string, config: SeednodeConfig): SeednodeConfig {
-  const id = asPlaceKey(placeId);
-  const next = asSeednodeConfig({ ...config, placeId: id || config.placeId, companyId: id || config.companyId })
-    || config;
+  const id = asPlaceKey(placeId) || asPlaceKey(config.companyId) || asPlaceKey(config.placeId);
+  const next = asSeednodeConfig({
+    ...config,
+    companyId: asPlaceKey(config.companyId) || id,
+    placeId: asPlaceKey(config.placeId) || id
+  }) || config;
   if (id) {
     const all = loadSeednodeMap();
-    all[id] = next;
+    for (const key of seednodeLookupIds(next, id)) all[key] = next;
     writeJson(SEEDNODE_BY_PLACE_KEY, all);
   }
   saveSeednodeConfig(next);
@@ -170,6 +261,7 @@ export function clearSeednodeConfig(): void {
 
 /** Kitchen host label — strip the mcp. prefix so doors stay kitchen English. */
 export function seednodeDoorHost(config: SeednodeConfig | null | undefined): string {
+  if (config?.mode === 'on-prem') return ON_PREM_SEED_DOOR_LABEL;
   if (!config?.endpoint) return HOSTED_SEED_DOOR_LABEL;
   try {
     const host = new URL(config.endpoint).hostname.replace(/^mcp\./i, '');

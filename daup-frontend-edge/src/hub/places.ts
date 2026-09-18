@@ -131,6 +131,17 @@ export const SHOP_APPS: ShopApp[] = [
 export const LIVE_SHOP_APPS = SHOP_APPS.filter(app => app.live);
 export const COMING_SHOP_APPS = SHOP_APPS.filter(app => !app.live);
 
+/** Apps pane IA: Social (top) then Paid. Coming apps stay Coming. */
+export const SOCIAL_SHOP_APP_IDS: ShopAppId[] = ['eatout', 'chat'];
+export const PAID_SHOP_APP_IDS: ShopAppId[] = ['eatery', 'project', 'farm', 'reseller', 'maker'];
+
+export const SOCIAL_SHOP_APPS = SOCIAL_SHOP_APP_IDS
+  .map(id => SHOP_APPS.find(app => app.id === id))
+  .filter((app): app is ShopApp => Boolean(app));
+export const PAID_SHOP_APPS = PAID_SHOP_APP_IDS
+  .map(id => SHOP_APPS.find(app => app.id === id))
+  .filter((app): app is ShopApp => Boolean(app));
+
 export function shopAppIsHeld(app: ShopApp, held: {
   hasHouse?: boolean;
   installed?: Record<string, boolean>;
