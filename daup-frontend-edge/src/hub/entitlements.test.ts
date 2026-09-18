@@ -333,6 +333,7 @@ describe('seednode persist', () => {
     expect(onPrem.companyId).toBe('co_onprem');
     expect(onPrem.ownerEmail).toBe('owner@theolive.co.za');
     expect(loadSeednodeForPlace('co_onprem')?.placeId).toBe('place-onprem');
+    expect(loadSeednodeForPlace('place-onprem')?.companyId).toBe('co_onprem');
     expect(loadSeednodeForPlace('co_onprem')?.mode).toBe('on-prem');
     expect(loadSeednodeForPlace('co_persist')?.mode).toBe('hosted');
   });

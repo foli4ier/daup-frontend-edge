@@ -180,25 +180,26 @@ function writeJson(key: string, value: unknown): void {
   }
 }
 
+function seednodeLookupIds(config: SeednodeConfig, extra?: string): string[] {
+  const ids = [asPlaceKey(extra), asPlaceKey(config.companyId), asPlaceKey(config.placeId)];
+  return [...new Set(ids.filter(Boolean))];
+}
+
 export function loadSeednodeMap(): Record<string, SeednodeConfig> {
   const parsed = readJson<Record<string, unknown>>(SEEDNODE_BY_PLACE_KEY, {});
   const out: Record<string, SeednodeConfig> = {};
   if (!parsed || typeof parsed !== 'object') return out;
   for (const [key, value] of Object.entries(parsed)) {
-    const config = asSeednodeConfig({
-      ...(value as object),
-      placeId: asPlaceKey((value as { placeId?: string; companyId?: string }).placeId)
-        || asPlaceKey((value as { companyId?: string }).companyId)
-        || asPlaceKey(key)
-    });
-    if (config && (config.placeId || config.companyId)) {
-      const id = config.placeId || config.companyId || key;
-      out[id] = config;
-    }
+    const config = asSeednodeConfig(value);
+    if (!config || !(config.placeId || config.companyId)) continue;
+    for (const id of seednodeLookupIds(config, key)) out[id] = config;
   }
   const legacy = loadSeednodeConfig();
-  const legacyId = legacy?.placeId || legacy?.companyId;
-  if (legacy && legacyId && !out[legacyId]) out[legacyId] = legacy;
+  if (legacy) {
+    for (const id of seednodeLookupIds(legacy)) {
+      if (!out[id]) out[id] = legacy;
+    }
+  }
   return out;
 }
 
@@ -217,7 +218,7 @@ export function saveSeednodeForPlace(placeId: string, config: SeednodeConfig): S
   }) || config;
   if (id) {
     const all = loadSeednodeMap();
-    all[id] = next;
+    for (const key of seednodeLookupIds(next, id)) all[key] = next;
     writeJson(SEEDNODE_BY_PLACE_KEY, all);
   }
   saveSeednodeConfig(next);
