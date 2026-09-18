@@ -24,6 +24,8 @@ import { PLACE_TRIAL_STARTED, TRIAL_MS, loadPlaceEntitlement, loadTrialEvent, sa
 import {
   ADD_APPS_LABEL,
   ALREADY_ON_PLACE_LABEL,
+  ASK_FOR_ENHANCEMENT_LABEL,
+  DELETE_THE_HOUSE_LABEL,
   GET_APPS_KICKER,
   GET_LABEL,
   HUB_DOOR_BODY,
@@ -256,6 +258,46 @@ describe('hub home after email', () => {
     expect(otherPane?.querySelector('[data-testid="other-app-project"]')?.textContent).toContain(COMING_DOT_LABEL);
     expect(otherPane?.textContent).not.toContain('On the chain.');
     expect(otherPane?.textContent).not.toMatch(/\b(peer|node|DID|DHT|wallet|MCP|npm|hydrate|neon)\b/i);
+    unmount();
+  });
+
+  it('keeps Delete the house. / Register a new house. / Ask for an enhancement. on You. Settings. only', async () => {
+    const { container, unmount } = render(<App />);
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 80));
+    });
+
+    const assertNoHouseAdminDoors = (root: Element | null) => {
+      expect(root?.querySelector('[data-testid="delete-the-house"]')).toBeNull();
+      expect(root?.querySelector('[data-testid="ask-for-enhancement"]')).toBeNull();
+      expect(root?.textContent).not.toContain(REGISTER_A_NEW_HOUSE_LABEL);
+      expect(root?.textContent).not.toContain(DELETE_THE_HOUSE_LABEL);
+      expect(root?.textContent).not.toContain(ASK_FOR_ENHANCEMENT_LABEL);
+    };
+
+    const places = container.querySelector('[data-testid="hub-home"]');
+    expect(places?.getAttribute('data-pane')).toBe('places');
+    assertNoHouseAdminDoors(places);
+
+    openApps(container);
+    const apps = container.querySelector('[data-testid="hub-home"]');
+    expect(apps?.getAttribute('data-pane')).toBe('apps');
+    assertNoHouseAdminDoors(apps);
+
+    openOther(container);
+    const other = container.querySelector('[data-testid="hub-home"]');
+    expect(other?.getAttribute('data-pane')).toBe('other');
+    assertNoHouseAdminDoors(other);
+
+    openYou(container);
+    expect(container.querySelector('[data-testid="hub-you"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="hub-advanced"]')?.getAttribute('aria-pressed')).not.toBe('true');
+    const settings = container.querySelector('[data-testid="hub-settings"]');
+    expect(settings?.querySelector('.kicker')?.textContent).toBe(SETTINGS_KICKER);
+    expect(settings?.querySelector('[data-testid="register-new-house"]')?.textContent).toBe(REGISTER_A_NEW_HOUSE_LABEL);
+    expect(settings?.querySelector('[data-testid="delete-the-house"]')?.textContent).toBe(DELETE_THE_HOUSE_LABEL);
+    expect(settings?.querySelector('[data-testid="ask-for-enhancement"]')?.textContent).toBe(ASK_FOR_ENHANCEMENT_LABEL);
+    expect(settings?.textContent).not.toMatch(/\b(peer|DID|MCP|node|co_)\b/i);
     unmount();
   });
 
