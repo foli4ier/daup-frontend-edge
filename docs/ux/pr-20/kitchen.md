@@ -7,7 +7,7 @@ Kitchen stills from Hub (Vite + system Chrome, `scripts/capture-ux-pr-20.mjs`). 
 - Thumb: **Places / Apps / You** — no Home
 - Default signed-in pane: **Places**
 - Opening a place is that place’s control plane (seed + subscription + apps)
-- No peer / DID / MCP / node / `co_` ids on doors
+- Kitchen doors only. No peer, DID, MCP, node, or licensed ids on chrome.
 
 ## places-empty-desktop.png
 
@@ -68,16 +68,36 @@ Same doors stacked. **Open.** is a 48px terracotta tap.
 - Context switches to **Salt** · Cape Town · email
 - **Back to your places.**
 - **Salt** · Cape Town
-- **Seed.** Hosted. · daup.co.za · *Status not checked yet.* · **Manage seed.**
+- **Seed.**
+  - **Hosted.**
+  - daup.co.za
+  - *Status not checked yet.*
+  - **Manage seed.**
 - **Subscription.** Trial. · Ends date · *No charge for 30 days.* · **Manage billing.** Coming.
 - **Apps** Project LIVE **Open.**
+
+Mode labels on this door: **Hosted.** and **On this premises.**
 
 ## place-detail-mobile.png
 
 ![Salt place control plane — mobile 390](place-detail-mobile.png)
 
-Same three blocks stacked.
+Same kitchen labels stacked:
+
+- **Seed.**
+- **Hosted.**
+- daup.co.za
+- *Status not checked yet.*
+- **Manage seed.**
+- **Subscription.** Trial. · **Manage billing.** Coming.
+- **Apps** Project LIVE
 
 ## Copy check
 
-Doors scanned in these stills: no `peer`, `DID`, `MCP`, `node`, `seednode`, or `co_` on Places list, create flow, or place detail. Endpoint label is **daup.co.za** (not the mcp host). Seed section is **Seed.** — never Seednode.
+Place-detail chrome in these stills uses only:
+
+- **Seed.**
+- **Hosted.** / **On this premises.**
+- **Status not checked yet.**
+- **Manage seed.**
+- Host label **daup.co.za**

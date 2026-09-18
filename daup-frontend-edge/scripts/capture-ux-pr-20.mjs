@@ -14,6 +14,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT = join(__dirname, '../../docs/ux/pr-20');
 const BASE = process.env.HUB_URL || 'http://127.0.0.1:5173';
 const CHROME = process.env.CHROME_PATH || '/usr/bin/google-chrome-stable';
+const BUST = `ux-seed-${Date.now()}`;
 
 const DESKTOP = { width: 1280, height: 1100, deviceScaleFactor: 1 };
 const MOBILE = { width: 390, height: 844, deviceScaleFactor: 2 };
@@ -39,7 +40,7 @@ async function shot(page, name) {
   await page.evaluate(async () => {
     if (document.fonts?.ready) await document.fonts.ready;
   });
-  await new Promise(r => setTimeout(r, 250));
+  await new Promise(r => setTimeout(r, 400));
   const file = join(OUT, name);
   await page.screenshot({ path: file, type: 'png' });
   console.log('wrote', file);
@@ -62,7 +63,8 @@ async function pair(page, basename, keep) {
 }
 
 async function openHub(page) {
-  await page.goto(BASE, { waitUntil: 'networkidle0' });
+  await page.setCacheEnabled(false);
+  await page.goto(`${BASE}/?${BUST}`, { waitUntil: 'networkidle0', timeout: 30000 });
   await page.evaluate(() => localStorage.clear());
   await page.reload({ waitUntil: 'networkidle0' });
   await waitFor(page, '[data-testid="hub-email-door"]');
@@ -103,14 +105,49 @@ async function finishWizard(page, { name, city, app }) {
   await waitFor(page, '[data-testid="hub-home"]');
 }
 
+async function assertPlaceDetailKitchen(page) {
+  await page.waitForFunction(() => {
+    const root = document.querySelector('[data-testid="place-detail"]');
+    const text = root?.textContent || '';
+    const seed = document.querySelector('[data-testid="place-seed"]')?.textContent || '';
+    const status = document.querySelector('[data-testid="place-seed-status"]')?.textContent || '';
+    const cta = document.querySelector('[data-testid="manage-seed"]')?.textContent || '';
+    const forbidden = /seednode|Unknown\./i.test(text);
+    return Boolean(
+      root
+      && seed.includes('Seed.')
+      && status.includes('Status not checked yet.')
+      && cta.includes('Manage seed.')
+      && text.includes('Hosted.')
+      && !forbidden
+    );
+  }, { timeout: 15000 });
+  const text = await page.$eval('[data-testid="place-detail"]', el => el.textContent || '');
+  if (/seednode|Unknown\./i.test(text)) {
+    throw new Error(`place-detail still has forbidden copy: ${text}`);
+  }
+  if (!text.includes('Seed.') || !text.includes('Manage seed.') || !text.includes('Status not checked yet.')) {
+    throw new Error(`place-detail missing kitchen Seed. labels: ${text}`);
+  }
+  console.log('place-detail kitchen copy ok');
+}
+
 const browser = await puppeteer.launch({
   executablePath: CHROME,
   headless: 'new',
-  args: ['--no-sandbox', '--disable-dev-shm-usage', '--hide-scrollbars', '--font-render-hinting=none']
+  args: [
+    '--no-sandbox',
+    '--disable-dev-shm-usage',
+    '--hide-scrollbars',
+    '--font-render-hinting=none',
+    '--disable-application-cache',
+    '--disk-cache-size=1'
+  ]
 });
 
 const page = await browser.newPage();
 await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
+await page.setExtraHTTPHeaders({ 'Cache-Control': 'no-cache' });
 
 try {
   await setViewport(page, DESKTOP);
@@ -146,10 +183,12 @@ try {
   if (!salt) throw new Error('Salt Open. not found');
   await salt.click();
   await waitFor(page, '[data-testid="place-detail"]');
-  await waitFor(page, '[data-testid="place-seednode"]');
+  await waitFor(page, '[data-testid="place-seed"]');
   await waitFor(page, '[data-testid="place-subscription"]');
   await waitFor(page, '[data-testid="place-apps"]');
+  await assertPlaceDetailKitchen(page);
   await pair(page, 'place-detail', '[data-testid="place-detail"]');
+  await assertPlaceDetailKitchen(page);
 } finally {
   await browser.close();
 }

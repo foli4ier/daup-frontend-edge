@@ -321,7 +321,7 @@ describe('hub home after email', () => {
     });
     expect(container.querySelector('[data-testid="place-detail"]')).toBeTruthy();
     expect(container.querySelector('[data-testid="place-detail-name"]')?.textContent).toContain('The Olive');
-    expect(container.querySelector('[data-testid="place-seednode"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="place-seed"]')).toBeTruthy();
     expect(container.querySelector('[data-testid="place-subscription"]')).toBeTruthy();
     expect(container.querySelector('[data-testid="place-apps"]')).toBeTruthy();
     const eateryOpen = container.querySelector('[data-testid="open-place-app-eatery"]') as HTMLAnchorElement | null;
@@ -1655,7 +1655,7 @@ describe('P0/P1 place list and control plane', () => {
     });
     expect(container.querySelector('[data-testid="place-detail"]')).toBeTruthy();
     expect(container.querySelector('[data-testid="place-detail-name"]')?.textContent).toContain('Salt');
-    expect(container.querySelector('[data-testid="place-seednode"]')?.textContent).toContain('Seed.');
+    expect(container.querySelector('[data-testid="place-seed"]')?.textContent).toContain('Seed.');
     expect(container.querySelector('[data-testid="place-seed-mode"]')?.textContent).toBe('Hosted.');
     expect(container.querySelector('[data-testid="place-seed-host"]')?.textContent).toBe('daup.co.za');
     expect(container.querySelector('[data-testid="place-seed-status"]')?.textContent).toBe('Status not checked yet.');

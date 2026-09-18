@@ -110,7 +110,7 @@ export function PlaceDetailView({
         ) : null}
       </header>
 
-      <article className="card place-detail-block" data-testid="place-seednode">
+      <article className="card place-detail-block" data-testid="place-seed">
         <div className="section-head">
           <span className="kicker">{SEED_KICKER}</span>
           <span className="rule" />
