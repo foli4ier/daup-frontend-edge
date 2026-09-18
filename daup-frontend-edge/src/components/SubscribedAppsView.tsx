@@ -9,14 +9,13 @@ import {
 import { loadPlaceEntitlement } from '../hub/entitlements';
 import { DEFAULT_HUB_PANE, type HubPane } from '../hub/hubPane';
 import { ShopApp, listOwnerPlaces, ownerPlaceKey } from '../hub/places';
-import { listPlacesOnTheChain } from '../hub/placeDirectory';
 import { loadSeednodeForPlace } from '../hub/seednode';
 import { navigateToEatOutHome } from '../hub/eatoutUrls';
 import { navigateToTheHouse } from '../hub/ownerArrival';
 import { navigateToProjectHome, projectOpenHandshakeFromHub } from '../hub/projectUrls';
 import { listOwnerPlaceRecords, listRegisteredPlaces } from '../stores/identityStore';
 import { GetAppsSection } from './GetApps';
-import { OnTheChainSection } from './OnTheChain';
+import { OtherPlacesView } from './OtherPlaces';
 import { PlaceDetailView } from './PlaceDetailView';
 
 export const SubscribedAppsView: React.FC<{
@@ -76,10 +75,9 @@ export const SubscribedAppsView: React.FC<{
     city,
     records: ownerRecords
   });
-  const chainPlaces = listPlacesOnTheChain();
   const showPlaces = pane === 'places';
   const showApps = pane === 'apps';
-  const showChain = pane === 'places' && !resolvedOpenKey;
+  const showOther = pane === 'other';
   const openRecord = resolvedOpenKey
     ? ownerRecords.find(record => ownerPlaceKey(record) === resolvedOpenKey) || null
     : null;
@@ -250,7 +248,12 @@ export const SubscribedAppsView: React.FC<{
         />
       ) : null}
 
-      {showChain ? <OnTheChainSection places={chainPlaces} /> : null}
+      {showOther ? (
+        <OtherPlacesView
+          ownerEmail={email}
+          ownerPlaceNames={places.map(place => place.title)}
+        />
+      ) : null}
     </div>
   );
 };

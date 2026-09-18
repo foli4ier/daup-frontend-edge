@@ -1,7 +1,8 @@
 import React from 'react';
-import { LayoutGrid, MapPin, User } from 'lucide-react';
+import { Globe, LayoutGrid, MapPin, User } from 'lucide-react';
 import {
   NAV_APPS_LABEL,
+  NAV_OTHER_PLACES_LABEL,
   NAV_PLACES_LABEL,
   NAV_YOU_LABEL
 } from '../hub/copy';
@@ -10,7 +11,8 @@ import type { HubPane } from '../hub/hubPane';
 const TABS: { pane: HubPane; label: string; Icon: typeof MapPin; testId: string }[] = [
   { pane: 'places', label: NAV_PLACES_LABEL, Icon: MapPin, testId: 'hub-nav-places' },
   { pane: 'apps', label: NAV_APPS_LABEL, Icon: LayoutGrid, testId: 'hub-nav-apps' },
-  { pane: 'you', label: NAV_YOU_LABEL, Icon: User, testId: 'hub-nav-you' }
+  { pane: 'you', label: NAV_YOU_LABEL, Icon: User, testId: 'hub-nav-you' },
+  { pane: 'other', label: NAV_OTHER_PLACES_LABEL, Icon: Globe, testId: 'hub-nav-other' }
 ];
 
 export function HubThumbNav({
