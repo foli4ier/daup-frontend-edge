@@ -1,6 +1,6 @@
-# PR 23 — My places: sub remaining + Add apps.
+# PR 24 — My places: sub remaining + Add apps.
 
-Kitchen stills from Hub (Vite + system Chrome, `scripts/capture-ux-pr-23.mjs`). Not placeholders.
+Kitchen stills from Hub (Vite + system Chrome, `scripts/capture-ux-pr-24.mjs`). Not placeholders.
 
 - Theme: daup-theme cream / terracotta / forest
 - Desktop 1280×1100 · mobile 390×844 @2x

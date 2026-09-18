@@ -1,9 +1,9 @@
 /**
- * Capture real Hub chrome stills for docs/ux/pr-23.
+ * Capture real Hub chrome stills for docs/ux/pr-24.
  * Uses the running Vite app + system Chrome (puppeteer-core).
  *
  *   npm install --no-save puppeteer-core
- *   HUB_URL=http://127.0.0.1:3000 node scripts/capture-ux-pr-23.mjs
+ *   HUB_URL=http://127.0.0.1:3000 node scripts/capture-ux-pr-24.mjs
  */
 import { mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url';
 import puppeteer from 'puppeteer-core';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const OUT = join(__dirname, '../../docs/ux/pr-23');
+const OUT = join(__dirname, '../../docs/ux/pr-24');
 const BASE = process.env.HUB_URL || 'http://127.0.0.1:3000';
 const CHROME = process.env.CHROME_PATH || '/usr/bin/google-chrome-stable';
 const BUST = `ux-places-sub-${Date.now()}`;
