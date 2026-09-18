@@ -395,3 +395,23 @@ describe('PR 22 kitchen.md', () => {
     expect(md).not.toMatch(/co_/);
   });
 });
+
+describe('PR 23 kitchen.md', () => {
+  it('documents You. Settings. house admin doors only — not My places / Apps / Other places', () => {
+    const kitchenPath = join(dirname(fileURLToPath(import.meta.url)), '../../../docs/ux/pr-23/kitchen.md');
+    const md = readFileSync(kitchenPath, 'utf8');
+    expect(md).toContain('**Delete the house.**');
+    expect(md).toContain('**Register a new house.**');
+    expect(md).toContain('**Ask for an enhancement.**');
+    expect(md).toContain('**Settings.**');
+    expect(md).toContain('You.');
+    expect(md).toContain('you-desktop.png');
+    expect(md).toContain('you-mobile.png');
+    expect(md).toContain('My places');
+    expect(md).toContain('Apps');
+    expect(md).toContain('Other places');
+    expect(md).not.toMatch(/seednode/i);
+    expect(md).not.toMatch(/Unknown\./);
+    expect(md).toContain('protocol stays behind it');
+  });
+});
