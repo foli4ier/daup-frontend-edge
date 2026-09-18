@@ -12,7 +12,7 @@ Kitchen stills from Hub (Vite + system Chrome, `scripts/capture-ux-pr-22.mjs`). 
 1. **Apps** — Social. (EatOut, Chat) then Paid. (Eatery, Project, Farm, Reseller, Maker). Coming. where not live.
 2. **Place detail** — Apps block on top of the control plane. Seed. and Subscription. stay below.
 3. **Seed.** — live **Hosted.** / **On this premises.** choice. Status *Status not checked yet.* · **Check seed.**
-4. On this premises: hosted line **R0**; **Download seed setup.** serves `/on-prem/daup-onprem-seed-v0.zip` (v0 operator pack: start-house `.sh`/`.bat`, tunnel, healthcheck).
+4. On this premises: hosted line **R0**; **Download seed setup.** → [daup-onprem-seed-v0.zip](https://github.com/foli4ier/daup-mcp-servers/releases/download/onprem-seed-v0/daup-onprem-seed-v0.zip) (scripts/zip v0 — start-house `.sh`/`.bat`, tunnel, healthcheck; not a Windows `.exe`).
 
 Meters (stubs): **R199** a month for this place. · **R299** hosted seed. · **R0** hosted seed. when on this premises. Trial 30d unchanged.
 
@@ -20,10 +20,10 @@ Meters (stubs): **R199** a month for this place. · **R299** hosted seed. · **R
 
 | | |
 | --- | --- |
-| **Live** | Apps Social/Paid sections, apps-on-top, Hosted ↔ On this premises persist, fee copy, **Download seed setup.** zip of the v0 operator pack |
-| **Pack** | Hub `/on-prem/daup-onprem-seed-v0.zip` mirrors `foli4ier/daup-mcp-servers` `onprem-pack/` v0 (start-house `.sh`/`.bat`, tunnel, healthcheck, README — not a Windows `.exe`). Local smoke `http://127.0.0.1:8080`. Production attach is https. |
-| **Attach** | After stand-up Hub persists `{ mode: on-prem, endpoint, ownerEmail, companyId, placeId }` with the opened place’s house id. Licensed id is never reminted. |
-| **Stub** | Check seed. / Connected badge (slice C). Customer tunnel hostname. Manage billing. Coming. |
+| **Live** | Apps Social/Paid sections, apps-on-top, Hosted ↔ On this premises persist, fee copy, **Download seed setup.** zip door |
+| **Pack** | Primary door `https://github.com/foli4ier/daup-mcp-servers/releases/download/onprem-seed-v0/daup-onprem-seed-v0.zip` (zip, not tgz, not `.exe`). Same scripts as `onprem-pack/` (start-house, tunnel, healthcheck, README). Local smoke `http://127.0.0.1:8080`. Production attach is https. |
+| **Attach** | After stand-up Hub persists `{ mode: on-prem, endpoint, ownerEmail, companyId, placeId }` with the opened place’s house id. Licensed id is never reminted. **Check seed.** polls health then connected status. |
+| **Stub** | Customer tunnel hostname. Manage billing. Coming. CORS to `127.0.0.1` from Hub origin may still read **Not connected yet.** |
 
 ## apps-desktop.png
 
@@ -69,7 +69,7 @@ Apps on top. Seed. and Subscription. below.
 - Host label **This premises.**
 - *Status not checked yet.* · **Check seed.**
 - *Next: download the setup and run it on this premises.*
-- terracotta **Download seed setup.** → `/on-prem/daup-onprem-seed-v0.zip`
+- terracotta **Download seed setup.** → `https://github.com/foli4ier/daup-mcp-servers/releases/download/onprem-seed-v0/daup-onprem-seed-v0.zip`
 - Subscription hosted line **R0 hosted seed.** · place sub still **R199 a month for this place.**
 
 ## place-on-prem-mobile.png

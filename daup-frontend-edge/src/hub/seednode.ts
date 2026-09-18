@@ -5,10 +5,10 @@
  * Default hosted endpoint is the live house host (mcp.daup.co.za).
  * Door chrome uses daup.co.za — no MCP word on kitchen doors.
  *
- * Persist attach config. Do not block on seednode_status MCP tools.
- * Connected badge polling is slice C. Hosted ↔ on this premises is a Hub
- * door choice (no remint). On-prem download is the v0 operator pack zip
- * mirrored from foli4ier/daup-mcp-servers onprem-pack (scripts, not an .exe).
+ * Persist attach config. Check seed. polls GET /health then seednode_status
+ * (on-prem also POSTs seednode_attach first). Hosted ↔ on this premises is a
+ * Hub door choice (no remint). Download seed setup. is the v0 zip (scripts,
+ * not an .exe): GitHub onprem-seed-v0.zip is the primary door.
  */
 
 import { ON_PREM_SEED_DOOR_LABEL } from './copy';
@@ -18,12 +18,14 @@ export const DEFAULT_HOSTED_SEEDNODE_ENDPOINT = 'https://mcp.daup.co.za';
 /** Local Kortrijk / start-house listen address. Production attach is https. Not shown on doors. */
 export const ON_PREM_SEED_ENDPOINT = 'http://127.0.0.1:8080';
 export const HOSTED_SEED_DOOR_LABEL = 'daup.co.za';
-/** SoT pack (private repo). Hub serves a public mirror so owners do not need GitHub. */
+/** Browse the operator pack (scripts + README). Prefer the zip door below. */
 export const SEED_SETUP_PACK_BROWSE = 'https://github.com/foli4ier/daup-mcp-servers/tree/main/onprem-pack';
+/** Primary Download seed setup. door — zip, not tgz, not an .exe. */
 export const SEED_SETUP_RELEASE_ZIP = 'https://github.com/foli4ier/daup-mcp-servers/releases/download/onprem-seed-v0/daup-onprem-seed-v0.zip';
-/** Hub-served mirror of onprem-seed-v0 (start-house .sh/.bat + tunnel + healthcheck + README). */
-export const SEED_SETUP_ZIP_HREF = '/on-prem/daup-onprem-seed-v0.zip';
+export const SEED_SETUP_ZIP_HREF = SEED_SETUP_RELEASE_ZIP;
 export const SEED_SETUP_ZIP_NAME = 'daup-onprem-seed-v0.zip';
+/** Same-origin copy Hub still ships if the GitHub release is unreachable. */
+export const SEED_SETUP_ZIP_FALLBACK = '/on-prem/daup-onprem-seed-v0.zip';
 export const SEEDNODE_STORAGE_KEY = 'daup_seednode_config';
 export const SEEDNODE_BY_PLACE_KEY = 'daup_seednode_by_place';
 

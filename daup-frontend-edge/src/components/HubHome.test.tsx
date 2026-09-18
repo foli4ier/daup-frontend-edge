@@ -1745,8 +1745,10 @@ describe('P0/P1 place list and control plane', () => {
     expect(container.querySelector('[data-testid="place-sub-meters"]')?.textContent).not.toContain('R299 hosted seed.');
     const download = container.querySelector('[data-testid="download-seed-setup"]') as HTMLAnchorElement | null;
     expect(download?.textContent).toBe('Download seed setup.');
-    expect(download?.getAttribute('href')).toBe('/on-prem/daup-onprem-seed-v0.zip');
-    expect(download?.getAttribute('download')).toBe('daup-onprem-seed-v0.zip');
+    expect(download?.getAttribute('href')).toBe(
+      'https://github.com/foli4ier/daup-mcp-servers/releases/download/onprem-seed-v0/daup-onprem-seed-v0.zip'
+    );
+    expect(download?.getAttribute('href')).not.toMatch(/\.tgz(\?|$)/);
     expect(container.querySelector('[data-testid="seed-on-prem-next"]')?.textContent).toContain('download the setup');
     const onPremAttach = loadSeednodeForPlace(salt?.companyId || '');
     expect(onPremAttach?.mode).toBe('on-prem');

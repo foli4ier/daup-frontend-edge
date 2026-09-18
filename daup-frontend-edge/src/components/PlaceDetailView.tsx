@@ -21,6 +21,8 @@ import {
   SEED_KICKER,
   SEEDNODE_MODE_HOSTED,
   SEEDNODE_MODE_ON_PREM,
+  SEEDNODE_STATUS_CONNECTED,
+  SEED_STATUS_NOT_CONNECTED,
   SEED_STATUS_UNCHECKED,
   SUBSCRIPTION_KICKER
 } from '../hub/copy';
@@ -32,10 +34,10 @@ import {
   stubMonthlyLines
 } from '../hub/priceMeters';
 import { resolvePlaceSubscriptionStatus, type PlaceEntitlement } from '../hub/entitlements';
+import { pollSeednodeStatus } from '../hub/houseMcp';
 import {
   HOSTED_SEED_DOOR_LABEL,
   SEED_SETUP_ZIP_HREF,
-  SEED_SETUP_ZIP_NAME,
   onPremAttachFields,
   saveSeednodeForPlace,
   seedConfigForMode,
@@ -91,6 +93,8 @@ export function PlaceDetailView({
   const licensedId = (place.companyId || '').trim();
   const openedPlaceId = (place.placeId || '').trim();
   const [seedConfig, setSeedConfig] = useState<SeednodeConfig | null>(seed);
+  const [seedCheck, setSeedCheck] = useState<'unchecked' | 'connected' | 'not-connected'>('unchecked');
+  const [checkingSeed, setCheckingSeed] = useState(false);
   const status = entitlement ? resolvePlaceSubscriptionStatus(entitlement) : (trialEndsAt ? 'trial' : null);
   const mode: SeednodeMode = seedConfig?.mode || 'hosted';
   const host = seednodeDoorHost(seedConfig);
@@ -128,6 +132,32 @@ export function PlaceDetailView({
       })
     );
     setSeedConfig(config);
+    setSeedCheck('unchecked');
+  };
+
+  const onCheckSeed = async () => {
+    if (checkingSeed) return;
+    const attached = seedConfig;
+    if (!attached?.endpoint) {
+      setSeedCheck('not-connected');
+      return;
+    }
+    setCheckingSeed(true);
+    try {
+      const result = await pollSeednodeStatus({
+        endpoint: attached.endpoint,
+        mode: attached.mode,
+        ownerEmail: email,
+        companyId: licensedId || attached.companyId,
+        placeId: openedPlaceId || attached.placeId,
+        attach: attached.mode === 'on-prem'
+      });
+      setSeedCheck(result.ok && result.connected ? 'connected' : 'not-connected');
+    } catch {
+      setSeedCheck('not-connected');
+    } finally {
+      setCheckingSeed(false);
+    }
   };
 
   return (
@@ -225,12 +255,20 @@ export function PlaceDetailView({
           </button>
         </div>
         <p className="caption" data-testid="place-seed-host">{host || HOSTED_SEED_DOOR_LABEL}</p>
-        <p className="caption" data-testid="place-seed-status">{SEED_STATUS_UNCHECKED}</p>
+        <p className="caption" data-testid="place-seed-status">
+          {seedCheck === 'connected'
+            ? SEEDNODE_STATUS_CONNECTED
+            : seedCheck === 'not-connected'
+              ? SEED_STATUS_NOT_CONNECTED
+              : SEED_STATUS_UNCHECKED}
+        </p>
         <div className="place-detail-cta">
           <button
             type="button"
             className="btn btn-outline"
             data-testid="check-seed"
+            disabled={checkingSeed}
+            onClick={() => { void onCheckSeed(); }}
           >
             {CHECK_SEED_LABEL}
           </button>
@@ -241,7 +279,6 @@ export function PlaceDetailView({
             <a
               className="btn btn-primary"
               href={SEED_SETUP_ZIP_HREF}
-              download={SEED_SETUP_ZIP_NAME}
               data-testid="download-seed-setup"
             >
               {DOWNLOAD_SEED_SETUP_LABEL}

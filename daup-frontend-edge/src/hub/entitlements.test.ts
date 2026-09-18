@@ -17,7 +17,9 @@ import {
   saveSeednodeForPlace,
   seedConfigForMode,
   seednodeDoorHost,
-  SEED_SETUP_ZIP_HREF
+  SEED_SETUP_ZIP_HREF,
+  SEED_SETUP_RELEASE_ZIP,
+  SEED_SETUP_ZIP_FALLBACK
 } from './seednode';
 import { DEFAULT_HOUSE_MCP_BASE } from './houseMcp';
 import { bindCompanyId, bindPlaceId, mintCompanyId, normalizeEnabledApps, preferHeldCompanyId } from './companyNode';
@@ -92,8 +94,13 @@ describe('hosted seednode stub', () => {
     });
     expect(seednodeDoorHost(onPrem)).toBe('This premises.');
     expect(seedConfigForMode({ mode: 'hosted', companyId: 'co_held' }).mode).toBe('hosted');
-    expect(SEED_SETUP_ZIP_HREF).toBe('/on-prem/daup-onprem-seed-v0.zip');
-    const zipPath = join(dirname(fileURLToPath(import.meta.url)), '../../public/on-prem/daup-onprem-seed-v0.zip');
+    expect(SEED_SETUP_ZIP_HREF).toBe(SEED_SETUP_RELEASE_ZIP);
+    expect(SEED_SETUP_ZIP_HREF).toBe(
+      'https://github.com/foli4ier/daup-mcp-servers/releases/download/onprem-seed-v0/daup-onprem-seed-v0.zip'
+    );
+    expect(SEED_SETUP_ZIP_HREF).not.toMatch(/\.tgz(\?|$)/);
+    expect(SEED_SETUP_ZIP_HREF).not.toMatch(/\.exe\b/i);
+    const zipPath = join(dirname(fileURLToPath(import.meta.url)), `../../public${SEED_SETUP_ZIP_FALLBACK}`);
     expect(existsSync(zipPath)).toBe(true);
     const listing = execSync(`unzip -l ${JSON.stringify(zipPath)}`, { encoding: 'utf8' });
     expect(listing).toContain('onprem-pack/start-house.sh');

@@ -24,7 +24,6 @@ export const HOUSE_MCP_TOOLS = {
   register: 'places_register',
   unregister: 'places_unregister',
   deleteState: 'house_state_delete',
-  /** Slice C wires this for the Connected badge. Slice A does not block on it. */
   seedAttach: 'seednode_attach',
   seedStatus: 'seednode_status'
 } as const;
@@ -337,4 +336,132 @@ export async function removeHouseFromNetwork(
       : Promise.resolve({ ok: false as const, reason: 'skipped' as const })
   ]);
   return { unregister, state };
+}
+
+function asHealthOk(data: unknown): boolean {
+  if (!data || typeof data !== 'object') return false;
+  return (data as { ok?: unknown }).ok === true;
+}
+
+function asStatusConnected(data: unknown): boolean {
+  if (!data || typeof data !== 'object') return false;
+  const raw = data as Record<string, unknown>;
+  if (raw.connected === true) return true;
+  if (raw.status === 'connected') return true;
+  return false;
+}
+
+async function withTimeout<T>(
+  run: (signal: AbortSignal | undefined) => Promise<T>,
+  timeoutMs: number
+): Promise<T> {
+  const controller = typeof AbortController === 'function' ? new AbortController() : null;
+  const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+  try {
+    return await run(controller?.signal);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+/** GET {origin}/health → {"ok":true}. Soft-fail. */
+export async function fetchSeedHealth(
+  baseUrl?: string,
+  options: HouseMcpClientOptions = {}
+): Promise<{ ok: true; healthy: boolean } | HouseMcpFailure> {
+  const runFetch = resolveFetch(options.fetch);
+  if (!runFetch) return { ok: false, reason: 'no-fetch' };
+  const origin = resolveHouseMcpBaseUrl(baseUrl);
+  const timeoutMs = options.timeoutMs ?? HOUSE_MCP_TIMEOUT_MS;
+  try {
+    const response = await withTimeout(
+      signal => runFetch(`${origin}/health`, {
+        method: 'GET',
+        headers: { accept: 'application/json' },
+        signal
+      }),
+      timeoutMs
+    );
+    if (!response.ok) return { ok: true, healthy: false };
+    const data = parseJsonText(await response.text());
+    return { ok: true, healthy: asHealthOk(data) };
+  } catch (err) {
+    const name = err && typeof err === 'object' && 'name' in err ? String((err as { name?: string }).name) : '';
+    if (name === 'AbortError') return { ok: false, reason: 'timeout' };
+    return { ok: false, reason: 'unreachable' };
+  }
+}
+
+/** After on-prem stand-up: mode + endpoint + companyId (once) + opened placeId. */
+export async function attachSeednode(
+  args: {
+    mode: 'hosted' | 'on-prem';
+    endpoint: string;
+    ownerEmail?: string;
+    companyId?: string;
+    placeId?: string;
+  },
+  options: HouseMcpClientOptions = {}
+): Promise<{ ok: true; data: unknown } | HouseMcpFailure> {
+  const ownerEmail = normalizeEmail(args.ownerEmail || '');
+  const companyId = (args.companyId || '').trim();
+  const placeId = (args.placeId || '').trim();
+  const endpoint = (args.endpoint || '').trim();
+  if (!endpoint || !companyId || !placeId) return { ok: false, reason: 'attach-fields-required' };
+  const payload: Record<string, unknown> = {
+    mode: args.mode,
+    endpoint,
+    companyId,
+    placeId
+  };
+  if (ownerEmail) payload.ownerEmail = ownerEmail;
+  return callHouseMcpTool(HOUSE_MCP_TOOLS.seedAttach, payload, {
+    ...options,
+    baseUrl: options.baseUrl || endpoint
+  });
+}
+
+/**
+ * Check seed.: GET /health, then (on-prem) seednode_attach, then seednode_status.
+ * connected = health ok AND status.connected.
+ */
+export async function pollSeednodeStatus(
+  args: {
+    endpoint: string;
+    mode?: 'hosted' | 'on-prem';
+    ownerEmail?: string;
+    companyId?: string;
+    placeId?: string;
+    attach?: boolean;
+  },
+  options: HouseMcpClientOptions = {}
+): Promise<{ ok: true; connected: boolean } | HouseMcpFailure> {
+  const endpoint = (args.endpoint || '').trim();
+  if (!endpoint) return { ok: false, reason: 'endpoint-required' };
+  const client = { ...options, baseUrl: options.baseUrl || endpoint };
+  const health = await fetchSeedHealth(endpoint, client);
+  if (!health.ok) return health;
+  if (!health.healthy) return { ok: true, connected: false };
+
+  if (args.attach) {
+    await attachSeednode({
+      mode: args.mode || 'on-prem',
+      endpoint,
+      ownerEmail: args.ownerEmail,
+      companyId: args.companyId,
+      placeId: args.placeId
+    }, client);
+  }
+
+  const statusArgs: Record<string, unknown> = {};
+  const ownerEmail = normalizeEmail(args.ownerEmail || '');
+  const companyId = (args.companyId || '').trim();
+  const placeId = (args.placeId || '').trim();
+  if (ownerEmail) statusArgs.ownerEmail = ownerEmail;
+  if (companyId) statusArgs.companyId = companyId;
+  if (placeId) statusArgs.placeId = placeId;
+
+  const status = await callHouseMcpTool(HOUSE_MCP_TOOLS.seedStatus, statusArgs, client);
+  const connected = status.ok && asStatusConnected(status.data);
+  return { ok: true, connected };
 }

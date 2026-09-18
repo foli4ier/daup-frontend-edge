@@ -384,7 +384,7 @@ describe('PR 22 kitchen.md', () => {
     expect(md).toContain('**Hosted.**');
     expect(md).toContain('**On this premises.**');
     expect(md).toContain('**Download seed setup.**');
-    expect(md).toContain('/on-prem/daup-onprem-seed-v0.zip');
+    expect(md).toContain('https://github.com/foli4ier/daup-mcp-servers/releases/download/onprem-seed-v0/daup-onprem-seed-v0.zip');
     expect(md).toContain('**Check seed.**');
     expect(md).toContain('R199');
     expect(md).toContain('R299');

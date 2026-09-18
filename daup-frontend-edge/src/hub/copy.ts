@@ -53,6 +53,7 @@ export const SEEDNODE_MODE_ON_PREM = 'On this premises.';
 export const SEED_STATUS_UNCHECKED = 'Status not checked yet.';
 export const SEEDNODE_STATUS_UNKNOWN = SEED_STATUS_UNCHECKED;
 export const SEEDNODE_STATUS_CONNECTED = 'Connected.';
+export const SEED_STATUS_NOT_CONNECTED = 'Not connected yet.';
 export const MANAGE_SEED_LABEL = 'Manage seed.';
 export const CHECK_SEED_LABEL = 'Check seed.';
 export const MANAGE_SEEDNODE_LABEL = MANAGE_SEED_LABEL;
@@ -213,6 +214,7 @@ export const HUB_HOME_COPY = [
   SEEDNODE_MODE_ON_PREM,
   SEED_STATUS_UNCHECKED,
   SEEDNODE_STATUS_CONNECTED,
+  SEED_STATUS_NOT_CONNECTED,
   MANAGE_SEED_LABEL,
   CHECK_SEED_LABEL,
   SUBSCRIPTION_KICKER,

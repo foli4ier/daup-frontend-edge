@@ -1,11 +1,12 @@
-# On-prem seed setup (Hub mirror)
+# On-prem seed setup
 
 Product SoT: [`foli4ier/daup-mcp-servers` `onprem-pack/`](https://github.com/foli4ier/daup-mcp-servers/tree/main/onprem-pack) (v0, same as Kortrijk `start:home`).
 
-Release tag `onprem-seed-v0` ships `daup-onprem-seed-v0.zip` (scripts, not a compiled `.exe`). That repo is private, so Hub does **not** send owners to GitHub. Hub serves a mirror:
+**Door:** **Download seed setup.** → [daup-onprem-seed-v0.zip](https://github.com/foli4ier/daup-mcp-servers/releases/download/onprem-seed-v0/daup-onprem-seed-v0.zip)  
+Release: [onprem-seed-v0](https://github.com/foli4ier/daup-mcp-servers/releases/tag/onprem-seed-v0)  
+Prefer **zip** over tgz. Scripts/zip v0 — not a compiled `.exe`.
 
-**Door:** **Download seed setup.** → `/on-prem/daup-onprem-seed-v0.zip`  
-**Mirror of:** `docs/on-prem/onprem-pack/` (start-house `.sh`/`.bat`, optional cloudflared `start-tunnel`, healthcheck, README)
+Hub also ships a same-origin copy at `/on-prem/daup-onprem-seed-v0.zip` (`docs/on-prem/onprem-pack/`) if the GitHub asset is unreachable.
 
 ## Health
 
@@ -28,12 +29,14 @@ Hub persists (and must pass) the opened place’s house `placeId` — never remi
 }
 ```
 
+**Check seed.** POSTs `seednode_attach` (on-prem) then polls `seednode_status`. Kitchen: **Connected.** or **Not connected yet.**
+
 Local Hub stub endpoint is `http://127.0.0.1:8080` until a public https host is set.
 
 ## Stub vs live
 
 | Live | Stub |
 | --- | --- |
-| Zip bytes Hub serves = v0 operator pack scripts | Connected badge / Check seed. polling (slice C) |
-| Attach JSON shape with opened `placeId` | Customer tunnel hostname (owner fills cloudflared) |
+| Download door = GitHub `onprem-seed-v0` zip | GitHub asset 404s for anonymous clients while the pack repo is private — Hub copy still at `/on-prem/daup-onprem-seed-v0.zip` |
+| Attach JSON with opened `placeId`; Check seed. poll | Customer tunnel hostname (owner fills cloudflared) |
 | Meters R199 / R299 hosted / R0 on-prem | Manage billing. Coming. |
