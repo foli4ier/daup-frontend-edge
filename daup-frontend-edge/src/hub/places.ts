@@ -1,3 +1,4 @@
+import { ENABLEABLE_APP_IDS } from './companyNode';
 import {
   CHAIN_APP_CHAT,
   CHAIN_APP_EATERY,
@@ -139,6 +140,11 @@ export const SOCIAL_SHOP_APPS = SOCIAL_SHOP_APP_IDS
   .map(id => SHOP_APPS.find(app => app.id === id))
   .filter((app): app is ShopApp => Boolean(app));
 export const PAID_SHOP_APPS = PAID_SHOP_APP_IDS
+  .map(id => SHOP_APPS.find(app => app.id === id))
+  .filter((app): app is ShopApp => Boolean(app));
+
+/** Place-app picker (wizard + Add apps.). EatOut is consumer — not a place app. */
+export const ENABLEABLE_SHOP_APPS = ENABLEABLE_APP_IDS
   .map(id => SHOP_APPS.find(app => app.id === id))
   .filter((app): app is ShopApp => Boolean(app));
 

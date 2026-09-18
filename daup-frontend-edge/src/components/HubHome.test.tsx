@@ -20,19 +20,23 @@ import { OWNER_SESSION_STORAGE_KEY } from '../hub/ownerSession';
 import { HUB_INSTALLED_APPS_KEY } from '../hub/hubStorage';
 import { HOUSE_MCP_TOOLS } from '../hub/houseMcp';
 import { bindCompanyId } from '../hub/companyNode';
-import { PLACE_TRIAL_STARTED, loadTrialEvent, saveNodeEntitlement } from '../hub/entitlements';
+import { PLACE_TRIAL_STARTED, TRIAL_MS, loadPlaceEntitlement, loadTrialEvent, saveNodeEntitlement } from '../hub/entitlements';
 import {
+  ADD_APPS_LABEL,
+  ALREADY_ON_PLACE_LABEL,
   GET_APPS_KICKER,
   GET_LABEL,
   HUB_DOOR_BODY,
   NAV_OTHER_PLACES_LABEL,
   NAV_PLACES_LABEL,
   OPEN_LABEL,
+  PLACE_SUB_LINE,
   PLUS_REGISTER_LABEL,
   REGISTER_A_NEW_HOUSE_LABEL,
   RESERVE_A_TABLE_LABEL,
   SAME_CHAIN_CAPTION,
   SEE_THE_MENU_LABEL,
+  SEED_HOSTED_LINE,
   YOUR_PLACES_EMPTY,
   YOUR_PLACES_KICKER,
   SETTINGS_KICKER,
@@ -1783,6 +1787,127 @@ describe('P0/P1 place list and control plane', () => {
     expect(container.querySelector('[data-testid="place-detail-name"]')?.textContent).toContain('The Olive');
     expect(container.querySelector('[data-testid="place-app-eatery"]')?.textContent).toContain('Eatery');
     expect(loadIdentityVault().companyNode?.companyId).toBe(firstId);
+    unmount();
+  });
+});
+
+describe('My places subscription display and Add apps.', () => {
+  const day = 24 * 60 * 60 * 1000;
+
+  beforeEach(() => {
+    resetIdentityVault();
+    localStorage.clear();
+    window.history.replaceState({}, '', '/');
+    saveIdentityVault({
+      ...houseVault,
+      companyNode: {
+        companyId: 'co_olive',
+        enabledApps: ['eatery'],
+        billableLocations: 1
+      }
+    });
+    localStorage.setItem(OWNER_SESSION_STORAGE_KEY, JSON.stringify({
+      email: 'owner@theolive.co.za',
+      signedInAt: Date.now()
+    }));
+    registerPlaceOnPlatform({
+      placeName: 'The Olive',
+      app: 'eatery',
+      country: 'South Africa',
+      region: 'Western Cape',
+      city: 'Stellenbosch',
+      companyId: 'co_olive',
+      enabledApps: ['eatery'],
+      ownerEmail: 'owner@theolive.co.za'
+    });
+    saveNodeEntitlement({
+      companyId: 'co_olive',
+      node_subscription_status: 'trial',
+      trial_started_at: Date.now() - 18 * day,
+      trial_ends_at: Date.now() + 12 * day,
+      enabled_apps: ['eatery'],
+      billable_locations: 1,
+      payment_method_ok: false
+    });
+  });
+
+  it('shows the chosen sub and time remaining on the My places card', async () => {
+    const { container, unmount } = render(<App />);
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 80));
+    });
+
+    const choice = container.querySelector('[data-testid="eatery-place-choice"]');
+    expect(choice?.textContent).toContain(PLACE_SUB_LINE);
+    expect(choice?.textContent).toContain(SEED_HOSTED_LINE);
+    expect(choice?.textContent).toContain('R498 a month.');
+    expect(container.querySelector('[data-testid="eatery-place-remaining"]')?.textContent)
+      .toMatch(/\d+ days left on trial\./);
+    expect(container.textContent).not.toMatch(/\b(peer|DID|DHT|wallet|MCP|npm|hydrate|neon|node|co_)\b/i);
+    unmount();
+  });
+
+  it('adds a missing app from place detail and blocks a second instance', async () => {
+    const { container, unmount } = render(<App />);
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 80));
+    });
+
+    act(() => {
+      (container.querySelector('[data-testid="open-the-house"]') as HTMLButtonElement).click();
+    });
+    expect(container.querySelector('[data-testid="place-add-apps"]')?.textContent).toContain(ADD_APPS_LABEL);
+    expect(container.querySelector('[data-testid="already-on-place-eatery"]')?.textContent)
+      .toBe(ALREADY_ON_PLACE_LABEL);
+    expect((container.querySelector('[data-testid="add-app-eatery"]') as HTMLButtonElement).disabled).toBe(true);
+    expect(container.querySelector('[data-testid="place-app-project"]')).toBeNull();
+    expect(container.querySelector('[data-testid="place-sub-remaining"]')?.textContent)
+      .toMatch(/\d+ days left on trial\./);
+
+    act(() => {
+      (container.querySelector('[data-testid="add-app-eatery"]') as HTMLButtonElement).click();
+      (container.querySelector('[data-testid="add-app-project"]') as HTMLButtonElement).click();
+    });
+    act(() => {
+      (container.querySelector('[data-testid="confirm-add-apps"]') as HTMLButtonElement).click();
+    });
+
+    expect(container.querySelector('[data-testid="place-app-eatery"]')?.textContent).toContain('Eatery');
+    expect(container.querySelector('[data-testid="place-app-project"]')?.textContent).toContain('Project');
+    expect(container.querySelector('[data-testid="already-on-place-project"]')?.textContent)
+      .toBe(ALREADY_ON_PLACE_LABEL);
+    expect((container.querySelector('[data-testid="add-app-project"]') as HTMLButtonElement).disabled).toBe(true);
+    expect(loadPlaceEntitlement('co_olive')?.enabled_apps).toEqual(['eatery', 'project']);
+    expect(listRegisteredPlaces().find(place => place.companyId === 'co_olive')?.enabledApps)
+      .toEqual(['eatery', 'project']);
+    expect(loadIdentityVault().companyNode?.enabledApps).toEqual(['eatery', 'project']);
+
+    act(() => {
+      (container.querySelector('[data-testid="add-app-project"]') as HTMLButtonElement).click();
+    });
+    expect(loadPlaceEntitlement('co_olive')?.enabled_apps).toEqual(['eatery', 'project']);
+    expect(container.querySelectorAll('[data-testid="place-app-project"]').length).toBe(1);
+    expect(container.textContent).not.toMatch(/\b(peer|DID|DHT|wallet|MCP|npm|hydrate|neon|node|co_)\b/i);
+    unmount();
+  });
+
+  it('shows Renews in N days. after trial when payment is stubbed ok', async () => {
+    saveNodeEntitlement({
+      companyId: 'co_olive',
+      node_subscription_status: 'active',
+      trial_started_at: Date.now() - 40 * day,
+      trial_ends_at: Date.now() - 10 * day,
+      enabled_apps: ['eatery'],
+      billable_locations: 1,
+      payment_method_ok: true
+    });
+    const { container, unmount } = render(<App />);
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 80));
+    });
+    expect(container.querySelector('[data-testid="eatery-place-remaining"]')?.textContent)
+      .toMatch(/Renews in \d+ days\./);
+    expect(TRIAL_MS).toBe(30 * day);
     unmount();
   });
 });

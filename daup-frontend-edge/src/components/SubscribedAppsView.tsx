@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useUserProfile } from '../context/UserProfileContext';
 import {
+  HOSTED_SEED_SUMMARY,
   OPEN_LABEL,
   PLUS_REGISTER_LABEL,
   YOUR_PLACES_EMPTY,
@@ -9,6 +10,7 @@ import {
 import { loadPlaceEntitlement } from '../hub/entitlements';
 import { DEFAULT_HUB_PANE, type HubPane } from '../hub/hubPane';
 import { ShopApp, listOwnerPlaces, ownerPlaceKey } from '../hub/places';
+import { placeSubscriptionDisplay } from '../hub/placeSubscription';
 import { loadSeednodeForPlace } from '../hub/seednode';
 import { navigateToEatOutHome } from '../hub/eatoutUrls';
 import { navigateToTheHouse } from '../hub/ownerArrival';
@@ -48,6 +50,7 @@ export const SubscribedAppsView: React.FC<{
     profile,
     enabledApps,
     enableApp,
+    enableAppsOnPlace,
     companyId,
     trialState,
     vault
@@ -163,6 +166,10 @@ export const SubscribedAppsView: React.FC<{
           }
           enabledApps={enabledForPlace(openRecord)}
           onBack={() => closePlace()}
+          onAddApps={(appIds) => enableAppsOnPlace({
+            ...openRecord,
+            enabledApps: enabledForPlace(openRecord)
+          }, appIds)}
           onOpenApp={(app) => handleOpen(
             app,
             openRecord.placeName,
@@ -186,6 +193,18 @@ export const SubscribedAppsView: React.FC<{
             <div className="owner-places-list" data-testid="owner-places-list">
               {places.map((place, index) => {
                 const key = place.placeKey || place.title;
+                const record = ownerRecords.find(row => ownerPlaceKey(row) === key);
+                const licensed = (place.companyId || place.placeId || record?.companyId || record?.placeId || '').trim();
+                const entitlement = licensed ? loadPlaceEntitlement(licensed) : null;
+                const seed = licensed ? loadSeednodeForPlace(licensed) : null;
+                const isPrimaryHouse = place.title.trim() === houseName;
+                const sub = placeSubscriptionDisplay({
+                  entitlement,
+                  seedMode: seed?.mode || 'hosted',
+                  trialStartedAt: isPrimaryHouse ? trialState.trialStartedAt : null,
+                  trialEndsAt: entitlement?.trial_ends_at
+                    || (isPrimaryHouse ? trialState.trialExpiresAt : null)
+                });
                 return (
                   <article
                     className="place-card"
@@ -197,6 +216,19 @@ export const SubscribedAppsView: React.FC<{
                       <h3 data-testid={index === 0 ? 'eatery-place-name' : 'owner-place-name'}>{place.title}</h3>
                       {place.city ? (
                         <p data-testid={index === 0 ? 'eatery-place-city' : 'owner-place-city'}>{place.city}</p>
+                      ) : null}
+                      <p className="place-card-choice" data-testid={index === 0 ? 'eatery-place-choice' : 'place-card-choice'}>
+                        {sub.choiceLines.map(line => (
+                          <span key={line}>{line}</span>
+                        ))}
+                        {sub.seedSummary === HOSTED_SEED_SUMMARY ? (
+                          <span className="place-card-total">{sub.totalLine}</span>
+                        ) : null}
+                      </p>
+                      {sub.remaining ? (
+                        <p className="place-card-remaining" data-testid={index === 0 ? 'eatery-place-remaining' : 'place-card-remaining'}>
+                          {sub.remaining}
+                        </p>
                       ) : null}
                     </div>
                     <span className="live" data-testid={index === 0 ? 'eatery-place-status' : 'owner-place-status'}>

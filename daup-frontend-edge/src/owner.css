@@ -176,7 +176,7 @@ body {
   box-shadow: var(--shadow);
   padding: 12px 14px;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
   min-height: 64px;
 }
@@ -199,6 +199,23 @@ body {
   margin: 2px 0 0;
   color: var(--muted);
   font-size: 0.92rem;
+}
+
+.place-card-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-top: 6px;
+}
+
+.place-card-choice span {
+  display: block;
+}
+
+.place-card-remaining {
+  margin-top: 4px;
+  color: var(--ink);
+  font-weight: 650;
 }
 
 .place-card .btn {
@@ -272,6 +289,25 @@ body {
   gap: 10px;
 }
 
+.place-add-apps {
+  margin-top: 12px;
+}
+
+.place-add-apps .wizard-apps {
+  margin: 8px 0 10px;
+}
+
+.wizard-app.is-held {
+  opacity: 0.68;
+  cursor: not-allowed;
+  background: var(--card);
+}
+
+.wizard-app.is-held .caption {
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+
 @media (max-width: 640px) {
   .place-detail {
     gap: 10px;
@@ -305,7 +341,7 @@ body {
     align-self: start;
   }
 
-  .place-card .btn {
+  .place-card .btn:not(.wizard-app) {
     grid-area: open;
     width: 100%;
     min-width: 0;

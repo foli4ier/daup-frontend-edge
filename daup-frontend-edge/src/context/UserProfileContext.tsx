@@ -28,7 +28,8 @@ import {
   mergeHousePlacesIntoPlatform,
   applyHousePlacesToVault,
   heldPlaceIdForHouse,
-  DEFAULT_VAULT
+  DEFAULT_VAULT,
+  type PlatformPlaceRecord
 } from '../stores/identityStore';
 import {
   housePlaceToPlatform,
@@ -55,6 +56,7 @@ import {
 } from '../hub/seednode';
 import {
   assertNodeWrite,
+  enableAppsOnPlace as persistEnabledAppsOnPlace,
   loadNodeEntitlement,
   maybeFirePlaceTrialStarted,
   patchNodeEntitlement,
@@ -97,6 +99,16 @@ export interface UserProfileContextType {
   removeWallet: (id: string) => void;
   setPrimaryWallet: (id: string) => void;
   enableApp: (appId: string) => { ok: boolean; reason?: string };
+  enableAppsOnPlace: (
+    place: Pick<PlatformPlaceRecord, 'placeName'> & Partial<PlatformPlaceRecord>,
+    appIds: readonly string[]
+  ) => {
+    ok: boolean;
+    added: EnableableAppId[];
+    already: EnableableAppId[];
+    next: EnableableAppId[];
+    noOp: boolean;
+  };
   completeOnboarding: (finalProfileData?: Partial<UserProfile>, extras?: { enabledApps?: readonly string[] }) => Promise<void>;
   startFreeTrial: (durationDays?: number) => void;
   detectLocation: () => Promise<UserLocation>;
@@ -580,6 +592,55 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
     return { ok: true };
   }, [commitVault, vault.companyNode?.companyId]);
 
+  const enableAppsOnPlace = useCallback((
+    place: Pick<PlatformPlaceRecord, 'placeName'> & Partial<PlatformPlaceRecord>,
+    appIds: readonly string[]
+  ) => {
+    let result = persistEnabledAppsOnPlace({
+      placeId: place.companyId || place.placeId,
+      companyId: place.companyId,
+      incoming: appIds,
+      current: place.enabledApps
+    });
+    commitVault(prev => {
+      const current = (place.companyId && prev.companyNode?.companyId === place.companyId)
+        ? (prev.companyNode.enabledApps || place.enabledApps || [])
+        : (place.enabledApps || []);
+      result = persistEnabledAppsOnPlace({
+        placeId: place.companyId || place.placeId,
+        companyId: place.companyId,
+        incoming: appIds,
+        current
+      });
+      if (!result.ok || result.noOp) return prev;
+      if (place.placeName) {
+        registerPlaceOnPlatform({
+          placeName: place.placeName,
+          app: primaryChainApp(result.next),
+          country: place.country || prev.profile.location.country,
+          region: place.region || prev.profile.location.provinceState,
+          city: place.city || prev.profile.location.city,
+          placeId: place.placeId,
+          ownerEmail: place.ownerEmail || prev.profile.demographics.email,
+          companyId: place.companyId || prev.companyNode?.companyId,
+          enabledApps: result.next
+        });
+      }
+      if (prev.companyNode && place.companyId && place.companyId === prev.companyNode.companyId) {
+        return {
+          ...prev,
+          companyNode: {
+            ...prev.companyNode,
+            enabledApps: result.next
+          },
+          updatedAt: Date.now()
+        };
+      }
+      return { ...prev, updatedAt: Date.now() };
+    });
+    return result;
+  }, [commitVault]);
+
   // Place-first registration: mint a place id once per place, persist enabled_apps,
   // attach hosted seed stub. Creating another place must not remint or wipe the first.
   const completeOnboarding = useCallback(async (
@@ -941,6 +1002,7 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
         removeWallet,
         setPrimaryWallet,
         enableApp,
+        enableAppsOnPlace,
         completeOnboarding,
         startFreeTrial,
         detectLocation,
