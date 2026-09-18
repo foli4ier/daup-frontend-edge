@@ -44,6 +44,7 @@ const DashboardContent: React.FC = () => {
   const [isAdvanced, setIsAdvanced] = useState(false);
   const [hubPage, setHubPage] = useState<'home' | 'ask'>(() => readHubPage());
   const [hubPane, setHubPane] = useState<HubPane>(DEFAULT_HUB_PANE);
+  const [openPlaceKey, setOpenPlaceKey] = useState<string | null>(null);
 
   const [installedApps, setInstalledApps] = useState<Record<string, boolean>>(() => {
     try {
@@ -82,6 +83,7 @@ const DashboardContent: React.FC = () => {
     setActiveTab('home');
     setLaunchedApp(null);
     setHubPane(DEFAULT_HUB_PANE);
+    setOpenPlaceKey(null);
     setIsAdvanced(false);
   };
 
@@ -91,6 +93,7 @@ const DashboardContent: React.FC = () => {
     setActiveTab('home');
     setLaunchedApp(null);
     setHubPane(pane);
+    setOpenPlaceKey(null);
     if (pane !== 'you') setIsAdvanced(false);
   };
 
@@ -251,6 +254,9 @@ const DashboardContent: React.FC = () => {
                   installedApps={installedApps}
                   onSubscribeApp={handleInstallApp}
                   onLaunchApp={handleLaunchApp}
+                  openPlaceKey={openPlaceKey}
+                  onOpenPlace={setOpenPlaceKey}
+                  onClosePlace={() => setOpenPlaceKey(null)}
                 />
               )
             )}

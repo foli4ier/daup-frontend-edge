@@ -326,6 +326,7 @@ describe('eatery row on hub home', () => {
     expect(rows[0].city).toBe('Stellenbosch');
     expect(rows[0].status).toBe('LIVE');
     expect(rows[0].actionLabel).toBe(OPEN_LABEL);
+    expect(rows[0].placeKey).toBe('The Olive');
     expect(rows[0].href).toMatch(/^https:\/\/eatery\.daup\.co\.za\/owner\?token=/);
     expect(hasBannedDoorCopy(rows[0].title + rows[0].city + rows[0].status + (rows[0].actionLabel || ''))).toBe(false);
   });

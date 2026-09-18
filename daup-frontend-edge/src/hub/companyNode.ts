@@ -46,6 +46,12 @@ export function asCompanyId(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+/** Licensed place id. Same `co_*` value as companyId — do not remint live places. */
+export const mintPlaceId = mintCompanyId;
+export const bindPlaceId = bindCompanyId;
+export const asPlaceId = asCompanyId;
+export const preferHeldPlaceId = preferHeldCompanyId;
+
 /**
  * Bind an existing companyId, or mint once if absent.
  * Passing a held id is always a no-op remint — original id wins.
@@ -70,7 +76,7 @@ export interface CompanyNodeRecord {
 export function asCompanyNodeRecord(value: unknown): CompanyNodeRecord | null {
   if (!value || typeof value !== 'object') return null;
   const raw = value as Record<string, unknown>;
-  const companyId = asCompanyId(raw.companyId);
+  const companyId = asCompanyId(raw.companyId ?? raw.placeId ?? raw.place_id);
   if (!companyId) return null;
   const enabledApps = normalizeEnabledApps(raw.enabledApps ?? raw.enabled_apps);
   const locationsRaw = raw.billableLocations ?? raw.billable_locations;

@@ -43,6 +43,22 @@ export const PICK_AN_APP_MESSAGE = 'Pick at least one app.';
 export const ENABLED_APPS_LABEL = 'Apps';
 export const PLACE_PAYMENT_DUE = 'Payment is due. This place is read-only.';
 export const PLACE_PAUSED = 'This place is paused. Writes are closed.';
+export const PLACE_TRIAL_STATUS = 'Trial.';
+export const PLACE_ACTIVE_STATUS = 'Active.';
+export const SEEDNODE_KICKER = 'Seednode.';
+export const SEEDNODE_MODE_HOSTED = 'Hosted.';
+export const SEEDNODE_MODE_ON_PREM = 'On this premises.';
+export const SEEDNODE_STATUS_UNKNOWN = 'Unknown.';
+export const SEEDNODE_STATUS_CONNECTED = 'Connected.';
+export const MANAGE_SEEDNODE_LABEL = 'Manage seednode.';
+export const SUBSCRIPTION_KICKER = 'Subscription.';
+export const MANAGE_BILLING_LABEL = 'Manage billing.';
+export const PLACE_APPS_KICKER = 'Apps';
+export const BACK_TO_PLACES_LABEL = 'Back to your places.';
+export const COMING_DOT_LABEL = 'Coming.';
+export const PLACE_SUB_LINE = 'R499 a month for this place.';
+export const SEED_HOSTED_LINE = 'R199 hosted seed.';
+export const PLACE_TRIAL_LINE = 'No charge for 30 days.';
 export const YOUR_PLACES_KICKER = 'Your places.';
 export const YOUR_PLACES_EMPTY = 'No house on this hub yet.';
 export const YOUR_APPS_KICKER = YOUR_PLACES_KICKER;
@@ -153,6 +169,22 @@ export const HUB_HOME_COPY = [
   MONEY_IN_R_LABEL,
   PLACE_PAYMENT_DUE,
   PLACE_PAUSED,
+  PLACE_TRIAL_STATUS,
+  PLACE_ACTIVE_STATUS,
+  SEEDNODE_KICKER,
+  SEEDNODE_MODE_HOSTED,
+  SEEDNODE_MODE_ON_PREM,
+  SEEDNODE_STATUS_UNKNOWN,
+  SEEDNODE_STATUS_CONNECTED,
+  MANAGE_SEEDNODE_LABEL,
+  SUBSCRIPTION_KICKER,
+  MANAGE_BILLING_LABEL,
+  PLACE_APPS_KICKER,
+  BACK_TO_PLACES_LABEL,
+  COMING_DOT_LABEL,
+  PLACE_SUB_LINE,
+  SEED_HOSTED_LINE,
+  PLACE_TRIAL_LINE,
   LIVE_STATUS_LABEL
 ];
 
