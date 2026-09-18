@@ -17,8 +17,8 @@ import {
   PICK_AN_APP_MESSAGE,
   ENABLED_APPS_LABEL
 } from '../hub/copy';
-import { ENABLEABLE_APP_IDS, type EnableableAppId } from '../hub/companyNode';
-import { SHOP_APPS } from '../hub/places';
+import { type EnableableAppId } from '../hub/companyNode';
+import { ENABLEABLE_SHOP_APPS } from '../hub/places';
 
 const EATERY = 'https://eatery.daup.co.za/';
 
@@ -41,10 +41,7 @@ const CRYPTO_CHAINS = [
   { id: 'daup-edge', name: 'DAUP Native Edge Chain' }
 ];
 
-const ENABLEABLE_SHOP = ENABLEABLE_APP_IDS.map(id => {
-  const shop = SHOP_APPS.find(app => app.id === id);
-  return { id, title: shop?.title || id, live: Boolean(shop?.live) };
-});
+const ENABLEABLE_SHOP = ENABLEABLE_SHOP_APPS;
 
 const STEP_COPY = [
   { title: CREATE_YOUR_PLACE_TITLE, sub: CREATE_YOUR_PLACE_SUB },

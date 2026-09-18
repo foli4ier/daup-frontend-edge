@@ -31,12 +31,14 @@ import {
   TRIAL_DAYS,
   TRIAL_MS,
   assertNodeWrite,
+  enableAppsOnPlace,
   hasFullAppAccess,
   loadNodeEntitlement,
   loadPlaceEntitlement,
   loadTrialEvent,
   maybeFireNodeTrialStarted,
   maybeFirePlaceTrialStarted,
+  mergeEnabledApps,
   resolveNodeSubscriptionStatus,
   saveNodeEntitlement
 } from './entitlements';
@@ -286,6 +288,63 @@ describe('place entitlement gate', () => {
     expect(assertNodeWrite(entitlement, 'eatery', now + TRIAL_MS + 1000).allowed).toBe(true);
     expect(loadNodeEntitlement('co_paid')?.billable_locations).toBe(2);
     expect(loadPlaceEntitlement('co_paid')?.placeId).toBe('co_paid');
+  });
+});
+
+describe('one instance of each app per place', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it('merges new apps and treats a second Eatery as a no-op', () => {
+    expect(mergeEnabledApps(['eatery'], ['project', 'eatery'])).toEqual({
+      next: ['eatery', 'project'],
+      added: ['project'],
+      already: ['eatery']
+    });
+    expect(mergeEnabledApps(['eatery', 'project'], ['eatery'])).toEqual({
+      next: ['eatery', 'project'],
+      added: [],
+      already: ['eatery']
+    });
+    expect(mergeEnabledApps(['eatery'], ['eatout', 'eatery', 'eatery'])).toEqual({
+      next: ['eatery'],
+      added: [],
+      already: ['eatery']
+    });
+  });
+
+  it('enables a missing app on an existing place and never mints a second instance', () => {
+    saveNodeEntitlement({
+      companyId: 'co_olive',
+      node_subscription_status: 'trial',
+      trial_started_at: Date.parse('2026-09-17T12:00:00Z'),
+      trial_ends_at: Date.parse('2026-09-17T12:00:00Z') + TRIAL_MS,
+      enabled_apps: ['eatery'],
+      billable_locations: 1,
+      payment_method_ok: false
+    });
+    const first = enableAppsOnPlace({
+      placeId: 'co_olive',
+      incoming: ['project', 'eatery'],
+      current: ['eatery']
+    });
+    expect(first.ok).toBe(true);
+    expect(first.noOp).toBe(false);
+    expect(first.added).toEqual(['project']);
+    expect(first.already).toEqual(['eatery']);
+    expect(first.next).toEqual(['eatery', 'project']);
+    expect(loadPlaceEntitlement('co_olive')?.enabled_apps).toEqual(['eatery', 'project']);
+
+    const again = enableAppsOnPlace({
+      placeId: 'co_olive',
+      incoming: ['eatery', 'project'],
+      current: ['eatery', 'project']
+    });
+    expect(again.ok).toBe(true);
+    expect(again.noOp).toBe(true);
+    expect(again.added).toEqual([]);
+    expect(loadPlaceEntitlement('co_olive')?.enabled_apps).toEqual(['eatery', 'project']);
   });
 });
 

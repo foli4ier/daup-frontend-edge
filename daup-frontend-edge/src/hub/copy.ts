@@ -65,7 +65,20 @@ export const COMING_DOT_LABEL = 'Coming.';
 export const PLACE_SUB_LINE = 'R199 a month for this place.';
 export const SEED_HOSTED_LINE = 'R299 hosted seed.';
 export const SEED_HOSTED_ON_PREM_LINE = 'R0 hosted seed.';
+export const HOSTED_SEED_SUMMARY = 'Hosted seed.';
 export const PLACE_TRIAL_LINE = 'No charge for 30 days.';
+export const ADD_APPS_LABEL = 'Add apps.';
+export const ALREADY_ON_PLACE_LABEL = 'Already on this place.';
+
+export function daysLeftOnTrialLabel(days: number): string {
+  const n = Math.max(0, Math.floor(days));
+  return n === 1 ? '1 day left on trial.' : `${n} days left on trial.`;
+}
+
+export function renewsInDaysLabel(days: number): string {
+  const n = Math.max(0, Math.floor(days));
+  return n === 1 ? 'Renews in 1 day.' : `Renews in ${n} days.`;
+}
 export const APPS_SOCIAL_KICKER = 'Social.';
 export const APPS_PAID_KICKER = 'Paid.';
 export const DOWNLOAD_SEED_SETUP_LABEL = 'Download seed setup.';
@@ -225,7 +238,12 @@ export const HUB_HOME_COPY = [
   PLACE_SUB_LINE,
   SEED_HOSTED_LINE,
   SEED_HOSTED_ON_PREM_LINE,
+  HOSTED_SEED_SUMMARY,
   PLACE_TRIAL_LINE,
+  ADD_APPS_LABEL,
+  ALREADY_ON_PLACE_LABEL,
+  daysLeftOnTrialLabel(12),
+  renewsInDaysLabel(18),
   APPS_SOCIAL_KICKER,
   APPS_PAID_KICKER,
   DOWNLOAD_SEED_SETUP_LABEL,

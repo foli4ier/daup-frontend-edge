@@ -375,6 +375,56 @@ export function maybeFirePlaceTrialStarted(input: {
 
 export const maybeFireNodeTrialStarted = maybeFirePlaceTrialStarted;
 
+export function mergeEnabledApps(
+  current: readonly string[] | undefined,
+  incoming: readonly string[] | undefined
+): {
+  next: EnableableAppId[];
+  added: EnableableAppId[];
+  already: EnableableAppId[];
+} {
+  const held = normalizeEnabledApps(current);
+  const want = normalizeEnabledApps(incoming);
+  const already = want.filter(id => held.includes(id));
+  const added = want.filter(id => !held.includes(id));
+  return {
+    next: normalizeEnabledApps([...held, ...added]),
+    added,
+    already
+  };
+}
+
+/**
+ * Enable apps on an existing place. Dedupes — a second Eatery/Project is a no-op.
+ * Does not remint placeId / companyId.
+ */
+export function enableAppsOnPlace(args: {
+  placeId?: string;
+  companyId?: string;
+  incoming: readonly string[];
+  current?: readonly string[];
+}): {
+  ok: boolean;
+  next: EnableableAppId[];
+  added: EnableableAppId[];
+  already: EnableableAppId[];
+  noOp: boolean;
+} {
+  const id = licensedPlaceId(args.placeId || args.companyId);
+  const held = Array.isArray(args.current)
+    ? normalizeEnabledApps(args.current)
+    : (loadPlaceEntitlement(id)?.enabled_apps || []);
+  const merged = mergeEnabledApps(held, args.incoming);
+  if (!id) {
+    return { ok: false, ...merged, next: held, added: [], noOp: true };
+  }
+  if (!merged.added.length) {
+    return { ok: true, ...merged, next: held, noOp: true };
+  }
+  patchPlaceEntitlement(id, { enabled_apps: merged.next });
+  return { ok: true, ...merged, noOp: false };
+}
+
 export function isAppEnabled(entitlement: PlaceEntitlement | null | undefined, appId: string): boolean {
   if (!entitlement) return false;
   return entitlement.enabled_apps.includes(appId as EnableableAppId);

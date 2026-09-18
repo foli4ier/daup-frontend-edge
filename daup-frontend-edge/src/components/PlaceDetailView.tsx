@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import {
+  ADD_APPS_LABEL,
+  ALREADY_ON_PLACE_LABEL,
   BACK_TO_PLACES_LABEL,
   CHECK_SEED_LABEL,
   COMING_DOT_LABEL,
@@ -45,7 +47,8 @@ import {
   type SeednodeConfig,
   type SeednodeMode
 } from '../hub/seednode';
-import { SHOP_APPS, type ShopApp } from '../hub/places';
+import { ENABLEABLE_SHOP_APPS, SHOP_APPS, type ShopApp } from '../hub/places';
+import { remainingPeriodCopy } from '../hub/placeSubscription';
 import { formatTrialEndsOn } from '../hub/zaFormat';
 import { buildOpenTheHouseUrl } from '../hub/ownerArrival';
 import { shopAppOpenHref } from '../hub/places';
@@ -78,6 +81,7 @@ export function PlaceDetailView({
   enabledApps,
   onBack,
   onOpenApp,
+  onAddApps,
   openHandshake
 }: {
   place: PlatformPlaceRecord;
@@ -88,6 +92,7 @@ export function PlaceDetailView({
   enabledApps: readonly string[];
   onBack: () => void;
   onOpenApp: (app: ShopApp) => void;
+  onAddApps?: (appIds: readonly string[]) => void;
   openHandshake?: ProjectOpenHandshake;
 }) {
   const licensedId = (place.companyId || '').trim();
@@ -95,6 +100,7 @@ export function PlaceDetailView({
   const [seedConfig, setSeedConfig] = useState<SeednodeConfig | null>(seed);
   const [seedCheck, setSeedCheck] = useState<'unchecked' | 'connected' | 'not-connected'>('unchecked');
   const [checkingSeed, setCheckingSeed] = useState(false);
+  const [picking, setPicking] = useState<string[]>([]);
   const status = entitlement ? resolvePlaceSubscriptionStatus(entitlement) : (trialEndsAt ? 'trial' : null);
   const mode: SeednodeMode = seedConfig?.mode || 'hosted';
   const host = seednodeDoorHost(seedConfig);
@@ -107,7 +113,15 @@ export function PlaceDetailView({
   const trialEnds = (status === 'trial' && (entitlement?.trial_ends_at || trialEndsAt))
     ? formatTrialEndsOn(entitlement?.trial_ends_at || trialEndsAt || 0)
     : '';
+  const remaining = remainingPeriodCopy(
+    entitlement || (trialEndsAt ? {
+      trial_started_at: null,
+      trial_ends_at: trialEndsAt,
+      payment_method_ok: false
+    } : null)
+  );
   const apps = SHOP_APPS.filter(app => app.id !== 'eatout' && enabledApps.includes(app.id));
+  const heldApps = new Set(enabledApps);
   const eateryHref = email
     ? buildOpenTheHouseUrl({ email, house: place.placeName })
     : undefined;
@@ -227,6 +241,61 @@ export function PlaceDetailView({
             );
           })}
         </div>
+        <div className="place-add-apps" data-testid="place-add-apps">
+          <div className="section-head">
+            <span className="kicker">{ADD_APPS_LABEL}</span>
+            <span className="rule" />
+          </div>
+          <div className="wizard-apps">
+            {ENABLEABLE_SHOP_APPS.map(app => {
+              const already = heldApps.has(app.id);
+              const selected = picking.includes(app.id);
+              return (
+                <button
+                  key={app.id}
+                  type="button"
+                  className={already ? 'wizard-app is-held' : (selected ? 'wizard-app is-on' : 'wizard-app')}
+                  data-testid={`add-app-${app.id}`}
+                  disabled={already}
+                  aria-pressed={already || selected}
+                  aria-disabled={already}
+                  onClick={() => {
+                    if (already) return;
+                    setPicking(prev => (
+                      prev.includes(app.id)
+                        ? prev.filter(id => id !== app.id)
+                        : [...prev, app.id]
+                    ));
+                  }}
+                >
+                  <span>{app.title}</span>
+                  {already ? (
+                    <span className="caption" data-testid={`already-on-place-${app.id}`}>
+                      {ALREADY_ON_PLACE_LABEL}
+                    </span>
+                  ) : (
+                    app.live
+                      ? <span className="live">{LIVE_STATUS_LABEL}</span>
+                      : <span className="coming-flag">{COMING_KICKER}</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+          <button
+            type="button"
+            className="btn btn-primary"
+            data-testid="confirm-add-apps"
+            disabled={!picking.length || !onAddApps}
+            onClick={() => {
+              if (!picking.length) return;
+              onAddApps?.(picking);
+              setPicking([]);
+            }}
+          >
+            {ADD_APPS_LABEL}
+          </button>
+        </div>
       </article>
 
       <article className="card place-detail-block" data-testid="place-seed">
@@ -294,6 +363,9 @@ export function PlaceDetailView({
         </div>
         {status ? (
           <p data-testid="place-sub-status">{kitchenStatus(status)}</p>
+        ) : null}
+        {remaining ? (
+          <p className="caption" data-testid="place-sub-remaining">{remaining}</p>
         ) : null}
         {trialEnds ? (
           <p className="caption" data-testid="place-sub-trial-ends">{trialEnds}</p>
