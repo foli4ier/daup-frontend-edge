@@ -314,6 +314,44 @@ export function listRegisteredPlaces(): PlatformPlaceRecord[] {
     .filter((place): place is PlatformPlaceRecord => Boolean(place));
 }
 
+/** Owner's places for the Places pane. Vault house is appended when not on the chain yet. */
+export function listOwnerPlaceRecords(args?: {
+  email?: string;
+  fallback?: {
+    placeName: string;
+    city?: string;
+    country?: string;
+    region?: string;
+    companyId?: string;
+    enabledApps?: readonly string[];
+    ownerEmail?: string;
+  };
+}): PlatformPlaceRecord[] {
+  const email = (args?.email || '').trim().toLowerCase();
+  const registered = listRegisteredPlaces().filter(place => {
+    if (!email || !place.ownerEmail) return true;
+    return place.ownerEmail === email;
+  });
+  const house = (args?.fallback?.placeName || '').trim();
+  if (
+    house
+    && !registered.some(place => normalizeLegalName(place.placeName) === normalizeLegalName(house))
+  ) {
+    const extra = asPlatformPlaceRecord({
+      placeName: house,
+      app: 'eatery',
+      country: args?.fallback?.country,
+      region: args?.fallback?.region,
+      city: args?.fallback?.city,
+      ownerEmail: args?.fallback?.ownerEmail || email,
+      companyId: args?.fallback?.companyId,
+      enabledApps: args?.fallback?.enabledApps
+    });
+    if (extra) registered.unshift(extra);
+  }
+  return registered;
+}
+
 /**
  * Write or replace a rich place record (place, app, country, region, city).
  */

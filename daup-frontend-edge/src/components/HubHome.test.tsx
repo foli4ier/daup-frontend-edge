@@ -20,7 +20,7 @@ import { OWNER_SESSION_STORAGE_KEY } from '../hub/ownerSession';
 import { HUB_INSTALLED_APPS_KEY } from '../hub/hubStorage';
 import { HOUSE_MCP_TOOLS } from '../hub/houseMcp';
 import { bindCompanyId } from '../hub/companyNode';
-import { NODE_TRIAL_STARTED, loadTrialEvent, saveNodeEntitlement } from '../hub/entitlements';
+import { PLACE_TRIAL_STARTED, loadTrialEvent, saveNodeEntitlement } from '../hub/entitlements';
 import {
   GET_APPS_KICKER,
   GET_LABEL,
@@ -312,15 +312,33 @@ describe('hub home after email', () => {
     expect(container.querySelector('[data-testid="eatery-place-status"]')?.textContent).toBe('LIVE');
     expect(open?.textContent).toBe(OPEN_LABEL);
     expect(open?.className).toContain('btn-primary');
-    expect(open?.getAttribute('href') || '').toMatch(/\/owner\?token=/);
+    expect(open?.tagName).toBe('BUTTON');
     expect(container.textContent).not.toContain('Tables, tickets, kitchen, stock.');
     expect(container.textContent).not.toContain('Walk me through');
 
-    const href = open?.getAttribute('href') || '';
+    act(() => {
+      open?.click();
+    });
+    expect(container.querySelector('[data-testid="place-detail"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="place-detail-name"]')?.textContent).toContain('The Olive');
+    expect(container.querySelector('[data-testid="place-seed"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="place-subscription"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="place-apps"]')).toBeTruthy();
+    const eateryOpen = container.querySelector('[data-testid="open-place-app-eatery"]') as HTMLAnchorElement | null;
+    const href = eateryOpen?.getAttribute('href') || '';
+    expect(href).toMatch(/\/owner\?token=/);
     const token = new URL(href, 'https://eatery.daup.co.za').searchParams.get('token') || '';
     const claims = readOwnerArrivalToken(token);
     expect(claims?.house).toBe('The Olive');
     expect(claims?.email).toBe('owner@theolive.co.za');
+    expect(container.textContent).not.toMatch(/\b(peer|node|DID|DHT|wallet|MCP|npm|hydrate|neon)\b/i);
+    expect(container.textContent).not.toMatch(/seednode/i);
+    expect(container.textContent).not.toContain('co_');
+    act(() => {
+      (container.querySelector('[data-testid="back-to-places"]') as HTMLButtonElement | null)?.click();
+    });
+    expect(container.querySelector('[data-testid="place-detail"]')).toBeNull();
+    expect(container.querySelector('[data-testid="eatery-place-name"]')?.textContent).toContain('The Olive');
 
     const { container: appsContainer, unmount: unmountApps } = render(
       <UserProfileProvider>
@@ -1080,8 +1098,12 @@ describe('delete and register a house from hub home', () => {
       await new Promise(resolve => setTimeout(resolve, 80));
     });
 
-    const open = container.querySelector('[data-testid="open-the-house"]') as HTMLAnchorElement;
-    const href = open?.getAttribute('href') || '';
+    const open = container.querySelector('[data-testid="open-the-house"]') as HTMLButtonElement;
+    act(() => {
+      open?.click();
+    });
+    const eateryOpen = container.querySelector('[data-testid="open-place-app-eatery"]') as HTMLAnchorElement;
+    const href = eateryOpen?.getAttribute('href') || '';
     const token = new URL(href, 'https://eatery.daup.co.za').searchParams.get('token') || '';
     const claims = readOwnerArrivalToken(token);
     expect(claims?.email).toBe('owner@theolive.co.za');
@@ -1175,7 +1197,7 @@ describe('On the chain. from register and delete', () => {
     expect(registered.companyId).toMatch(/^co_/);
     expect(bindCompanyId(registered.companyId).minted).toBe(false);
     expect(bindCompanyId(registered.companyId).companyId).toBe(registered.companyId);
-    expect(loadTrialEvent(registered.companyId || '')?.event).toBe(NODE_TRIAL_STARTED);
+    expect(loadTrialEvent(registered.companyId || '')?.event).toBe(PLACE_TRIAL_STARTED);
     expect(loadIdentityVault().companyNode?.companyId).toBe(registered.companyId);
     expect(loadIdentityVault().seednode).toMatchObject({
       endpoint: 'https://mcp.daup.co.za',
@@ -1537,3 +1559,131 @@ describe('Your places. from the house node', () => {
     unmount();
   });
 });
+
+async function finishPlaceWizard(
+  container: HTMLElement,
+  place: { name: string; country: string; province: string; city: string; phone: string; app: string }
+) {
+  typeInto(container.querySelector('#place-name') as HTMLInputElement, place.name);
+  typeInto(container.querySelector('#country') as HTMLInputElement, place.country);
+  typeInto(container.querySelector('#province') as HTMLInputElement, place.province);
+  typeInto(container.querySelector('#city') as HTMLInputElement, place.city);
+  clickContinue(container);
+  act(() => {
+    (container.querySelector(`[data-testid="enable-app-${place.app}"]`) as HTMLButtonElement).click();
+  });
+  clickContinue(container);
+  typeInto(container.querySelector('#phone') as HTMLInputElement, place.phone);
+  clickContinue(container);
+  clickContinue(container);
+  act(() => {
+    (container.querySelector('[data-testid="see-your-apps"]') as HTMLButtonElement | null)?.click();
+  });
+  await act(async () => {
+    await new Promise(resolve => setTimeout(resolve, 80));
+  });
+}
+
+describe('P0/P1 place list and control plane', () => {
+  beforeEach(() => {
+    resetIdentityVault();
+    localStorage.clear();
+    window.history.replaceState({}, '', '/');
+    localStorage.setItem(OWNER_SESSION_STORAGE_KEY, JSON.stringify({
+      email: 'owner@theolive.co.za',
+      signedInAt: Date.now()
+    }));
+  });
+
+  it('creates a second place without wiping the first, then opens the control plane', async () => {
+    const { container, unmount } = render(<App />);
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 80));
+    });
+
+    expect(container.querySelector('[data-testid="your-places-empty"]')).toBeTruthy();
+    act(() => {
+      (container.querySelector('[data-testid="register-new-house"]') as HTMLButtonElement).click();
+    });
+    await finishPlaceWizard(container, {
+      name: 'The Olive',
+      country: 'South Africa',
+      province: 'Western Cape',
+      city: 'Stellenbosch',
+      phone: '+27820000000',
+      app: 'eatery'
+    });
+
+    const first = listRegisteredPlaces().find(place => place.placeName === 'The Olive');
+    const firstId = first?.companyId || '';
+    expect(firstId).toMatch(/^co_/);
+    expect(loadTrialEvent(firstId)?.event).toBe(PLACE_TRIAL_STARTED);
+    expect(loadIdentityVault().companyNode?.companyId).toBe(firstId);
+
+    expect(container.querySelector('[data-testid="eatery-place-name"]')?.textContent).toContain('The Olive');
+    act(() => {
+      (container.querySelector('[data-testid="register-another-place"]') as HTMLButtonElement).click();
+    });
+    expect(container.querySelector('[data-testid="hub-wizard"]')).toBeTruthy();
+    await finishPlaceWizard(container, {
+      name: 'Salt',
+      country: 'South Africa',
+      province: 'Western Cape',
+      city: 'Cape Town',
+      phone: '+27821111111',
+      app: 'project'
+    });
+
+    const names = Array.from(container.querySelectorAll('[data-place-name]'))
+      .map(row => row.getAttribute('data-place-name'));
+    expect(names).toContain('The Olive');
+    expect(names).toContain('Salt');
+    const olive = listRegisteredPlaces().find(place => place.placeName === 'The Olive');
+    const salt = listRegisteredPlaces().find(place => place.placeName === 'Salt');
+    expect(olive?.companyId).toBe(firstId);
+    expect(salt?.companyId).toMatch(/^co_/);
+    expect(salt?.companyId).not.toBe(firstId);
+    expect(loadIdentityVault().companyNode?.companyId).toBe(firstId);
+    expect(loadTrialEvent(firstId)?.event).toBe(PLACE_TRIAL_STARTED);
+    expect(loadTrialEvent(salt?.companyId || '')?.event).toBe(PLACE_TRIAL_STARTED);
+    expect(loadTrialEvent(firstId)?.trial_started_at).not.toBe(loadTrialEvent(salt?.companyId || '')?.trial_started_at);
+
+    const saltRow = Array.from(container.querySelectorAll('[data-place-name]'))
+      .find(row => row.getAttribute('data-place-name') === 'Salt');
+    act(() => {
+      (saltRow?.querySelector('button') as HTMLButtonElement | null)?.click();
+    });
+    expect(container.querySelector('[data-testid="place-detail"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="place-detail-name"]')?.textContent).toContain('Salt');
+    expect(container.querySelector('[data-testid="place-seed"]')?.textContent).toContain('Seed.');
+    expect(container.querySelector('[data-testid="place-seed-mode"]')?.textContent).toBe('Hosted.');
+    expect(container.querySelector('[data-testid="place-seed-host"]')?.textContent).toBe('daup.co.za');
+    expect(container.querySelector('[data-testid="place-seed-status"]')?.textContent).toBe('Status not checked yet.');
+    expect(container.querySelector('[data-testid="manage-seed"]')?.textContent).toBe('Manage seed.');
+    expect(container.querySelector('[data-testid="place-detail"]')?.textContent).not.toMatch(/seednode/i);
+    expect(container.querySelector('[data-testid="place-detail"]')?.textContent).not.toMatch(/\bnode\b/i);
+    expect(container.querySelector('[data-testid="place-sub-status"]')?.textContent).toBe('Trial.');
+    expect(container.querySelector('[data-testid="place-sub-meters"]')?.textContent).toContain('No charge for 30 days.');
+    expect(container.querySelector('[data-testid="place-app-project"]')?.textContent).toContain('Project');
+    expect(container.querySelector('[data-testid="place-app-eatery"]')).toBeNull();
+    expect(container.querySelector('[data-testid="on-the-chain"]')).toBeNull();
+    expect(container.textContent).not.toMatch(/\b(peer|DID|DHT|wallet|MCP|npm|hydrate|neon)\b/i);
+    expect(container.textContent).not.toContain('co_');
+
+    act(() => {
+      (container.querySelector('[data-testid="back-to-places"]') as HTMLButtonElement).click();
+    });
+    expect(container.querySelector('[data-testid="place-detail"]')).toBeNull();
+    expect(Array.from(container.querySelectorAll('[data-place-name]')).map(row => row.getAttribute('data-place-name')))
+      .toEqual(expect.arrayContaining(['The Olive', 'Salt']));
+
+    act(() => {
+      (container.querySelector('[data-testid="open-the-house"]') as HTMLButtonElement).click();
+    });
+    expect(container.querySelector('[data-testid="place-detail-name"]')?.textContent).toContain('The Olive');
+    expect(container.querySelector('[data-testid="place-app-eatery"]')?.textContent).toContain('Eatery');
+    expect(loadIdentityVault().companyNode?.companyId).toBe(firstId);
+    unmount();
+  });
+});
+

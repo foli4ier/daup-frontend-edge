@@ -50,12 +50,13 @@ import { bindCompanyId, normalizeEnabledApps, primaryChainApp, type EnableableAp
 import {
   attachHostedSeednodeStub,
   isSeednodeAttached,
-  saveSeednodeConfig
+  loadSeednodeForPlace,
+  saveSeednodeForPlace
 } from '../hub/seednode';
 import {
   assertNodeWrite,
   loadNodeEntitlement,
-  maybeFireNodeTrialStarted,
+  maybeFirePlaceTrialStarted,
   patchNodeEntitlement,
   type NodeEntitlement
 } from '../hub/entitlements';
@@ -208,9 +209,18 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
       const listed = await listPlacesByEmail(session.email);
       if (listed.ok) {
         const next = applyListedHousePlaces(withEmail, session.email, listed.places.map(housePlaceToPlatform));
+        const listedPlaces = listed.places
+          .map(housePlaceToPlatform)
+          .filter((place): place is NonNullable<typeof place> => Boolean(place));
+        for (const place of listedPlaces) {
+          const licensedId = (place.companyId || '').trim();
+          if (licensedId && !loadSeednodeForPlace(licensedId)) {
+            saveSeednodeForPlace(licensedId, attachHostedSeednodeStub(licensedId));
+          }
+        }
         const heldId = next.companyNode?.companyId || '';
-        if (heldId && !isSeednodeAttached(next.seednode)) {
-          const seednode = saveSeednodeConfig(attachHostedSeednodeStub(heldId));
+        if (heldId && !isSeednodeAttached(next.seednode) && !loadSeednodeForPlace(heldId)) {
+          const seednode = saveSeednodeForPlace(heldId, attachHostedSeednodeStub(heldId));
           const withSeed = { ...next, seednode, updatedAt: Date.now() };
           saveIdentityVault(withSeed);
           setVault(withSeed);
@@ -570,7 +580,8 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
     return { ok: true };
   }, [commitVault, vault.companyNode?.companyId]);
 
-  // Place-first registration: mint companyId once, persist enabled_apps, attach hosted seed stub.
+  // Place-first registration: mint a place id once per place, persist enabled_apps,
+  // attach hosted seed stub. Creating another place must not remint or wipe the first.
   const completeOnboarding = useCallback(async (
     finalProfileData?: Partial<UserProfile>,
     extras?: { enabledApps?: readonly string[] }
@@ -591,19 +602,77 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
       return;
     }
 
-    const bound = bindCompanyId(vault.companyNode?.companyId);
+    const addingAnother = Boolean(
+      vault.hasCompletedOnboarding && (vault.activeWallet?.legalName || '').trim()
+    );
+    const bound = addingAnother
+      ? bindCompanyId(null)
+      : bindCompanyId(vault.companyNode?.companyId);
     const companyId = bound.companyId;
     const minted = bound.minted;
-    const seednode = saveSeednodeConfig(attachHostedSeednodeStub(companyId));
+    const seednode = saveSeednodeForPlace(companyId, attachHostedSeednodeStub(companyId));
     const seedAttached = isSeednodeAttached(seednode);
     const chainApp = primaryChainApp(enabledApps);
 
     commitVault(prev => {
+      const incomingWallets = finalProfileData?.wallets || [];
+      const incomingPrimary = incomingWallets[0] || null;
+      const nextName = normalizeLegalName(incomingPrimary?.legalName || house);
+
+      if (addingAnother) {
+        if (house) {
+          registerLegalNameOnPlatform(house);
+          registerPlaceOnPlatform({
+            placeName: house,
+            app: chainApp,
+            country: location?.country || '',
+            region: location?.provinceState || '',
+            city: location?.city || '',
+            companyId,
+            enabledApps,
+            ownerEmail: email
+          });
+        }
+        const extraWallet = incomingPrimary
+          ? { ...incomingPrimary, isPrimary: false }
+          : null;
+        const nextWallets = extraWallet
+          ? [
+              ...prev.registeredWallets.map(wallet => (
+                wallet.id === extraWallet.id ? extraWallet : wallet
+              )),
+              ...(prev.registeredWallets.some(wallet => wallet.id === extraWallet.id)
+                ? []
+                : [extraWallet])
+            ]
+          : prev.registeredWallets;
+        return {
+          ...prev,
+          hasCompletedOnboarding: true,
+          updatedAt: now,
+          profile: {
+            ...prev.profile,
+            demographics: {
+              ...prev.profile.demographics,
+              ...(finalProfileData?.demographics || {}),
+              email: email || prev.profile.demographics.email
+            },
+            wallets: nextWallets,
+            primaryWalletId: prev.activeWallet?.id || prev.profile.primaryWalletId,
+            isOnboarded: true,
+            updatedAt: now
+          },
+          registeredWallets: nextWallets,
+          activeWallet: prev.activeWallet,
+          companyNode: prev.companyNode,
+          seednode: prev.seednode
+        };
+      }
+
       const mergedWallets = finalProfileData?.wallets || prev.registeredWallets;
       const primaryId = finalProfileData?.primaryWalletId || (prev.activeWallet ? prev.activeWallet.id : (mergedWallets[0]?.id || null));
       const active = resolveActiveWallet(mergedWallets, primaryId);
       const seedNode = active ? deriveSeedNode(active.legalName) : (prev.identityKeySeedNode || deriveSeedNode());
-      const nextName = normalizeLegalName(active?.legalName);
       const heldCompanyId = prev.companyNode?.companyId || companyId;
 
       prev.registeredWallets.forEach(wallet => {
@@ -651,13 +720,15 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
         },
         seednode: {
           ...seednode,
-          companyId: heldCompanyId
+          companyId: heldCompanyId,
+          placeId: heldCompanyId
         }
       };
     });
 
     const hydrated = Boolean(house && companyId);
-    const trial = maybeFireNodeTrialStarted({
+    const trial = maybeFirePlaceTrialStarted({
+      placeId: companyId,
       companyId,
       minted,
       hydrated,
@@ -667,7 +738,7 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
       now
     });
 
-    if (trial.event) {
+    if (trial.event && !addingAnother) {
       commitVault(prev => ({
         ...prev,
         trialState: {
@@ -682,7 +753,7 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
       }));
     }
 
-    if (email && house) {
+    if (email && house && !addingAnother) {
       writeOwnerCompanionCookie(email, house);
     }
 
@@ -719,7 +790,7 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
 
     setIsNamingPlace(false);
-  }, [commitVault, ownerSession?.email, vault.activeWallet?.legalName, vault.companyNode?.companyId, vault.profile.demographics.email, vault.profile.location]);
+  }, [commitVault, ownerSession?.email, vault.activeWallet?.legalName, vault.companyNode?.companyId, vault.hasCompletedOnboarding, vault.profile.demographics.email, vault.profile.location]);
 
   // Geolocation Auto-Enrichment
   const detectLocation = useCallback(async (): Promise<UserLocation> => {

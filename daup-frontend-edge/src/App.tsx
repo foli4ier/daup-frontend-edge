@@ -23,8 +23,9 @@ import { deriveSeedNode, deployAppInstance } from './stores/identityStore';
 import { navigateToEatOutHome } from './hub/eatoutUrls';
 import { navigateToTheHouse } from './hub/ownerArrival';
 import { navigateToProjectHome, projectOpenHandshakeFromHub } from './hub/projectUrls';
-import { listRegisteredPlaces } from './stores/identityStore';
+import { listOwnerPlaceRecords, listRegisteredPlaces } from './stores/identityStore';
 import { HUB_HOME_FALLBACK } from './hub/copy';
+import { ownerPlaceKey } from './hub/places';
 import { goToAsks, goToHubHome, readHubPage } from './hub/asksPath';
 import { DEFAULT_HUB_PANE, type HubPane } from './hub/hubPane';
 
@@ -36,7 +37,9 @@ const DashboardContent: React.FC = () => {
     identityKeySeedNode,
     ownerSession,
     hasHouse,
-    profile
+    profile,
+    companyId,
+    enabledApps
   } = useUserProfile();
 
   const [activeTab, setActiveTab] = useState<'home' | 'licenses' | 'telemetry' | 'dht' | 'dcdn' | 'mcp'>('home');
@@ -44,6 +47,7 @@ const DashboardContent: React.FC = () => {
   const [isAdvanced, setIsAdvanced] = useState(false);
   const [hubPage, setHubPage] = useState<'home' | 'ask'>(() => readHubPage());
   const [hubPane, setHubPane] = useState<HubPane>(DEFAULT_HUB_PANE);
+  const [openPlaceKey, setOpenPlaceKey] = useState<string | null>(null);
 
   const [installedApps, setInstalledApps] = useState<Record<string, boolean>>(() => {
     try {
@@ -82,6 +86,7 @@ const DashboardContent: React.FC = () => {
     setActiveTab('home');
     setLaunchedApp(null);
     setHubPane(DEFAULT_HUB_PANE);
+    setOpenPlaceKey(null);
     setIsAdvanced(false);
   };
 
@@ -91,6 +96,7 @@ const DashboardContent: React.FC = () => {
     setActiveTab('home');
     setLaunchedApp(null);
     setHubPane(pane);
+    setOpenPlaceKey(null);
     if (pane !== 'you') setIsAdvanced(false);
   };
 
@@ -162,8 +168,24 @@ const DashboardContent: React.FC = () => {
   const houseName = (activeWallet?.legalName || instanceName || '').trim() || HUB_HOME_FALLBACK;
   const city = (profile.location?.city || '').trim();
   const email = ownerSession?.email || '';
-  const contextPlace = hasHouse ? houseName : HUB_HOME_FALLBACK;
-  const contextMeta = [city, email].filter(Boolean).join(' · ');
+  const openPlace = openPlaceKey
+    ? listOwnerPlaceRecords({
+        email,
+        fallback: hasHouse
+          ? {
+              placeName: houseName,
+              city,
+              country: profile.location?.country,
+              region: profile.location?.provinceState,
+              companyId: companyId || undefined,
+              enabledApps,
+              ownerEmail: email
+            }
+          : undefined
+      }).find(place => ownerPlaceKey(place) === openPlaceKey)
+    : null;
+  const contextPlace = openPlace?.placeName || (hasHouse ? houseName : HUB_HOME_FALLBACK);
+  const contextMeta = [openPlace?.city || city, email].filter(Boolean).join(' · ');
 
   const showProtocol = isAdvanced && !launchedApp && activeTab !== 'home';
   const showThumb = !launchedApp;
@@ -251,6 +273,9 @@ const DashboardContent: React.FC = () => {
                   installedApps={installedApps}
                   onSubscribeApp={handleInstallApp}
                   onLaunchApp={handleLaunchApp}
+                  openPlaceKey={openPlaceKey}
+                  onOpenPlace={setOpenPlaceKey}
+                  onClosePlace={() => setOpenPlaceKey(null)}
                 />
               )
             )}

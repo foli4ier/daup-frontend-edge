@@ -1,25 +1,35 @@
-# Company-node licensing (Hub slices A+B)
+# Place licensing (Hub slices A+B, P0/P1)
 
 Hub source for **meters, trial start, and place-first registration**.
 
-Product SoT: Ideation license-pivot README (locked 2026-09-17). This note is the in-repo pointer — do not fork meter codes or trial semantics here.
+Product SoT: Ideation license-pivot README (locked 2026-09-17, place-billing amend). This note is the in-repo pointer — do not fork meter codes or trial semantics here.
 
 ## Meters (ZAR v0 stubs)
 
-You pay for the **company**, not for each app and not for each vaulted branch.
+You pay for the **place**, not for each app and not for each vaulted branch. Extra branch = a new place.
 
 | Code | Stub (ex VAT) | Rule |
 | --- | --- | --- |
-| `NODE_SUB_MONTHLY` | R499 | Licensed node + enabled apps |
-| `NODE_TRIAL` | R0 | First 30 days after `node.trial_started` |
-| `LOCATION_MONTHLY` | R79 | Extra locations after the first |
-| `SEED_HOSTED_MONTHLY` | R199 × `billable_locations` | Hosted seed only; on-prem is R0 |
+| `PLACE_SUB_MONTHLY` | R499 | This place + enabled apps |
+| `PLACE_TRIAL` | R0 | First 30 days after `place.trial_started` |
+| `SEED_HOSTED_MONTHLY` | R199 / place | Hosted seed only; on-prem is R0 |
+| `LOCATION_MONTHLY` | dead | Extra branch is a new place. Do not invoice. |
 
 Catalog: `daup-frontend-edge/src/hub/priceMeters.ts`. Invoices are slice G.
 
+## Id mapping (do not remint live places)
+
+| A+B field | Place-billing field | Rule |
+| --- | --- | --- |
+| `companyId` (`co_*`) | `placeId` | Same value. Read both; write both. |
+| `node.trial_started` | `place.trial_started` | Read both; new fires write `place.trial_started`. |
+| `node_subscription_status` | `place_subscription_status` | Same enum. |
+| `daup_node_entitlements` | same key | Live records stay put. |
+| House MCP `placeId` (`place-*`) | unchanged | Network id. Not the licensed `co_*` id. |
+
 ## Trial
 
-Clock starts at **`node.trial_started`**: first successful **mint + hydrate** with a seednode attached (hosted stub counts) — not Gmail login, not a draft place. First 30 days R0. Idempotent per `companyId`.
+Clock starts at **`place.trial_started`**: first successful **mint + hydrate** with a seednode attached (hosted stub counts) — not Gmail login, not a draft place. First 30 days R0. Idempotent per licensed place id. Existing `node.trial_started` events count as already fired.
 
 After trial: payment stub OK → `active`; else `past_due` (read-only, 7 days) then `suspended` (no writes).
 
@@ -27,10 +37,12 @@ Service: `daup-frontend-edge/src/hub/entitlements.ts`.
 
 ## Place-first registration
 
-Create the company / place, then enable apps (eatery is one selectable app). Hub mints `companyId` once and attaches the default hosted seed `{ endpoint: "https://mcp.daup.co.za", mode: "hosted", companyId }`. Never remint on re-login or seed switch.
+Create the company / place, then enable apps (eatery is one selectable app). Hub mints a licensed place id once per place and attaches the default hosted seed `{ endpoint: "https://mcp.daup.co.za", mode: "hosted", placeId }`. Opening a place is that place’s control plane (seed + subscription + apps). Never remint on re-login, seed switch, or revisit.
+
+An owner may create more than one place. Each place has its own trial, invoice stub, and seed attach.
 
 ## Later slices
 
-- C: `seednode_status` Connected badge
-- F: switch hosted ↔ on-prem without reminting
+- C: `seednode_status` Connected badge and hosted ↔ on-prem switch
+- F: migration verify, `house_state_get`
 - G: billing lines / invoices

@@ -16,7 +16,7 @@ import { buildOpenTheHouseUrl } from './ownerArrival';
 import { PROJECT_HOME, PROJECT_MODULE_KEY, ProjectOpenHandshake, buildProjectOpenUrl } from './projectUrls';
 
 export interface HubPlaceRow {
-  id: 'eatery' | 'farm' | 'reseller' | 'maker';
+  id: string;
   title: string;
   city: string;
   body: string;
@@ -24,6 +24,24 @@ export interface HubPlaceRow {
   status: string;
   actionLabel?: string;
   href?: string;
+  placeKey?: string;
+  companyId?: string;
+  placeId?: string;
+  enabledApps?: readonly string[];
+}
+
+/** Licensed id first (companyId), then house-network placeId, then name. */
+export function ownerPlaceKey(place: {
+  companyId?: string | null;
+  placeId?: string | null;
+  placeName?: string | null;
+  title?: string | null;
+}): string {
+  return (
+    (place.companyId || '').trim()
+    || (place.placeId || '').trim()
+    || (place.placeName || place.title || '').trim()
+  );
 }
 
 export type ShopAppId = 'eatery' | 'eatout' | 'project' | 'farm' | 'reseller' | 'maker' | 'chat';
@@ -45,31 +63,52 @@ export function eateryRowTitle(placeName?: string | null): string {
 
 export function listOwnerPlaces(args: {
   email: string;
-  placeName: string;
+  placeName?: string;
   city?: string;
   origin?: string;
+  records?: Array<{
+    placeName: string;
+    city?: string;
+    placeId?: string;
+    companyId?: string;
+    enabledApps?: readonly string[];
+  }>;
 }): HubPlaceRow[] {
-  const title = eateryRowTitle(args.placeName);
   const email = (args.email || '').trim();
-  const href = email
-    ? buildOpenTheHouseUrl({
-        email,
-        house: title,
-        origin: args.origin
-      })
-    : undefined;
-  return [
-    {
-      id: 'eatery',
+  const records = (args.records && args.records.length)
+    ? args.records
+    : ((args.placeName || '').trim()
+      ? [{ placeName: args.placeName || '', city: args.city || '' }]
+      : []);
+  return records.map((record, index) => {
+    const title = eateryRowTitle(record.placeName);
+    const href = email
+      ? buildOpenTheHouseUrl({
+          email,
+          house: title,
+          origin: args.origin
+        })
+      : undefined;
+    const placeKey = ownerPlaceKey({
+      companyId: record.companyId,
+      placeId: record.placeId,
+      placeName: title
+    });
+    return {
+      id: placeKey || `place-${index}`,
       title,
-      city: (args.city || '').trim(),
+      city: (record.city || '').trim(),
       body: EATERY_ROW_BODY,
       live: true,
       status: LIVE_STATUS_LABEL,
       actionLabel: OPEN_LABEL,
-      href
-    }
-  ];
+      href,
+      placeKey,
+      companyId: (record.companyId || '').trim() || undefined,
+      placeId: (record.placeId || '').trim() || undefined,
+      enabledApps: record.enabledApps
+    };
+  });
 }
 
 export const COMING_APPS: HubPlaceRow[] = [

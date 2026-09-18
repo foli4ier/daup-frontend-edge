@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it, beforeEach } from 'vitest';
 import {
   BANNED_DOOR_WORDS,
@@ -100,6 +103,12 @@ describe('hub email door copy', () => {
     expect(HUB_HOME_COPY).toContain('Chat');
     expect(HUB_HOME_COPY).toContain('EatOut');
     expect(HUB_HOME_COPY).toContain('Project');
+    expect(HUB_HOME_COPY).toContain('Seed.');
+    expect(HUB_HOME_COPY).toContain('Manage seed.');
+    expect(HUB_HOME_COPY).toContain('Status not checked yet.');
+    expect(HUB_HOME_COPY.join('\n')).not.toMatch(/seednode/i);
+    expect(HUB_HOME_COPY.join('\n')).not.toMatch(/\bnode\b/i);
+    expect(HUB_HOME_COPY.join('\n')).not.toMatch(/Unknown\./);
     for (const line of DELETE_HOUSE_MODAL_COPY) {
       expect(hasBannedDoorCopy(line), `banned word in "${line}"`).toBe(false);
     }
@@ -326,6 +335,7 @@ describe('eatery row on hub home', () => {
     expect(rows[0].city).toBe('Stellenbosch');
     expect(rows[0].status).toBe('LIVE');
     expect(rows[0].actionLabel).toBe(OPEN_LABEL);
+    expect(rows[0].placeKey).toBe('The Olive');
     expect(rows[0].href).toMatch(/^https:\/\/eatery\.daup\.co\.za\/owner\?token=/);
     expect(hasBannedDoorCopy(rows[0].title + rows[0].city + rows[0].status + (rows[0].actionLabel || ''))).toBe(false);
   });
@@ -338,5 +348,20 @@ describe('type-the-name delete confirm', () => {
     expect(houseNameMatchesConfirm('Kortrijk ', 'Kortrijk')).toBe(false);
     expect(houseNameMatchesConfirm('The Olive', 'Kortrijk')).toBe(false);
     expect(houseNameMatchesConfirm('', 'Kortrijk')).toBe(false);
+  });
+});
+
+describe('PR 20 kitchen.md', () => {
+  it('documents Seed. labels only — no Seednode or Unknown.', () => {
+    const kitchenPath = join(dirname(fileURLToPath(import.meta.url)), '../../../docs/ux/pr-20/kitchen.md');
+    const md = readFileSync(kitchenPath, 'utf8');
+    expect(md).toContain('**Seed.**');
+    expect(md).toContain('**Manage seed.**');
+    expect(md).toContain('**Hosted.**');
+    expect(md).toContain('**On this premises.**');
+    expect(md).toContain('Status not checked yet.');
+    expect(md).not.toMatch(/seednode/i);
+    expect(md).not.toMatch(/Unknown\./);
+    expect(md).not.toMatch(/kitchen word/i);
   });
 });
