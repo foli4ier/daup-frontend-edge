@@ -1,15 +1,13 @@
 import React from 'react';
-import { Home, LayoutGrid, MapPin, User } from 'lucide-react';
+import { LayoutGrid, MapPin, User } from 'lucide-react';
 import {
   NAV_APPS_LABEL,
-  NAV_HOME_LABEL,
   NAV_PLACES_LABEL,
   NAV_YOU_LABEL
 } from '../hub/copy';
 import type { HubPane } from '../hub/hubPane';
 
-const TABS: { pane: HubPane; label: string; Icon: typeof Home; testId: string }[] = [
-  { pane: 'home', label: NAV_HOME_LABEL, Icon: Home, testId: 'hub-nav-home' },
+const TABS: { pane: HubPane; label: string; Icon: typeof MapPin; testId: string }[] = [
   { pane: 'places', label: NAV_PLACES_LABEL, Icon: MapPin, testId: 'hub-nav-places' },
   { pane: 'apps', label: NAV_APPS_LABEL, Icon: LayoutGrid, testId: 'hub-nav-apps' },
   { pane: 'you', label: NAV_YOU_LABEL, Icon: User, testId: 'hub-nav-you' }

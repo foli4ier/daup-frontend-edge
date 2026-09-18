@@ -26,7 +26,7 @@ import { navigateToProjectHome, projectOpenHandshakeFromHub } from './hub/projec
 import { listRegisteredPlaces } from './stores/identityStore';
 import { HUB_HOME_FALLBACK } from './hub/copy';
 import { goToAsks, goToHubHome, readHubPage } from './hub/asksPath';
-import type { HubPane } from './hub/hubPane';
+import { DEFAULT_HUB_PANE, type HubPane } from './hub/hubPane';
 
 const DashboardContent: React.FC = () => {
   const { did, seed, connectWallet, wasmLoaded, isLoadingWasm } = useDIDWallet();
@@ -43,7 +43,7 @@ const DashboardContent: React.FC = () => {
   const [launchedApp, setLaunchedApp] = useState<string | null>(null);
   const [isAdvanced, setIsAdvanced] = useState(false);
   const [hubPage, setHubPage] = useState<'home' | 'ask'>(() => readHubPage());
-  const [hubPane, setHubPane] = useState<HubPane>('home');
+  const [hubPane, setHubPane] = useState<HubPane>(DEFAULT_HUB_PANE);
 
   const [installedApps, setInstalledApps] = useState<Record<string, boolean>>(() => {
     try {
@@ -81,7 +81,7 @@ const DashboardContent: React.FC = () => {
     setHubPage('home');
     setActiveTab('home');
     setLaunchedApp(null);
-    setHubPane('home');
+    setHubPane(DEFAULT_HUB_PANE);
     setIsAdvanced(false);
   };
 

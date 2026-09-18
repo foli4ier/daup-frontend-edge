@@ -170,15 +170,6 @@ body {
   gap: 16px;
 }
 
-.hub-home-cta {
-  display: flex;
-  flex-direction: column;
-}
-
-.hub-home-cta .btn-wide {
-  width: 100%;
-}
-
 .place-card {
   background: var(--card);
   border-radius: 14px;

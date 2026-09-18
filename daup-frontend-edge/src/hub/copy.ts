@@ -22,7 +22,6 @@ export const HUB_DOOR_BODY = 'Social and business apps. Your places live here.';
 export const OPEN_THE_HOUSE_LABEL = 'Open the house';
 export const PLUS_REGISTER_LABEL = '+ Register';
 export const LIVE_STATUS_LABEL = 'LIVE';
-export const NAV_HOME_LABEL = 'Home';
 export const NAV_PLACES_LABEL = 'Places';
 export const NAV_APPS_LABEL = 'Apps';
 export const NAV_YOU_LABEL = 'You';
@@ -146,7 +145,6 @@ export const HUB_HOME_COPY = [
   CHAIN_APP_MAKER,
   CHAIN_APP_CHAT,
   ASK_FOR_ENHANCEMENT_LABEL,
-  NAV_HOME_LABEL,
   NAV_PLACES_LABEL,
   NAV_APPS_LABEL,
   NAV_YOU_LABEL,

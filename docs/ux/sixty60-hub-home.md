@@ -1,22 +1,21 @@
-# Sixty60 hub home lock
+# Sixty60 hub lock
 
-Signed-in **app.daup.co.za** home. Cream / terracotta / forest only — `daup-theme` tokens.
+Signed-in **app.daup.co.za** lands on **Places**. Cream / terracotta / forest only — `daup-theme` tokens.
+
+Home was removed: it duplicated Places (**Open.** / **+ Register**) and Apps (**Get apps.**).
 
 ## Hierarchy
 
 1. **Place context** — house name, city, email. No Advanced, Profile, or Log off.
-2. **CTA** — **Open.** when a house is live. **+ Register** when there is no house. This is the terracotta primary on Home.
-3. **Get apps.** — LIVE: Eatery, EatOut, Project. Held app: **Open.** only. Not held: one **Get.** as primary. Never Get.+Open. together. Project **Open.** is `https://project.daup.co.za` — or `/d/hub?token=` when Hub already has email + house (same owner arrival as Eatery; see `src/hub/projectUrls.ts`).
-4. **On the chain.**
-5. **Thumb nav** — Home / Places / Apps / You
-
-**Your places.** is not on Home. The dense place list lives only under thumb **Places.**
+2. **Places (default)** — **Your places.** with **Open.** when a house is live, or **+ Register** when there is none. **On the chain.** sits under the bound place.
+3. **Get apps.** — LIVE: Eatery, EatOut, Project. Held app: **Open.** only (terracotta). Not held: one **Get.** as primary. Never Get.+Open. together. Project **Open.** is `https://project.daup.co.za` — or `/d/hub?token=` when Hub already has email + house (same owner arrival as Eatery; see `src/hub/projectUrls.ts`).
+4. **Thumb nav** — Places / Apps / You
 
 Protocol stays off this surface. **You.** holds visible **Log off.**, then **Settings.** (**Register a new house.** / **Delete the house.** / **Ask for an enhancement.**), then Advanced.
 
 ## Empty
 
-No house: *No house on this hub yet.* plus **+ Register**. Register stays as that empty CTA only — not a loose **Register a new house.** link on a populated Home.
+No house: *No house on this hub yet.* plus **+ Register**. Register stays as that empty CTA only — not a loose **Register a new house.** link on a populated Places pane.
 
 ## Money and dates
 
