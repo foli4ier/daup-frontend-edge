@@ -1,4 +1,4 @@
-export type HubPane = 'places' | 'apps' | 'you';
+export type HubPane = 'places' | 'apps' | 'you' | 'other';
 
-/** Signed-in owners land on Places — Home was a duplicate of Places + Apps. */
+/** Signed-in owners land on My places — Home was a duplicate of Places + Apps. */
 export const DEFAULT_HUB_PANE: HubPane = 'places';

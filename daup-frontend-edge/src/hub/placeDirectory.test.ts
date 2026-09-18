@@ -3,16 +3,24 @@ import {
   flattenChainPlaces,
   groupPlacesOnTheChain,
   chainPlaceRow,
-  chainPlaceWhere
+  chainPlaceWhere,
+  filterOtherPlaces,
+  listOtherPlacesAppCards,
+  listOtherPlacesForApp,
+  SAMPLE_OTHER_EATERY_PLACES
 } from './placeDirectory';
 import {
   BANNED_DOOR_WORDS,
   CHAIN_APP_EATERY,
   CHAIN_APP_FARM,
   CHAIN_APP_MAKER,
-  ON_THE_CHAIN_EMPTY,
-  ON_THE_CHAIN_KICKER,
-  hasBannedDoorCopy
+  NAV_OTHER_PLACES_LABEL,
+  NAV_PLACES_LABEL,
+  OTHER_PLACES_KICKER,
+  SAMPLE_SOURCE_LABEL,
+  hasBannedDoorCopy,
+  otherPlacesSourceLabel,
+  subscribedCountLabel
 } from './copy';
 import {
   PLATFORM_ENTITIES_KEY,
@@ -69,15 +77,20 @@ const press: PlatformPlaceRecord = {
   city: 'Austin'
 };
 
-describe('On the chain. copy', () => {
+describe('Other places. copy', () => {
   it('uses kitchen English and keeps banned protocol words off', () => {
-    expect(ON_THE_CHAIN_KICKER).toBe('On the chain.');
-    expect(ON_THE_CHAIN_EMPTY).toBe('No other places on the chain yet.');
+    expect(NAV_PLACES_LABEL).toBe('My places');
+    expect(NAV_OTHER_PLACES_LABEL).toBe('Other places');
+    expect(OTHER_PLACES_KICKER).toBe('Other places.');
+    expect(subscribedCountLabel(4)).toBe('4 subscribed.');
+    expect(otherPlacesSourceLabel(0, 4)).toBe(SAMPLE_SOURCE_LABEL);
+    expect(otherPlacesSourceLabel(1, 3)).toBe('1 on this hub. 3 sample.');
     expect(chainPlaceWhere(olive)).toBe('Stellenbosch, Western Cape, South Africa');
     expect(chainPlaceRow(olive)).toBe('The Olive · Stellenbosch, Western Cape, South Africa · Eatery');
     for (const word of BANNED_DOOR_WORDS) {
-      expect(hasBannedDoorCopy(ON_THE_CHAIN_KICKER), `banned "${word}" in kicker`).toBe(false);
-      expect(hasBannedDoorCopy(ON_THE_CHAIN_EMPTY), `banned "${word}" in empty`).toBe(false);
+      expect(hasBannedDoorCopy(NAV_PLACES_LABEL), `banned "${word}" in My places`).toBe(false);
+      expect(hasBannedDoorCopy(NAV_OTHER_PLACES_LABEL), `banned "${word}" in Other places`).toBe(false);
+      expect(hasBannedDoorCopy(subscribedCountLabel(4)), `banned "${word}" in count`).toBe(false);
       expect(hasBannedDoorCopy(chainPlaceRow(olive)), `banned "${word}" on place row`).toBe(false);
     }
   });
@@ -107,6 +120,39 @@ describe('groupPlacesOnTheChain', () => {
       'Green Field',
       'Press'
     ]);
+  });
+});
+
+describe('Other places discovery', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it('marks Eatery sample counts and keeps owned places off the list', () => {
+    registerPlaceOnPlatform(olive);
+    registerPlaceOnPlatform(salt);
+    const owner = { email: 'owner@theolive.co.za', placeNames: ['The Olive'] };
+    const cards = listOtherPlacesAppCards(owner);
+    const eatery = cards.find(card => card.id === 'eatery');
+    expect(eatery?.publicSurface).toBe(true);
+    expect(eatery?.sampleCount).toBe(SAMPLE_OTHER_EATERY_PLACES.length);
+    expect(eatery?.liveCount).toBe(1);
+    expect(eatery?.total).toBe(SAMPLE_OTHER_EATERY_PLACES.length + 1);
+    const names = listOtherPlacesForApp('eatery', owner).map(place => place.placeName);
+    expect(names).toContain('Salt');
+    expect(names).toContain('Kortrijk');
+    expect(names).not.toContain('The Olive');
+    const farm = cards.find(card => card.id === 'farm');
+    expect(farm?.publicSurface).toBe(false);
+    expect(farm?.total).toBe(0);
+  });
+
+  it('filters Country · Region · Town', () => {
+    const places = listOtherPlacesForApp('eatery');
+    const cape = filterOtherPlaces(places, { country: 'South Africa', region: 'Western Cape', town: 'Cape Town' });
+    expect(cape.map(place => place.placeName)).toEqual(['Genesis Bistro']);
+    const belgium = filterOtherPlaces(places, { country: 'Belgium' });
+    expect(belgium.map(place => place.placeName)).toEqual(['Kortrijk']);
   });
 });
 

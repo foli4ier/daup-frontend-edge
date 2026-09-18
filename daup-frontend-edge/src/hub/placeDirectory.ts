@@ -1,4 +1,12 @@
-import { CHAIN_APP_LABELS } from './copy';
+import {
+  CHAIN_APP_CHAT,
+  CHAIN_APP_EATERY,
+  CHAIN_APP_FARM,
+  CHAIN_APP_LABELS,
+  CHAIN_APP_MAKER,
+  CHAIN_APP_PROJECT,
+  CHAIN_APP_RESELLER
+} from './copy';
 import {
   PLATFORM_APP_IDS,
   PlatformAppId,
@@ -134,4 +142,160 @@ export function flattenChainPlaces(groups: ChainAppGroup[]): PlatformPlaceRecord
 
 export function listPlacesOnTheChain(): PlatformPlaceRecord[] {
   return listRegisteredPlaces();
+}
+
+/** Apps shown on Other places. Eatery has a public EatOut surface; the rest are Coming. */
+export type OtherPlacesAppId = PlatformAppId | 'project' | 'chat';
+export type OtherPlaceSource = 'live' | 'sample';
+
+export interface OtherPlaceRecord extends PlatformPlaceRecord {
+  source: OtherPlaceSource;
+}
+
+export interface OtherPlacesAppCard {
+  id: OtherPlacesAppId;
+  title: string;
+  publicSurface: boolean;
+  liveCount: number;
+  sampleCount: number;
+  total: number;
+}
+
+export const OTHER_PLACES_APPS: { id: OtherPlacesAppId; title: string; publicSurface: boolean }[] = [
+  { id: 'eatery', title: CHAIN_APP_EATERY, publicSurface: true },
+  { id: 'project', title: CHAIN_APP_PROJECT, publicSurface: false },
+  { id: 'farm', title: CHAIN_APP_FARM, publicSurface: false },
+  { id: 'reseller', title: CHAIN_APP_RESELLER, publicSurface: false },
+  { id: 'maker', title: CHAIN_APP_MAKER, publicSurface: false },
+  { id: 'chat', title: CHAIN_APP_CHAT, publicSurface: false }
+];
+
+/**
+ * Sample Eatery directory. No live public directory API exists on Hub yet.
+ * EatOut resolves kortrijk | genesis | noop; other names slug from the place name.
+ */
+export const SAMPLE_OTHER_EATERY_PLACES: PlatformPlaceRecord[] = [
+  {
+    placeName: 'Kortrijk',
+    app: 'eatery',
+    country: 'Belgium',
+    region: 'West Flanders',
+    city: 'Kortrijk'
+  },
+  {
+    placeName: 'Genesis Bistro',
+    app: 'eatery',
+    country: 'South Africa',
+    region: 'Western Cape',
+    city: 'Cape Town'
+  },
+  {
+    placeName: 'Noop Restaurant',
+    app: 'eatery',
+    country: 'South Africa',
+    region: 'Western Cape',
+    city: 'Stellenbosch'
+  },
+  {
+    placeName: 'The Press Café',
+    app: 'eatery',
+    country: 'United Kingdom',
+    region: 'England',
+    city: 'London'
+  }
+];
+
+function normalizePlaceName(name: string): string {
+  return (name || '').trim().toLowerCase();
+}
+
+export function isOwnedOtherPlace(
+  place: Pick<PlatformPlaceRecord, 'placeName' | 'ownerEmail'>,
+  owner?: { email?: string; placeNames?: readonly string[] }
+): boolean {
+  const names = new Set((owner?.placeNames || []).map(normalizePlaceName).filter(Boolean));
+  if (names.has(normalizePlaceName(place.placeName))) return true;
+  const email = (owner?.email || '').trim().toLowerCase();
+  const placeEmail = (place.ownerEmail || '').trim().toLowerCase();
+  return Boolean(email && placeEmail && email === placeEmail);
+}
+
+/** Live = this hub's platform store minus the owner's own places. Not a network directory. */
+export function listLiveOtherPlaces(owner?: {
+  email?: string;
+  placeNames?: readonly string[];
+}): PlatformPlaceRecord[] {
+  return listRegisteredPlaces().filter(place => !isOwnedOtherPlace(place, owner));
+}
+
+export function samplePlacesForApp(app: OtherPlacesAppId): PlatformPlaceRecord[] {
+  if (app === 'eatery') return SAMPLE_OTHER_EATERY_PLACES.slice();
+  return [];
+}
+
+export function mergeOtherPlaces(
+  live: PlatformPlaceRecord[],
+  sample: PlatformPlaceRecord[]
+): OtherPlaceRecord[] {
+  const byName = new Map<string, OtherPlaceRecord>();
+  for (const place of sample) {
+    byName.set(normalizePlaceName(place.placeName), { ...place, source: 'sample' });
+  }
+  for (const place of live) {
+    byName.set(normalizePlaceName(place.placeName), { ...place, source: 'live' });
+  }
+  return [...byName.values()].sort((a, b) => localeSort(a.placeName, b.placeName));
+}
+
+export function listOtherPlacesForApp(
+  app: OtherPlacesAppId,
+  owner?: { email?: string; placeNames?: readonly string[] }
+): OtherPlaceRecord[] {
+  const live = listLiveOtherPlaces(owner).filter(place => {
+    if (app === 'eatery' || app === 'farm' || app === 'reseller' || app === 'maker') {
+      return place.app === app;
+    }
+    return false;
+  });
+  const sample = samplePlacesForApp(app).filter(place => !isOwnedOtherPlace(place, owner));
+  return mergeOtherPlaces(live, sample);
+}
+
+export function listOtherPlacesAppCards(owner?: {
+  email?: string;
+  placeNames?: readonly string[];
+}): OtherPlacesAppCard[] {
+  return OTHER_PLACES_APPS.map(app => {
+    const places = listOtherPlacesForApp(app.id, owner);
+    const liveCount = places.filter(place => place.source === 'live').length;
+    const sampleCount = places.filter(place => place.source === 'sample').length;
+    return {
+      ...app,
+      liveCount,
+      sampleCount,
+      total: places.length
+    };
+  });
+}
+
+export function uniqueFilterValues(
+  places: Array<Pick<PlatformPlaceRecord, 'country' | 'region' | 'city'>>,
+  key: 'country' | 'region' | 'city'
+): string[] {
+  return [...new Set(places.map(place => (place[key] || '').trim()).filter(Boolean))].sort(localeSort);
+}
+
+export function filterOtherPlaces(
+  places: OtherPlaceRecord[],
+  filters: { country?: string; region?: string; town?: string }
+): OtherPlaceRecord[] {
+  const country = (filters.country || '').trim();
+  const region = (filters.region || '').trim();
+  const town = (filters.town || '').trim();
+  return places.filter(place => {
+    if (country && (place.country || '').trim() !== country) return false;
+    if (region && (place.region || '').trim() !== region) return false;
+    if (town && (place.city || '').trim() !== town) return false;
+    return true;
+  });
 }

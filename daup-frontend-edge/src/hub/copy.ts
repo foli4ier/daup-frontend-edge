@@ -22,9 +22,10 @@ export const HUB_DOOR_BODY = 'Social and business apps. Your places live here.';
 export const OPEN_THE_HOUSE_LABEL = 'Open the house';
 export const PLUS_REGISTER_LABEL = '+ Register';
 export const LIVE_STATUS_LABEL = 'LIVE';
-export const NAV_PLACES_LABEL = 'Places';
+export const NAV_PLACES_LABEL = 'My places';
 export const NAV_APPS_LABEL = 'Apps';
 export const NAV_YOU_LABEL = 'You';
+export const NAV_OTHER_PLACES_LABEL = 'Other places';
 export const YOU_KICKER = 'You.';
 export const SETTINGS_KICKER = 'Settings.';
 export const MONEY_IN_R_LABEL = 'Prices in R.';
@@ -92,6 +93,25 @@ export const TYPE_THE_PLACE_NAME = 'Type the place name.';
 export const STAY_WITH_THE_HOUSE_LABEL = 'Stay with this house.';
 export const ON_THE_CHAIN_KICKER = 'On the chain.';
 export const ON_THE_CHAIN_EMPTY = 'No other places on the chain yet.';
+export const OTHER_PLACES_KICKER = 'Other places.';
+export const OTHER_PLACES_EMPTY = 'No other places yet.';
+export const FILTER_COUNTRY_LABEL = 'Country';
+export const FILTER_REGION_LABEL = 'Region';
+export const FILTER_TOWN_LABEL = 'Town';
+export const FILTER_ALL_LABEL = 'All';
+export const SAMPLE_SOURCE_LABEL = 'Sample.';
+export const ON_THIS_HUB_SOURCE_LABEL = 'On this hub.';
+
+export function subscribedCountLabel(count: number): string {
+  return `${count} subscribed.`;
+}
+
+export function otherPlacesSourceLabel(live: number, sample: number): string {
+  if (live && sample) return `${live} on this hub. ${sample} sample.`;
+  if (sample) return SAMPLE_SOURCE_LABEL;
+  if (live) return ON_THIS_HUB_SOURCE_LABEL;
+  return '';
+}
 export const CHAIN_APP_EATERY = 'Eatery';
 export const CHAIN_APP_FARM = 'Farm';
 export const CHAIN_APP_RESELLER = 'Reseller';
@@ -155,8 +175,14 @@ export const HUB_HOME_COPY = [
   LOG_OFF_LABEL,
   DELETE_THE_HOUSE_LABEL,
   REGISTER_A_NEW_HOUSE_LABEL,
-  ON_THE_CHAIN_KICKER,
-  ON_THE_CHAIN_EMPTY,
+  OTHER_PLACES_KICKER,
+  OTHER_PLACES_EMPTY,
+  FILTER_COUNTRY_LABEL,
+  FILTER_REGION_LABEL,
+  FILTER_TOWN_LABEL,
+  FILTER_ALL_LABEL,
+  SAMPLE_SOURCE_LABEL,
+  ON_THIS_HUB_SOURCE_LABEL,
   CHAIN_APP_EATERY,
   CHAIN_APP_EATOUT,
   CHAIN_APP_PROJECT,
@@ -168,6 +194,7 @@ export const HUB_HOME_COPY = [
   NAV_PLACES_LABEL,
   NAV_APPS_LABEL,
   NAV_YOU_LABEL,
+  NAV_OTHER_PLACES_LABEL,
   YOU_KICKER,
   SETTINGS_KICKER,
   MONEY_IN_R_LABEL,

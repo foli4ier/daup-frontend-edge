@@ -87,9 +87,10 @@ describe('hub email door copy', () => {
     expect(HUB_HOME_COPY).toContain('No house on this hub yet.');
     expect(HUB_HOME_COPY).toContain('+ Register');
     expect(HUB_HOME_COPY).not.toContain('Home');
-    expect(HUB_HOME_COPY).toContain('Places');
+    expect(HUB_HOME_COPY).toContain('My places');
     expect(HUB_HOME_COPY).toContain('Apps');
     expect(HUB_HOME_COPY).toContain('You');
+    expect(HUB_HOME_COPY).toContain('Other places');
     expect(GET_APPS_KICKER).toBe('Get apps.');
     expect(GET_LABEL).toBe('Get.');
     expect(OPEN_LABEL).toBe('Open.');
@@ -97,8 +98,8 @@ describe('hub email door copy', () => {
     expect(RESERVE_A_TABLE_LABEL).toBe('Reserve a table.');
     expect(hasBannedDoorName(HUB_HOME_COPY.join('\n'))).toBe(false);
     expect(HUB_HOME_COPY).not.toContain('Marketplace');
-    expect(HUB_HOME_COPY).toContain('On the chain.');
-    expect(HUB_HOME_COPY).toContain('No other places on the chain yet.');
+    expect(HUB_HOME_COPY).toContain('Other places.');
+    expect(HUB_HOME_COPY).not.toContain('On the chain.');
     expect(HUB_HOME_COPY).toContain(ASK_FOR_ENHANCEMENT_LABEL);
     expect(HUB_HOME_COPY).toContain('Chat');
     expect(HUB_HOME_COPY).toContain('EatOut');
@@ -363,5 +364,24 @@ describe('PR 20 kitchen.md', () => {
     expect(md).not.toMatch(/seednode/i);
     expect(md).not.toMatch(/Unknown\./);
     expect(md).not.toMatch(/kitchen word/i);
+  });
+});
+
+describe('PR 21 kitchen.md', () => {
+  it('documents My places / Other places and keeps protocol words off', () => {
+    const kitchenPath = join(dirname(fileURLToPath(import.meta.url)), '../../../docs/ux/pr-21/kitchen.md');
+    const md = readFileSync(kitchenPath, 'utf8');
+    expect(md).toContain('**My places');
+    expect(md).toContain('**Other places');
+    expect(md).toContain('Country · Region · Town');
+    expect(md).toContain('See the menu.');
+    expect(md).toContain('Reserve a table.');
+    expect(md).toContain('Coming.');
+    expect(md).toContain('Sample.');
+    expect(md).toContain('eatout.daup.co.za/place/kortrijk#menu');
+    expect(md).toContain('eatout.daup.co.za/place/kortrijk#book');
+    expect(md).not.toMatch(/On the chain/);
+    expect(md).not.toMatch(/seednode/i);
+    expect(md).not.toMatch(/co_/);
   });
 });
