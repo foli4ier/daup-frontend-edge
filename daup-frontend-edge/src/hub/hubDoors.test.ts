@@ -384,12 +384,12 @@ describe('PR 22 kitchen.md', () => {
     expect(md).toContain('**Hosted.**');
     expect(md).toContain('**On this premises.**');
     expect(md).toContain('**Download seed setup.**');
-    expect(md).toContain('/on-prem/seed-setup.zip');
+    expect(md).toContain('/on-prem/daup-onprem-seed-v0.zip');
     expect(md).toContain('**Check seed.**');
     expect(md).toContain('R199');
     expect(md).toContain('R299');
     expect(md).toContain('R0');
-    expect(md).toContain('placeholder pack');
+    expect(md).toContain('start-house');
     expect(md).not.toMatch(/seednode/i);
     expect(md).not.toMatch(/Unknown\./);
     expect(md).not.toMatch(/co_/);

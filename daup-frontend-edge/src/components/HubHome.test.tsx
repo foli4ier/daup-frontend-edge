@@ -45,7 +45,7 @@ import {
 } from '../hub/copy';
 import { App } from '../App';
 import { persistOwnerCookie, mintOwnerArrivalToken, readOwnerArrivalToken, buildOpenTheHouseUrl, cookieSetsParentDomain, expireOwnerCookie } from '../hub/ownerArrival';
-import { loadSeednodeForPlace } from '../hub/seednode';
+import { loadSeednodeForPlace, ON_PREM_SEED_ENDPOINT } from '../hub/seednode';
 
 const houseVault: UserIdentityVault = {
   version: 1,
@@ -1745,10 +1745,18 @@ describe('P0/P1 place list and control plane', () => {
     expect(container.querySelector('[data-testid="place-sub-meters"]')?.textContent).not.toContain('R299 hosted seed.');
     const download = container.querySelector('[data-testid="download-seed-setup"]') as HTMLAnchorElement | null;
     expect(download?.textContent).toBe('Download seed setup.');
-    expect(download?.getAttribute('href')).toBe('/on-prem/seed-setup.zip');
-    expect(download?.getAttribute('download')).toBe('seed-setup.zip');
+    expect(download?.getAttribute('href')).toBe('/on-prem/daup-onprem-seed-v0.zip');
+    expect(download?.getAttribute('download')).toBe('daup-onprem-seed-v0.zip');
     expect(container.querySelector('[data-testid="seed-on-prem-next"]')?.textContent).toContain('download the setup');
-    expect(loadSeednodeForPlace(salt?.companyId || '')?.mode).toBe('on-prem');
+    const onPremAttach = loadSeednodeForPlace(salt?.companyId || '');
+    expect(onPremAttach?.mode).toBe('on-prem');
+    expect(onPremAttach?.endpoint).toBe(ON_PREM_SEED_ENDPOINT);
+    expect(onPremAttach?.companyId).toBe(salt?.companyId);
+    expect(onPremAttach?.ownerEmail).toBe('owner@theolive.co.za');
+    expect(onPremAttach?.placeId).toBeTruthy();
+    if (salt?.placeId) {
+      expect(onPremAttach?.placeId).toBe(salt.placeId);
+    }
     expect(container.querySelector('[data-testid="place-detail"]')?.textContent).not.toMatch(/seednode/i);
     expect(container.querySelector('[data-testid="place-detail"]')?.textContent).not.toMatch(/\bnode\b/i);
 

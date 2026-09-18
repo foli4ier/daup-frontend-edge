@@ -169,7 +169,7 @@ async function assertOnPrem(page) {
       && host.includes('This premises.')
       && meters.includes('R0 hosted seed.')
       && meters.includes('R199 a month for this place.')
-      && download?.getAttribute('href') === '/on-prem/seed-setup.zip'
+      && download?.getAttribute('href') === '/on-prem/daup-onprem-seed-v0.zip'
       && (download?.textContent || '').includes('Download seed setup.')
     );
   }, { timeout: 15000 });

@@ -36,6 +36,7 @@ import {
   HOSTED_SEED_DOOR_LABEL,
   SEED_SETUP_ZIP_HREF,
   SEED_SETUP_ZIP_NAME,
+  onPremAttachFields,
   saveSeednodeForPlace,
   seedConfigForMode,
   seednodeDoorHost,
@@ -87,7 +88,8 @@ export function PlaceDetailView({
   onOpenApp: (app: ShopApp) => void;
   openHandshake?: ProjectOpenHandshake;
 }) {
-  const placeId = (place.companyId || place.placeId || '').trim();
+  const licensedId = (place.companyId || '').trim();
+  const openedPlaceId = (place.placeId || '').trim();
   const [seedConfig, setSeedConfig] = useState<SeednodeConfig | null>(seed);
   const status = entitlement ? resolvePlaceSubscriptionStatus(entitlement) : (trialEndsAt ? 'trial' : null);
   const mode: SeednodeMode = seedConfig?.mode || 'hosted';
@@ -107,8 +109,24 @@ export function PlaceDetailView({
     : undefined;
 
   const chooseMode = (next: SeednodeMode) => {
-    if (!placeId || next === mode) return;
-    const config = saveSeednodeForPlace(placeId, seedConfigForMode(placeId, next));
+    const mapKey = licensedId || openedPlaceId;
+    if (!mapKey || next === mode) return;
+    const attach = next === 'on-prem'
+      ? onPremAttachFields({
+          ownerEmail: email,
+          companyId: licensedId,
+          placeId: openedPlaceId
+        })
+      : null;
+    const config = saveSeednodeForPlace(
+      mapKey,
+      attach || seedConfigForMode({
+        mode: next,
+        companyId: licensedId || openedPlaceId,
+        placeId: openedPlaceId,
+        ownerEmail: email
+      })
+    );
     setSeedConfig(config);
   };
 

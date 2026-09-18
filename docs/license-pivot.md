@@ -37,7 +37,7 @@ Service: `daup-frontend-edge/src/hub/entitlements.ts`.
 
 ## Place-first registration
 
-Create the company / place, then enable apps (eatery is one selectable app). Hub mints a licensed place id once per place and attaches the default hosted seed `{ endpoint: "https://mcp.daup.co.za", mode: "hosted", placeId }`. Opening a place is that place’s control plane (apps, then seed + subscription). Never remint on re-login, seed switch, or revisit. Owner may choose **Hosted.** (DAUP hosted endpoint stub) or **On this premises.** (hosted line R0; download placeholder seed setup zip). Connected badge polling is still slice C.
+Create the company / place, then enable apps (eatery is one selectable app). Hub mints a licensed place id once per place and attaches the default hosted seed `{ endpoint: "https://mcp.daup.co.za", mode: "hosted", placeId }`. Opening a place is that place’s control plane (apps, then seed + subscription). Never remint on re-login, seed switch, or revisit. Owner may choose **Hosted.** (DAUP hosted endpoint stub) or **On this premises.** (hosted line R0; **Download seed setup.** serves `/on-prem/daup-onprem-seed-v0.zip`, Hub mirror of `foli4ier/daup-mcp-servers` `onprem-pack/` v0 — start-house scripts, not an `.exe`). On-prem attach persists `{ mode, endpoint, ownerEmail, companyId, placeId }` with the opened place’s house id and never remints `companyId`. Local smoke `http://127.0.0.1:8080`; production https required. Connected badge polling is still slice C.
 
 An owner may create more than one place. Each place has its own trial, invoice stub, and seed attach.
 

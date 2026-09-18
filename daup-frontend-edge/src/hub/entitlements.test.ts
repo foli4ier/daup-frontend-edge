@@ -1,4 +1,5 @@
 import { existsSync } from 'node:fs';
+import { execSync } from 'node:child_process';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -11,6 +12,7 @@ import {
   loadSeednodeConfig,
   loadSeednodeForPlace,
   ON_PREM_SEED_ENDPOINT,
+  onPremAttachFields,
   saveSeednodeConfig,
   saveSeednodeForPlace,
   seedConfigForMode,
@@ -76,15 +78,46 @@ describe('hosted seednode stub', () => {
     expect(isSeednodeAttached({ endpoint: 'https://mcp.daup.co.za', mode: 'hosted' })).toBe(false);
     expect(seednodeDoorHost(seed)).toBe(HOSTED_SEED_DOOR_LABEL);
     expect(seednodeDoorHost(seed)).toBe('daup.co.za');
-    const onPrem = attachOnPremSeednodeStub('co_held');
-    expect(onPrem.mode).toBe('on-prem');
-    expect(onPrem.endpoint).toBe(ON_PREM_SEED_ENDPOINT);
-    expect(onPrem.placeId).toBe('co_held');
+    const onPrem = attachOnPremSeednodeStub({
+      companyId: 'co_held',
+      placeId: 'place-olive',
+      ownerEmail: 'owner@theolive.co.za'
+    });
+    expect(onPrem).toEqual({
+      endpoint: 'http://127.0.0.1:8080',
+      mode: 'on-prem',
+      companyId: 'co_held',
+      placeId: 'place-olive',
+      ownerEmail: 'owner@theolive.co.za'
+    });
     expect(seednodeDoorHost(onPrem)).toBe('This premises.');
-    expect(seedConfigForMode('co_held', 'hosted').mode).toBe('hosted');
-    expect(SEED_SETUP_ZIP_HREF).toBe('/on-prem/seed-setup.zip');
-    const zipPath = join(dirname(fileURLToPath(import.meta.url)), '../../public/on-prem/seed-setup.zip');
+    expect(seedConfigForMode({ mode: 'hosted', companyId: 'co_held' }).mode).toBe('hosted');
+    expect(SEED_SETUP_ZIP_HREF).toBe('/on-prem/daup-onprem-seed-v0.zip');
+    const zipPath = join(dirname(fileURLToPath(import.meta.url)), '../../public/on-prem/daup-onprem-seed-v0.zip');
     expect(existsSync(zipPath)).toBe(true);
+    const listing = execSync(`unzip -l ${JSON.stringify(zipPath)}`, { encoding: 'utf8' });
+    expect(listing).toContain('onprem-pack/start-house.sh');
+    expect(listing).toContain('onprem-pack/start-house.bat');
+    expect(listing).toContain('onprem-pack/healthcheck.sh');
+    expect(listing).toContain('onprem-pack/start-tunnel.sh');
+    expect(listing).toContain('onprem-pack/README.md');
+    expect(listing).not.toMatch(/\.exe\b/i);
+    expect(onPremAttachFields({
+      ownerEmail: 'Owner@TheOlive.co.za',
+      companyId: 'co_held',
+      placeId: 'place-olive'
+    })).toEqual({
+      mode: 'on-prem',
+      endpoint: ON_PREM_SEED_ENDPOINT,
+      ownerEmail: 'owner@theolive.co.za',
+      companyId: 'co_held',
+      placeId: 'place-olive'
+    });
+    expect(onPremAttachFields({
+      ownerEmail: 'owner@theolive.co.za',
+      companyId: 'co_held',
+      placeId: ''
+    })).toBeNull();
   });
 });
 
@@ -289,8 +322,17 @@ describe('seednode persist', () => {
     const byPlace = saveSeednodeForPlace('co_second', attachHostedSeednodeStub('co_second'));
     expect(loadSeednodeForPlace('co_second')).toEqual(byPlace);
     expect(loadSeednodeForPlace('co_persist')).toEqual(seed);
-    const onPrem = saveSeednodeForPlace('co_onprem', seedConfigForMode('co_onprem', 'on-prem'));
+    const onPrem = saveSeednodeForPlace('co_onprem', seedConfigForMode({
+      mode: 'on-prem',
+      companyId: 'co_onprem',
+      placeId: 'place-onprem',
+      ownerEmail: 'owner@theolive.co.za'
+    }));
     expect(onPrem.mode).toBe('on-prem');
+    expect(onPrem.placeId).toBe('place-onprem');
+    expect(onPrem.companyId).toBe('co_onprem');
+    expect(onPrem.ownerEmail).toBe('owner@theolive.co.za');
+    expect(loadSeednodeForPlace('co_onprem')?.placeId).toBe('place-onprem');
     expect(loadSeednodeForPlace('co_onprem')?.mode).toBe('on-prem');
     expect(loadSeednodeForPlace('co_persist')?.mode).toBe('hosted');
   });
