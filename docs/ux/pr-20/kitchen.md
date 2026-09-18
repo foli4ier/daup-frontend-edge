@@ -65,6 +65,7 @@ Same doors stacked. **Open.** is a 48px terracotta tap.
 
 **Open.** on Salt. Not Eatery / Project.
 
+- Context switches to **Salt** · Cape Town · email
 - **Back to your places.**
 - **Salt** · Cape Town
 - **Seednode.** Hosted. · daup.co.za · Unknown. · **Manage seednode.**

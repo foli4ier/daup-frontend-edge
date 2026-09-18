@@ -232,7 +232,7 @@ body {
 .place-detail {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
 .place-detail-head h1 {
@@ -270,6 +270,16 @@ body {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+@media (max-width: 640px) {
+  .place-detail {
+    gap: 10px;
+  }
+
+  .place-detail-block.card {
+    padding: 12px 14px;
+  }
 }
 
 .get-apps .card {
