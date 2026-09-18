@@ -147,6 +147,7 @@ export const SubscribedAppsView: React.FC<{
     <div className="apps-home" data-testid="hub-home" data-pane={pane}>
       {showPlaces && openRecord ? (
         <PlaceDetailView
+          key={ownerPlaceKey(openRecord)}
           place={openRecord}
           email={email}
           entitlement={loadPlaceEntitlement(openRecord.companyId || openRecord.placeId || '')}

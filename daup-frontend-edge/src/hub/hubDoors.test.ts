@@ -106,7 +106,14 @@ describe('hub email door copy', () => {
     expect(HUB_HOME_COPY).toContain('Project');
     expect(HUB_HOME_COPY).toContain('Seed.');
     expect(HUB_HOME_COPY).toContain('Manage seed.');
+    expect(HUB_HOME_COPY).toContain('Check seed.');
     expect(HUB_HOME_COPY).toContain('Status not checked yet.');
+    expect(HUB_HOME_COPY).toContain('Social.');
+    expect(HUB_HOME_COPY).toContain('Paid.');
+    expect(HUB_HOME_COPY).toContain('Download seed setup.');
+    expect(HUB_HOME_COPY).toContain('R199 a month for this place.');
+    expect(HUB_HOME_COPY).toContain('R299 hosted seed.');
+    expect(HUB_HOME_COPY).toContain('R0 hosted seed.');
     expect(HUB_HOME_COPY.join('\n')).not.toMatch(/seednode/i);
     expect(HUB_HOME_COPY.join('\n')).not.toMatch(/\bnode\b/i);
     expect(HUB_HOME_COPY.join('\n')).not.toMatch(/Unknown\./);
@@ -367,21 +374,24 @@ describe('PR 20 kitchen.md', () => {
   });
 });
 
-describe('PR 21 kitchen.md', () => {
-  it('documents My places / Other places and keeps protocol words off', () => {
-    const kitchenPath = join(dirname(fileURLToPath(import.meta.url)), '../../../docs/ux/pr-21/kitchen.md');
+describe('PR 22 kitchen.md', () => {
+  it('documents Social/Paid, apps-on-top, Hosted vs On this premises, meters, zip', () => {
+    const kitchenPath = join(dirname(fileURLToPath(import.meta.url)), '../../../docs/ux/pr-22/kitchen.md');
     const md = readFileSync(kitchenPath, 'utf8');
-    expect(md).toContain('**My places');
-    expect(md).toContain('**Other places');
-    expect(md).toContain('Country · Region · Town');
-    expect(md).toContain('See the menu.');
-    expect(md).toContain('Reserve a table.');
-    expect(md).toContain('Coming.');
-    expect(md).toContain('Sample.');
-    expect(md).toContain('eatout.daup.co.za/place/kortrijk#menu');
-    expect(md).toContain('eatout.daup.co.za/place/kortrijk#book');
-    expect(md).not.toMatch(/On the chain/);
+    expect(md).toContain('**Social.**');
+    expect(md).toContain('**Paid.**');
+    expect(md).toContain('Apps block on top');
+    expect(md).toContain('**Hosted.**');
+    expect(md).toContain('**On this premises.**');
+    expect(md).toContain('**Download seed setup.**');
+    expect(md).toContain('/on-prem/seed-setup.zip');
+    expect(md).toContain('**Check seed.**');
+    expect(md).toContain('R199');
+    expect(md).toContain('R299');
+    expect(md).toContain('R0');
+    expect(md).toContain('placeholder pack');
     expect(md).not.toMatch(/seednode/i);
+    expect(md).not.toMatch(/Unknown\./);
     expect(md).not.toMatch(/co_/);
   });
 });

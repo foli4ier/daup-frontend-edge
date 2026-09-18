@@ -1,14 +1,21 @@
+import { existsSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
+  attachHostedSeednodeStub,
+  attachOnPremSeednodeStub,
   DEFAULT_HOSTED_SEEDNODE_ENDPOINT,
   HOSTED_SEED_DOOR_LABEL,
-  attachHostedSeednodeStub,
   isSeednodeAttached,
   loadSeednodeConfig,
   loadSeednodeForPlace,
+  ON_PREM_SEED_ENDPOINT,
   saveSeednodeConfig,
   saveSeednodeForPlace,
-  seednodeDoorHost
+  seedConfigForMode,
+  seednodeDoorHost,
+  SEED_SETUP_ZIP_HREF
 } from './seednode';
 import { DEFAULT_HOUSE_MCP_BASE } from './houseMcp';
 import { bindCompanyId, bindPlaceId, mintCompanyId, normalizeEnabledApps, preferHeldCompanyId } from './companyNode';
@@ -69,6 +76,15 @@ describe('hosted seednode stub', () => {
     expect(isSeednodeAttached({ endpoint: 'https://mcp.daup.co.za', mode: 'hosted' })).toBe(false);
     expect(seednodeDoorHost(seed)).toBe(HOSTED_SEED_DOOR_LABEL);
     expect(seednodeDoorHost(seed)).toBe('daup.co.za');
+    const onPrem = attachOnPremSeednodeStub('co_held');
+    expect(onPrem.mode).toBe('on-prem');
+    expect(onPrem.endpoint).toBe(ON_PREM_SEED_ENDPOINT);
+    expect(onPrem.placeId).toBe('co_held');
+    expect(seednodeDoorHost(onPrem)).toBe('This premises.');
+    expect(seedConfigForMode('co_held', 'hosted').mode).toBe('hosted');
+    expect(SEED_SETUP_ZIP_HREF).toBe('/on-prem/seed-setup.zip');
+    const zipPath = join(dirname(fileURLToPath(import.meta.url)), '../../public/on-prem/seed-setup.zip');
+    expect(existsSync(zipPath)).toBe(true);
   });
 });
 
@@ -235,26 +251,27 @@ describe('place entitlement gate', () => {
 
 describe('price meters', () => {
   it('stubs place + hosted seed in ZAR and keeps LOCATION dead', () => {
-    expect(PLACE_SUB_MONTHLY_ZAR_EX_VAT).toBe(499);
-    expect(SEED_HOSTED_MONTHLY_ZAR_EX_VAT).toBe(199);
+    expect(PLACE_SUB_MONTHLY_ZAR_EX_VAT).toBe(199);
+    expect(SEED_HOSTED_MONTHLY_ZAR_EX_VAT).toBe(299);
     expect(LOCATION_MONTHLY_DEAD).toBe(true);
     expect(stubMonthlyLines({ seedMode: 'hosted', inTrial: true })).toEqual([
       { code: 'PLACE_TRIAL', units: 1, zarExVat: 0 }
     ]);
     expect(stubMonthlyLines({ seedMode: 'hosted', inTrial: false })).toEqual([
-      { code: 'PLACE_SUB_MONTHLY', units: 1, zarExVat: 499 },
-      { code: 'SEED_HOSTED_MONTHLY', units: 1, zarExVat: 199 }
+      { code: 'PLACE_SUB_MONTHLY', units: 1, zarExVat: 199 },
+      { code: 'SEED_HOSTED_MONTHLY', units: 1, zarExVat: 299 }
     ]);
     expect(stubMonthlyLines({
       seedMode: 'hosted',
       inTrial: false,
       billableLocations: 10
     })).toEqual([
-      { code: 'PLACE_SUB_MONTHLY', units: 1, zarExVat: 499 },
-      { code: 'SEED_HOSTED_MONTHLY', units: 1, zarExVat: 199 }
+      { code: 'PLACE_SUB_MONTHLY', units: 1, zarExVat: 199 },
+      { code: 'SEED_HOSTED_MONTHLY', units: 1, zarExVat: 299 }
     ]);
     expect(stubMonthlyLines({ seedMode: 'on-prem', inTrial: false })).toEqual([
-      { code: 'PLACE_SUB_MONTHLY', units: 1, zarExVat: 499 }
+      { code: 'PLACE_SUB_MONTHLY', units: 1, zarExVat: 199 },
+      { code: 'SEED_HOSTED_MONTHLY', units: 1, zarExVat: 0 }
     ]);
     expect(JSON.stringify(stubMonthlyLines({ seedMode: 'hosted', inTrial: false, billableLocations: 10 })))
       .not.toContain('LOCATION');
@@ -272,5 +289,9 @@ describe('seednode persist', () => {
     const byPlace = saveSeednodeForPlace('co_second', attachHostedSeednodeStub('co_second'));
     expect(loadSeednodeForPlace('co_second')).toEqual(byPlace);
     expect(loadSeednodeForPlace('co_persist')).toEqual(seed);
+    const onPrem = saveSeednodeForPlace('co_onprem', seedConfigForMode('co_onprem', 'on-prem'));
+    expect(onPrem.mode).toBe('on-prem');
+    expect(loadSeednodeForPlace('co_onprem')?.mode).toBe('on-prem');
+    expect(loadSeednodeForPlace('co_persist')?.mode).toBe('hosted');
   });
 });

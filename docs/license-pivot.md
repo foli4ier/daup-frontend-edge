@@ -10,9 +10,9 @@ You pay for the **place**, not for each app and not for each vaulted branch. Ext
 
 | Code | Stub (ex VAT) | Rule |
 | --- | --- | --- |
-| `PLACE_SUB_MONTHLY` | R499 | This place + enabled apps |
+| `PLACE_SUB_MONTHLY` | R199 | This place + enabled apps |
 | `PLACE_TRIAL` | R0 | First 30 days after `place.trial_started` |
-| `SEED_HOSTED_MONTHLY` | R199 / place | Hosted seed only; on-prem is R0 |
+| `SEED_HOSTED_MONTHLY` | R299 / place | Hosted seed only; on-prem shows R0 hosted line |
 | `LOCATION_MONTHLY` | dead | Extra branch is a new place. Do not invoice. |
 
 Catalog: `daup-frontend-edge/src/hub/priceMeters.ts`. Invoices are slice G.
@@ -37,12 +37,12 @@ Service: `daup-frontend-edge/src/hub/entitlements.ts`.
 
 ## Place-first registration
 
-Create the company / place, then enable apps (eatery is one selectable app). Hub mints a licensed place id once per place and attaches the default hosted seed `{ endpoint: "https://mcp.daup.co.za", mode: "hosted", placeId }`. Opening a place is that place’s control plane (seed + subscription + apps). Never remint on re-login, seed switch, or revisit.
+Create the company / place, then enable apps (eatery is one selectable app). Hub mints a licensed place id once per place and attaches the default hosted seed `{ endpoint: "https://mcp.daup.co.za", mode: "hosted", placeId }`. Opening a place is that place’s control plane (apps, then seed + subscription). Never remint on re-login, seed switch, or revisit. Owner may choose **Hosted.** (DAUP hosted endpoint stub) or **On this premises.** (hosted line R0; download placeholder seed setup zip). Connected badge polling is still slice C.
 
 An owner may create more than one place. Each place has its own trial, invoice stub, and seed attach.
 
 ## Later slices
 
-- C: `seednode_status` Connected badge and hosted ↔ on-prem switch
+- C: `seednode_status` Connected badge (Hosted. / On this premises. choice is live on Hub)
 - F: migration verify, `house_state_get`
 - G: billing lines / invoices

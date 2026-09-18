@@ -6,13 +6,20 @@
  * Door chrome uses daup.co.za — no MCP word on kitchen doors.
  *
  * Persist attach config. Do not block on seednode_status MCP tools.
- * Connected badge polling is slice C. Hosted↔on-prem switch is slice C —
- * this module never remints a live place id.
+ * Connected badge polling is slice C. Hosted ↔ on this premises is a Hub
+ * door choice (no remint). On-prem download is the placeholder zip in public/.
  */
+
+import { ON_PREM_SEED_DOOR_LABEL } from './copy';
 
 /** Same origin as DEFAULT_HOUSE_MCP_BASE in houseMcp.ts — Hub's canonical hosted host. */
 export const DEFAULT_HOSTED_SEEDNODE_ENDPOINT = 'https://mcp.daup.co.za';
+/** Local Kortrijk / start-house listen address from docs/house-mcp.md. Not shown on doors. */
+export const ON_PREM_SEED_ENDPOINT = 'http://127.0.0.1:8080';
 export const HOSTED_SEED_DOOR_LABEL = 'daup.co.za';
+/** Hub-served placeholder pack. Real on-prem installer is not in this repo yet. */
+export const SEED_SETUP_ZIP_HREF = '/on-prem/seed-setup.zip';
+export const SEED_SETUP_ZIP_NAME = 'seed-setup.zip';
 export const SEEDNODE_STORAGE_KEY = 'daup_seednode_config';
 export const SEEDNODE_BY_PLACE_KEY = 'daup_seednode_by_place';
 
@@ -68,6 +75,28 @@ export function defaultHostedSeednode(placeId: string): SeednodeConfig {
 /** Hosted stub attach. Counts as attached for trial start. */
 export function attachHostedSeednodeStub(placeId: string): SeednodeConfig {
   return defaultHostedSeednode(placeId);
+}
+
+export function defaultOnPremSeednode(placeId: string): SeednodeConfig {
+  const id = asPlaceKey(placeId);
+  const config: SeednodeConfig = {
+    endpoint: ON_PREM_SEED_ENDPOINT,
+    mode: 'on-prem'
+  };
+  if (id) {
+    config.placeId = id;
+    config.companyId = id;
+  }
+  return config;
+}
+
+/** On this premises stub. Same place id — never remints. */
+export function attachOnPremSeednodeStub(placeId: string): SeednodeConfig {
+  return defaultOnPremSeednode(placeId);
+}
+
+export function seedConfigForMode(placeId: string, mode: SeednodeMode): SeednodeConfig {
+  return mode === 'on-prem' ? attachOnPremSeednodeStub(placeId) : attachHostedSeednodeStub(placeId);
 }
 
 export function isSeednodeAttached(config: SeednodeConfig | null | undefined): boolean {
@@ -170,6 +199,7 @@ export function clearSeednodeConfig(): void {
 
 /** Kitchen host label — strip the mcp. prefix so doors stay kitchen English. */
 export function seednodeDoorHost(config: SeednodeConfig | null | undefined): string {
+  if (config?.mode === 'on-prem') return ON_PREM_SEED_DOOR_LABEL;
   if (!config?.endpoint) return HOSTED_SEED_DOOR_LABEL;
   try {
     const host = new URL(config.endpoint).hostname.replace(/^mcp\./i, '');

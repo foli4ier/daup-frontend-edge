@@ -19,7 +19,7 @@ export const PLACE_TRIAL_ZAR_EX_VAT = 0;
 
 /** Always. Covers this place + enabled apps (no per-app fee). */
 export const PLACE_SUB_MONTHLY_CODE = 'PLACE_SUB_MONTHLY' as const;
-export const PLACE_SUB_MONTHLY_ZAR_EX_VAT = 499;
+export const PLACE_SUB_MONTHLY_ZAR_EX_VAT = 199;
 
 /**
  * Dead in v0. Extra branch is a new place with its own PLACE_SUB_MONTHLY.
@@ -30,10 +30,10 @@ export const LOCATION_MONTHLY_ZAR_EX_VAT = 79;
 export const LOCATION_MONTHLY_DEAD = true;
 
 /**
- * Hosted seednode only. R199 / place if hosted; R0 on-prem.
+ * Hosted seed only. R299 / place if hosted; R0 on-prem (line still shown).
  */
 export const SEED_HOSTED_MONTHLY_CODE = 'SEED_HOSTED_MONTHLY' as const;
-export const SEED_HOSTED_MONTHLY_ZAR_EX_VAT = 199;
+export const SEED_HOSTED_MONTHLY_ZAR_EX_VAT = 299;
 
 export const PRICE_METERS = {
   PLACE_TRIAL: {
@@ -49,7 +49,7 @@ export const PRICE_METERS = {
   SEED_HOSTED_MONTHLY: {
     code: SEED_HOSTED_MONTHLY_CODE,
     zarExVat: SEED_HOSTED_MONTHLY_ZAR_EX_VAT,
-    rule: 'Hosted only. R199 / place. On-prem → R0.'
+    rule: 'Hosted only. R299 / place. On-prem → R0 hosted line.'
   }
 } as const;
 
@@ -58,24 +58,30 @@ export type PriceMeterCode =
   | typeof PLACE_SUB_MONTHLY_CODE
   | typeof SEED_HOSTED_MONTHLY_CODE;
 
+/** Catalog lines after trial (ex VAT). LOCATION is dead. Hosted line is always present. */
+export function stubCatalogLines(args: {
+  seedMode: 'hosted' | 'on-prem';
+  billableLocations?: number;
+}): { code: PriceMeterCode; units: number; zarExVat: number }[] {
+  const hosted = args.seedMode === 'hosted';
+  return [
+    { code: PLACE_SUB_MONTHLY_CODE, units: 1, zarExVat: PLACE_SUB_MONTHLY_ZAR_EX_VAT },
+    {
+      code: SEED_HOSTED_MONTHLY_CODE,
+      units: 1,
+      zarExVat: hosted ? SEED_HOSTED_MONTHLY_ZAR_EX_VAT : 0
+    }
+  ];
+}
+
 /** Stub monthly lines (ex VAT). Trial period is R0 for all lines. LOCATION is dead. */
 export function stubMonthlyLines(args: {
   seedMode: 'hosted' | 'on-prem';
   inTrial: boolean;
   billableLocations?: number;
 }): { code: PriceMeterCode; units: number; zarExVat: number }[] {
-  const hosted = args.seedMode === 'hosted';
   if (args.inTrial) {
     return [{ code: PLACE_TRIAL_CODE, units: 1, zarExVat: 0 }];
   }
-  return [
-    { code: PLACE_SUB_MONTHLY_CODE, units: 1, zarExVat: PLACE_SUB_MONTHLY_ZAR_EX_VAT },
-    ...(hosted
-      ? [{
-          code: SEED_HOSTED_MONTHLY_CODE,
-          units: 1,
-          zarExVat: SEED_HOSTED_MONTHLY_ZAR_EX_VAT
-        }]
-      : [])
-  ];
+  return stubCatalogLines(args);
 }

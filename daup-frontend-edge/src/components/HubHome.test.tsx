@@ -45,6 +45,7 @@ import {
 } from '../hub/copy';
 import { App } from '../App';
 import { persistOwnerCookie, mintOwnerArrivalToken, readOwnerArrivalToken, buildOpenTheHouseUrl, cookieSetsParentDomain, expireOwnerCookie } from '../hub/ownerArrival';
+import { loadSeednodeForPlace } from '../hub/seednode';
 
 const houseVault: UserIdentityVault = {
   version: 1,
@@ -342,6 +343,10 @@ describe('hub home after email', () => {
     });
     expect(container.querySelector('[data-testid="place-detail"]')).toBeTruthy();
     expect(container.querySelector('[data-testid="place-detail-name"]')?.textContent).toContain('The Olive');
+    const detailOrder = Array.from(container.querySelectorAll(
+      '[data-testid="place-apps"], [data-testid="place-seed"], [data-testid="place-subscription"]'
+    )).map(el => el.getAttribute('data-testid'));
+    expect(detailOrder).toEqual(['place-apps', 'place-seed', 'place-subscription']);
     expect(container.querySelector('[data-testid="place-seed"]')).toBeTruthy();
     expect(container.querySelector('[data-testid="place-subscription"]')).toBeTruthy();
     expect(container.querySelector('[data-testid="place-apps"]')).toBeTruthy();
@@ -372,6 +377,15 @@ describe('hub home after email', () => {
     const shop = appsContainer.querySelector('[data-testid="get-apps"]');
     expect(shop?.textContent).toContain(GET_APPS_KICKER);
     expect(shop?.textContent).toContain(OPEN_LABEL);
+    const social = shop?.querySelector('[data-testid="apps-social"]');
+    const paid = shop?.querySelector('[data-testid="apps-paid"]');
+    expect(social?.textContent).toContain('Social.');
+    expect(social?.textContent).toContain('EatOut');
+    expect(social?.querySelector('[data-testid="shop-app-eatout"]')?.textContent).toContain('LIVE');
+    expect(social?.querySelector('[data-testid="coming-app-chat"]')?.textContent).toContain('Chat');
+    expect(social?.textContent).not.toContain('Eatery');
+    expect(social?.textContent).not.toContain('Project');
+    expect(paid?.textContent).toContain('Paid.');
     expect(shop?.querySelector('[data-testid="shop-app-eatery"]')?.textContent).toContain('Eatery');
     expect(shop?.querySelector('[data-testid="get-app-eatery"]')).toBeNull();
     expect(shop?.querySelector('[data-testid="open-app-eatery"]')?.textContent).toBe(OPEN_LABEL);
@@ -396,18 +410,16 @@ describe('hub home after email', () => {
     expect(shop?.textContent).not.toMatch(/Subscribe/i);
     expect(shop?.textContent).not.toMatch(/Subscribed/i);
     expect(shop?.textContent).not.toContain('Marketplace');
-    const other = appsContainer.querySelector('[data-testid="other-apps"]');
-    expect(other?.textContent).toContain('Farm');
-    expect(other?.textContent).toContain('Reseller');
-    expect(other?.textContent).toContain('Maker');
-    expect(other?.textContent).toContain('Chat');
-    expect(other?.textContent).toContain('Coming');
-    expect(other?.textContent).not.toContain('EatOut');
-    expect(other?.textContent).not.toContain('Project');
-    expect(other?.querySelector('[data-testid="coming-app-eatout"]')).toBeNull();
-    expect(other?.querySelector('[data-testid="coming-app-project"]')).toBeNull();
-    expect(other?.textContent).not.toMatch(/Subscribe/i);
-    expect(other?.textContent).not.toMatch(/Subscribed/i);
+    expect(paid?.textContent).toContain('Farm');
+    expect(paid?.textContent).toContain('Reseller');
+    expect(paid?.textContent).toContain('Maker');
+    expect(paid?.querySelector('[data-testid="coming-app-farm"]')?.textContent).toContain('Coming');
+    expect(paid?.textContent).not.toContain('EatOut');
+    expect(paid?.textContent).not.toContain('Chat');
+    expect(shop?.querySelector('[data-testid="coming-app-eatout"]')).toBeNull();
+    expect(shop?.querySelector('[data-testid="coming-app-project"]')).toBeNull();
+    expect(shop?.textContent).not.toMatch(/Subscribe/i);
+    expect(shop?.textContent).not.toMatch(/Subscribed/i);
     expect(appsContainer.querySelector('[data-testid="same-chain-caption"]')?.textContent).toBe(SAME_CHAIN_CAPTION);
     expect(appsContainer.textContent).not.toContain('Decentralized Edge App Registry');
     expect(appsContainer.textContent).not.toContain('Marketplace');
@@ -566,12 +578,13 @@ describe('hub home after email', () => {
     });
 
     openApps(container);
-    const other = container.querySelector('[data-testid="other-apps"]');
-    expect(other?.textContent).toContain('Farm');
-    expect(other?.textContent).toContain('Chat');
-    expect(other?.textContent).toContain('Coming');
-    expect(other?.textContent).not.toMatch(/Subscribe/i);
-    expect(other?.textContent).not.toMatch(/Subscribed/i);
+    const social = container.querySelector('[data-testid="apps-social"]');
+    const paid = container.querySelector('[data-testid="apps-paid"]');
+    expect(paid?.textContent).toContain('Farm');
+    expect(social?.textContent).toContain('Chat');
+    expect(paid?.textContent).toContain('Coming');
+    expect(paid?.textContent).not.toMatch(/Subscribe/i);
+    expect(paid?.textContent).not.toMatch(/Subscribed/i);
     expect(container.querySelector('[data-testid="coming-app-farm"]')?.textContent).not.toMatch(/Subscribe/i);
     expect(container.querySelector('[data-testid="coming-app-farm"]')?.textContent).not.toContain(SAME_CHAIN_CAPTION);
     expect(container.querySelector('[data-testid="shop-app-eatery"]')?.textContent).toContain(OPEN_LABEL);
@@ -787,7 +800,7 @@ describe('hub home after email', () => {
     expect(container.querySelector('[data-testid="hub-home"]')).toBeTruthy();
     expect(container.querySelector('[data-testid="hub-home"]')?.getAttribute('data-pane')).toBe('places');
     openApps(container);
-    expect(container.querySelector('[data-testid="other-apps"]')?.textContent).toContain('Farm');
+    expect(container.querySelector('[data-testid="coming-app-farm"]')?.textContent).toContain('Farm');
     expect(container.querySelector('[data-testid="hub-log-off"]')).toBeNull();
     openYou(container);
     const logOff = container.querySelector('[data-testid="hub-log-off"]') as HTMLButtonElement | null;
@@ -1697,19 +1710,55 @@ describe('P0/P1 place list and control plane', () => {
     expect(container.querySelector('[data-testid="place-detail"]')).toBeTruthy();
     expect(container.querySelector('[data-testid="place-detail-name"]')?.textContent).toContain('Salt');
     expect(container.querySelector('[data-testid="place-seed"]')?.textContent).toContain('Seed.');
-    expect(container.querySelector('[data-testid="place-seed-mode"]')?.textContent).toBe('Hosted.');
+    expect(container.querySelector('[data-testid="seed-mode-hosted"]')?.textContent).toBe('Hosted.');
+    expect(container.querySelector('[data-testid="seed-mode-hosted"]')?.getAttribute('aria-pressed')).toBe('true');
+    expect(container.querySelector('[data-testid="seed-mode-on-prem"]')?.textContent).toBe('On this premises.');
     expect(container.querySelector('[data-testid="place-seed-host"]')?.textContent).toBe('daup.co.za');
     expect(container.querySelector('[data-testid="place-seed-status"]')?.textContent).toBe('Status not checked yet.');
-    expect(container.querySelector('[data-testid="manage-seed"]')?.textContent).toBe('Manage seed.');
+    expect(container.querySelector('[data-testid="check-seed"]')?.textContent).toBe('Check seed.');
+    expect(container.querySelector('[data-testid="manage-seed"]')).toBeNull();
     expect(container.querySelector('[data-testid="place-detail"]')?.textContent).not.toMatch(/seednode/i);
     expect(container.querySelector('[data-testid="place-detail"]')?.textContent).not.toMatch(/\bnode\b/i);
     expect(container.querySelector('[data-testid="place-sub-status"]')?.textContent).toBe('Trial.');
     expect(container.querySelector('[data-testid="place-sub-meters"]')?.textContent).toContain('No charge for 30 days.');
+    expect(container.querySelector('[data-testid="place-sub-meters"]')?.textContent).toContain('R199 a month for this place.');
+    expect(container.querySelector('[data-testid="place-sub-meters"]')?.textContent).toContain('R299 hosted seed.');
+    const saltOrder = Array.from(container.querySelectorAll(
+      '[data-testid="place-apps"], [data-testid="place-seed"], [data-testid="place-subscription"]'
+    )).map(el => el.getAttribute('data-testid'));
+    expect(saltOrder).toEqual(['place-apps', 'place-seed', 'place-subscription']);
     expect(container.querySelector('[data-testid="place-app-project"]')?.textContent).toContain('Project');
     expect(container.querySelector('[data-testid="place-app-eatery"]')).toBeNull();
     expect(container.querySelector('[data-testid="on-the-chain"]')).toBeNull();
     expect(container.textContent).not.toMatch(/\b(peer|DID|DHT|wallet|MCP|npm|hydrate|neon)\b/i);
     expect(container.textContent).not.toContain('co_');
+
+    act(() => {
+      (container.querySelector('[data-testid="seed-mode-on-prem"]') as HTMLButtonElement).click();
+    });
+    expect(container.querySelector('[data-testid="seed-mode-on-prem"]')?.getAttribute('aria-pressed')).toBe('true');
+    expect(container.querySelector('[data-testid="seed-mode-hosted"]')?.getAttribute('aria-pressed')).toBe('false');
+    expect(container.querySelector('[data-testid="place-seed-host"]')?.textContent).toBe('This premises.');
+    expect(container.querySelector('[data-testid="place-seed-status"]')?.textContent).toBe('Status not checked yet.');
+    expect(container.querySelector('[data-testid="place-sub-meters"]')?.textContent).toContain('R199 a month for this place.');
+    expect(container.querySelector('[data-testid="place-sub-meters"]')?.textContent).toContain('R0 hosted seed.');
+    expect(container.querySelector('[data-testid="place-sub-meters"]')?.textContent).not.toContain('R299 hosted seed.');
+    const download = container.querySelector('[data-testid="download-seed-setup"]') as HTMLAnchorElement | null;
+    expect(download?.textContent).toBe('Download seed setup.');
+    expect(download?.getAttribute('href')).toBe('/on-prem/seed-setup.zip');
+    expect(download?.getAttribute('download')).toBe('seed-setup.zip');
+    expect(container.querySelector('[data-testid="seed-on-prem-next"]')?.textContent).toContain('download the setup');
+    expect(loadSeednodeForPlace(salt?.companyId || '')?.mode).toBe('on-prem');
+    expect(container.querySelector('[data-testid="place-detail"]')?.textContent).not.toMatch(/seednode/i);
+    expect(container.querySelector('[data-testid="place-detail"]')?.textContent).not.toMatch(/\bnode\b/i);
+
+    act(() => {
+      (container.querySelector('[data-testid="seed-mode-hosted"]') as HTMLButtonElement).click();
+    });
+    expect(container.querySelector('[data-testid="seed-mode-hosted"]')?.getAttribute('aria-pressed')).toBe('true');
+    expect(container.querySelector('[data-testid="place-seed-host"]')?.textContent).toBe('daup.co.za');
+    expect(container.querySelector('[data-testid="place-sub-meters"]')?.textContent).toContain('R299 hosted seed.');
+    expect(container.querySelector('[data-testid="download-seed-setup"]')).toBeNull();
 
     act(() => {
       (container.querySelector('[data-testid="back-to-places"]') as HTMLButtonElement).click();
