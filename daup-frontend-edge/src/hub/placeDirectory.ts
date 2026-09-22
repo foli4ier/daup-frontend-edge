@@ -42,8 +42,8 @@ function localeSort(a: string, b: string): number {
 }
 
 export function chainAppLabel(app: PlatformAppId | string): string {
-  if (app === 'farm' || app === 'reseller' || app === 'maker' || app === 'eatery') {
-    return CHAIN_APP_LABELS[app];
+  if (typeof app === 'string' && app in CHAIN_APP_LABELS) {
+    return CHAIN_APP_LABELS[app as keyof typeof CHAIN_APP_LABELS];
   }
   return CHAIN_APP_LABELS.eatery;
 }

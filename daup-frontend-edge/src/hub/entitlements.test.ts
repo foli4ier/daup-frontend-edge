@@ -32,6 +32,7 @@ import {
   TRIAL_MS,
   assertNodeWrite,
   enableAppsOnPlace,
+  enabledAppForModule,
   hasFullAppAccess,
   loadNodeEntitlement,
   loadPlaceEntitlement,
@@ -64,6 +65,14 @@ describe('companyId / placeId bind', () => {
 
   it('keeps enableable app order and drops consumer EatOut', () => {
     expect(normalizeEnabledApps(['eatout', 'farm', 'eatery', 'farm', 'nope'])).toEqual(['eatery', 'farm']);
+    expect(normalizeEnabledApps(['vault', 'chat', 'eatout', 'nope', 'eatery', 'vault'])).toEqual([
+      'eatery',
+      'vault',
+      'chat'
+    ]);
+    expect(enabledAppForModule('daup-vault')).toBe('vault');
+    expect(enabledAppForModule('daup-chat')).toBe('chat');
+    expect(enabledAppForModule('daup-statements')).toBeNull();
   });
 });
 
@@ -254,6 +263,7 @@ describe('place entitlement gate', () => {
     expect(entitlement.placeId).toBe('co_gate');
     expect(hasFullAppAccess(entitlement, 'farm', now + 1000)).toBe(true);
     expect(hasFullAppAccess(entitlement, 'eatery', now + 1000)).toBe(false);
+    expect(hasFullAppAccess(entitlement, 'vault', now + 1000)).toBe(false);
     expect(assertNodeWrite(entitlement, 'farm', now + 1000).allowed).toBe(true);
 
     const afterTrial = now + TRIAL_MS + 1000;
@@ -312,6 +322,16 @@ describe('one instance of each app per place', () => {
       added: [],
       already: ['eatery']
     });
+    expect(mergeEnabledApps(['eatery'], ['vault', 'chat', 'vault'])).toEqual({
+      next: ['eatery', 'vault', 'chat'],
+      added: ['vault', 'chat'],
+      already: []
+    });
+    expect(mergeEnabledApps(['vault', 'chat'], ['vault'])).toEqual({
+      next: ['vault', 'chat'],
+      added: [],
+      already: ['vault']
+    });
   });
 
   it('enables a missing app on an existing place and never mints a second instance', () => {
@@ -345,6 +365,26 @@ describe('one instance of each app per place', () => {
     expect(again.noOp).toBe(true);
     expect(again.added).toEqual([]);
     expect(loadPlaceEntitlement('co_olive')?.enabled_apps).toEqual(['eatery', 'project']);
+
+    const vault = enableAppsOnPlace({
+      placeId: 'co_olive',
+      incoming: ['vault', 'chat', 'vault'],
+      current: ['eatery', 'project']
+    });
+    expect(vault.ok).toBe(true);
+    expect(vault.noOp).toBe(false);
+    expect(vault.added).toEqual(['vault', 'chat']);
+    expect(vault.already).toEqual([]);
+    expect(loadPlaceEntitlement('co_olive')?.enabled_apps).toEqual(['eatery', 'project', 'vault', 'chat']);
+
+    const vaultAgain = enableAppsOnPlace({
+      placeId: 'co_olive',
+      incoming: ['vault'],
+      current: ['eatery', 'project', 'vault', 'chat']
+    });
+    expect(vaultAgain.noOp).toBe(true);
+    expect(vaultAgain.already).toEqual(['vault']);
+    expect(loadPlaceEntitlement('co_olive')?.enabled_apps).toEqual(['eatery', 'project', 'vault', 'chat']);
   });
 });
 

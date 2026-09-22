@@ -1,5 +1,5 @@
 import React from 'react';
-import { Factory, FolderKanban, MessageCircle, Store, Utensils, UtensilsCrossed, Wheat } from 'lucide-react';
+import { Factory, FolderKanban, MessageCircle, Store, Utensils, UtensilsCrossed, Vault, Wheat, type LucideIcon } from 'lucide-react';
 import {
   APPS_PAID_KICKER,
   APPS_SOCIAL_KICKER,
@@ -13,20 +13,22 @@ import {
   PAID_SHOP_APPS,
   SOCIAL_SHOP_APPS,
   ShopApp,
+  ShopAppId,
   shopAppIsHeld,
   shopAppOpenHref
 } from '../hub/places';
 import type { ProjectOpenHandshake } from '../hub/projectUrls';
 
-const SHOP_ICONS = {
+const SHOP_ICONS: Record<ShopAppId, LucideIcon> = {
   eatery: Utensils,
   eatout: UtensilsCrossed,
   project: FolderKanban,
   farm: Wheat,
   reseller: Store,
   maker: Factory,
-  chat: MessageCircle
-} as const;
+  chat: MessageCircle,
+  vault: Vault
+};
 
 export interface GetAppsProps {
   hasHouse: boolean;

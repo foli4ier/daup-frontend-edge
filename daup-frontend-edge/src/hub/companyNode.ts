@@ -10,6 +10,7 @@ export const COMPANY_ID_PREFIX = 'co_';
 export const ENABLEABLE_APP_IDS = [
   'eatery',
   'project',
+  'vault',
   'farm',
   'reseller',
   'maker',
