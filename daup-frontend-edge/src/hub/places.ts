@@ -7,6 +7,7 @@ import {
   CHAIN_APP_MAKER,
   CHAIN_APP_PROJECT,
   CHAIN_APP_RESELLER,
+  CHAIN_APP_VAULT,
   EATERY_ROW_BODY,
   HUB_HOME_FALLBACK,
   LIVE_STATUS_LABEL,
@@ -45,9 +46,11 @@ export function ownerPlaceKey(place: {
   );
 }
 
-export type ShopAppId = 'eatery' | 'eatout' | 'project' | 'farm' | 'reseller' | 'maker' | 'chat';
+export type ShopAppId = 'eatery' | 'eatout' | 'project' | 'farm' | 'reseller' | 'maker' | 'chat' | 'vault';
 
 export const EATOUT_MODULE_KEY = 'daup-eatout';
+export const CHAT_MODULE_KEY = 'daup-chat';
+export const VAULT_MODULE_KEY = 'daup-vault';
 export { PROJECT_MODULE_KEY };
 
 export interface ShopApp {
@@ -123,10 +126,11 @@ export const SHOP_APPS: ShopApp[] = [
   { id: 'eatery', title: CHAIN_APP_EATERY, live: true, moduleKey: 'daup-eatery' },
   { id: 'eatout', title: CHAIN_APP_EATOUT, live: true, moduleKey: EATOUT_MODULE_KEY },
   { id: 'project', title: CHAIN_APP_PROJECT, live: true, moduleKey: PROJECT_MODULE_KEY },
+  { id: 'vault', title: CHAIN_APP_VAULT, live: true, moduleKey: VAULT_MODULE_KEY },
+  { id: 'chat', title: CHAIN_APP_CHAT, live: true, moduleKey: CHAT_MODULE_KEY },
   { id: 'farm', title: CHAIN_APP_FARM, live: false, moduleKey: 'daup-farmer' },
   { id: 'reseller', title: CHAIN_APP_RESELLER, live: false, moduleKey: 'daup-reseller' },
-  { id: 'maker', title: CHAIN_APP_MAKER, live: false, moduleKey: 'daup-manufacturing' },
-  { id: 'chat', title: CHAIN_APP_CHAT, live: false }
+  { id: 'maker', title: CHAIN_APP_MAKER, live: false, moduleKey: 'daup-manufacturing' }
 ];
 
 export const LIVE_SHOP_APPS = SHOP_APPS.filter(app => app.live);
@@ -134,7 +138,7 @@ export const COMING_SHOP_APPS = SHOP_APPS.filter(app => !app.live);
 
 /** Apps pane IA: Social (top) then Paid. Coming apps stay Coming. */
 export const SOCIAL_SHOP_APP_IDS: ShopAppId[] = ['eatout', 'chat'];
-export const PAID_SHOP_APP_IDS: ShopAppId[] = ['eatery', 'project', 'farm', 'reseller', 'maker'];
+export const PAID_SHOP_APP_IDS: ShopAppId[] = ['eatery', 'project', 'vault', 'farm', 'reseller', 'maker'];
 
 export const SOCIAL_SHOP_APPS = SOCIAL_SHOP_APP_IDS
   .map(id => SHOP_APPS.find(app => app.id === id))
@@ -166,6 +170,12 @@ export function shopAppIsHeld(app: ShopApp, held: {
   if (app.id === 'project') {
     return Boolean(held.installed?.[app.moduleKey || PROJECT_MODULE_KEY]);
   }
+  if (app.id === 'chat') {
+    return Boolean(held.installed?.[app.moduleKey || CHAT_MODULE_KEY]);
+  }
+  if (app.id === 'vault') {
+    return Boolean(held.installed?.[app.moduleKey || VAULT_MODULE_KEY]);
+  }
   if (!app.moduleKey) return false;
   return Boolean(held.installed?.[app.moduleKey]);
 }
@@ -174,8 +184,13 @@ export function shopAppIsHeld(app: ShopApp, held: {
  * EatOut Open. is search home. Project Open. is project.daup.co.za
  * (email + house → /d/hub?token= — see projectUrls.ts).
  * Eatery Open. stays a house button — never this href.
+ *
+ * Chat and Vault are LIVE on the shop so a place can Get / enable them,
+ * but chat.daup.co.za and vault.daup.co.za do not resolve yet. Open. is
+ * the same in-hub button as Eatery (no href). Do not invent those hosts.
  */
 export function shopAppOpenHref(app: ShopApp, handshake?: ProjectOpenHandshake): string | undefined {
+  if (!app.live) return undefined;
   if (app.id === 'eatout') return EATOUT_SEARCH_HOME;
   if (app.id === 'project') return buildProjectOpenUrl(handshake) || PROJECT_HOME;
   return undefined;

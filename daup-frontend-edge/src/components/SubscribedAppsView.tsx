@@ -133,6 +133,8 @@ export const SubscribedAppsView: React.FC<{
       navigateToProjectHome(handshakeFor(house, placeIds || []));
       return;
     }
+    // Chat and Vault are enabled on the place. No public host to open yet.
+    if (app.id === 'chat' || app.id === 'vault') return;
     if (app.moduleKey) onLaunchApp?.(app.moduleKey);
   };
 

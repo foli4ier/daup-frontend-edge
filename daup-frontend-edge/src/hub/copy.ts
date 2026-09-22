@@ -98,6 +98,7 @@ export const SEE_THE_MENU_LABEL = 'See the menu.';
 export const RESERVE_A_TABLE_LABEL = 'Reserve a table.';
 export const CHAIN_BACK_LABEL = 'Back.';
 export const CHAIN_APP_CHAT = 'Chat';
+export const CHAIN_APP_VAULT = 'Vault';
 export const CHAIN_APP_EATOUT = 'EatOut';
 export const CHAIN_APP_PROJECT = 'Project';
 export const EATERY_ROW_BODY = 'Tables, tickets, kitchen, stock.';
@@ -138,9 +139,13 @@ export const CHAIN_APP_RESELLER = 'Reseller';
 export const CHAIN_APP_MAKER = 'Maker';
 export const CHAIN_APP_LABELS = {
   eatery: CHAIN_APP_EATERY,
+  eatout: CHAIN_APP_EATOUT,
+  project: CHAIN_APP_PROJECT,
   farm: CHAIN_APP_FARM,
   reseller: CHAIN_APP_RESELLER,
-  maker: CHAIN_APP_MAKER
+  maker: CHAIN_APP_MAKER,
+  chat: CHAIN_APP_CHAT,
+  vault: CHAIN_APP_VAULT
 } as const;
 
 export const ASK_FOR_ENHANCEMENT_LABEL = 'Ask for an enhancement.';
@@ -210,6 +215,7 @@ export const HUB_HOME_COPY = [
   CHAIN_APP_RESELLER,
   CHAIN_APP_MAKER,
   CHAIN_APP_CHAT,
+  CHAIN_APP_VAULT,
   ASK_FOR_ENHANCEMENT_LABEL,
   NAV_PLACES_LABEL,
   NAV_APPS_LABEL,

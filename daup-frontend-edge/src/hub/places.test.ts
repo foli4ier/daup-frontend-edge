@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CHAIN_APP_EATOUT, CHAIN_APP_PROJECT, GET_LABEL, OPEN_LABEL, hasBannedDoorCopy } from './copy';
+import { CHAIN_APP_CHAT, CHAIN_APP_EATOUT, CHAIN_APP_PROJECT, CHAIN_APP_VAULT, GET_LABEL, OPEN_LABEL, hasBannedDoorCopy } from './copy';
 import {
   EATOUT_SEARCH_HOME,
   eatoutHomeUrl,
@@ -8,13 +8,16 @@ import {
   publicPlaceUrlHitsOwnerFloor
 } from './eatoutUrls';
 import {
+  CHAT_MODULE_KEY,
   COMING_SHOP_APPS,
   EATOUT_MODULE_KEY,
+  ENABLEABLE_SHOP_APPS,
   LIVE_SHOP_APPS,
   PAID_SHOP_APPS,
   PROJECT_MODULE_KEY,
   SHOP_APPS,
   SOCIAL_SHOP_APPS,
+  VAULT_MODULE_KEY,
   shopAppIsHeld,
   shopAppOpenHref
 } from './places';
@@ -22,8 +25,8 @@ import { PROJECT_HOME, buildProjectOpenUrl, projectOpenHandshakeFromHub } from '
 import { readOwnerArrivalToken } from './ownerArrival';
 
 describe('Get apps. shop catalog', () => {
-  it('lists EatOut and Project as LIVE and keeps Coming to Farm / Reseller / Maker / Chat', () => {
-    expect(LIVE_SHOP_APPS.map(app => app.id)).toEqual(['eatery', 'eatout', 'project']);
+  it('lists EatOut, Chat, Project, and Vault as LIVE and keeps Coming to Farm / Reseller / Maker', () => {
+    expect(LIVE_SHOP_APPS.map(app => app.id)).toEqual(['eatery', 'eatout', 'project', 'vault', 'chat']);
     const eatout = LIVE_SHOP_APPS.find(app => app.id === 'eatout');
     expect(eatout?.title).toBe(CHAIN_APP_EATOUT);
     expect(eatout?.title).toBe('EatOut');
@@ -34,14 +37,33 @@ describe('Get apps. shop catalog', () => {
     expect(project?.title).toBe('Project');
     expect(project?.live).toBe(true);
     expect(project?.moduleKey).toBe(PROJECT_MODULE_KEY);
-    expect(COMING_SHOP_APPS.map(app => app.id)).toEqual(['farm', 'reseller', 'maker', 'chat']);
+    const chat = LIVE_SHOP_APPS.find(app => app.id === 'chat');
+    expect(chat?.title).toBe(CHAIN_APP_CHAT);
+    expect(chat?.title).toBe('Chat');
+    expect(chat?.live).toBe(true);
+    expect(chat?.moduleKey).toBe(CHAT_MODULE_KEY);
+    const vault = LIVE_SHOP_APPS.find(app => app.id === 'vault');
+    expect(vault?.title).toBe(CHAIN_APP_VAULT);
+    expect(vault?.title).toBe('Vault');
+    expect(vault?.live).toBe(true);
+    expect(vault?.moduleKey).toBe(VAULT_MODULE_KEY);
+    expect(COMING_SHOP_APPS.map(app => app.id)).toEqual(['farm', 'reseller', 'maker']);
     expect(SOCIAL_SHOP_APPS.map(app => app.id)).toEqual(['eatout', 'chat']);
-    expect(PAID_SHOP_APPS.map(app => app.id)).toEqual(['eatery', 'project', 'farm', 'reseller', 'maker']);
-    expect(COMING_SHOP_APPS.some(app => app.id === 'eatout' || app.id === 'project')).toBe(false);
+    expect(PAID_SHOP_APPS.map(app => app.id)).toEqual(['eatery', 'project', 'vault', 'farm', 'reseller', 'maker']);
+    expect(ENABLEABLE_SHOP_APPS.map(app => app.id)).toEqual([
+      'eatery', 'project', 'vault', 'farm', 'reseller', 'maker', 'chat'
+    ]);
+    expect(ENABLEABLE_SHOP_APPS.some(app => app.id === 'eatout')).toBe(false);
+    expect(COMING_SHOP_APPS.some(app => app.id === 'eatout' || app.id === 'project' || app.id === 'chat' || app.id === 'vault')).toBe(false);
     expect(SHOP_APPS.find(app => app.id === 'eatout')?.live).toBe(true);
     expect(SHOP_APPS.find(app => app.id === 'project')?.live).toBe(true);
+    expect(SHOP_APPS.find(app => app.id === 'chat')?.live).toBe(true);
+    expect(SHOP_APPS.find(app => app.id === 'vault')?.live).toBe(true);
     expect(hasBannedDoorCopy(CHAIN_APP_EATOUT)).toBe(false);
     expect(hasBannedDoorCopy(CHAIN_APP_PROJECT)).toBe(false);
+    expect(hasBannedDoorCopy(CHAIN_APP_CHAT)).toBe(false);
+    expect(hasBannedDoorCopy(CHAIN_APP_VAULT)).toBe(false);
+    expect(CHAIN_APP_VAULT).not.toMatch(/statement/i);
   });
 
   it('holds EatOut by daup-eatout, never hasHouse', () => {
@@ -65,6 +87,21 @@ describe('Get apps. shop catalog', () => {
     expect(shopAppIsHeld(eatery, { hasHouse: true, installed: {} })).toBe(true);
     expect(shopAppIsHeld(eatery, { hasHouse: false, installed: { 'daup-eatery': true } })).toBe(false);
     expect(shopAppOpenHref(eatery)).toBeUndefined();
+  });
+
+  it('holds Chat and Vault from enabled_apps or their module, and Open. has no host', () => {
+    const chat = SHOP_APPS.find(app => app.id === 'chat')!;
+    const vault = SHOP_APPS.find(app => app.id === 'vault')!;
+    expect(shopAppIsHeld(chat, { hasHouse: true, installed: {} })).toBe(false);
+    expect(shopAppIsHeld(vault, { hasHouse: true, installed: {} })).toBe(false);
+    expect(shopAppIsHeld(chat, { hasHouse: false, installed: { [CHAT_MODULE_KEY]: true } })).toBe(true);
+    expect(shopAppIsHeld(vault, { hasHouse: false, installed: { [VAULT_MODULE_KEY]: true } })).toBe(true);
+    expect(shopAppIsHeld(chat, { hasHouse: true, installed: {}, enabledApps: ['chat'] })).toBe(true);
+    expect(shopAppIsHeld(vault, { hasHouse: true, installed: {}, enabledApps: ['vault'] })).toBe(true);
+    expect(shopAppIsHeld(chat, { hasHouse: true, installed: { [CHAT_MODULE_KEY]: true }, enabledApps: ['eatery'] })).toBe(false);
+    expect(shopAppIsHeld(vault, { hasHouse: true, installed: { [VAULT_MODULE_KEY]: true }, enabledApps: ['eatery'] })).toBe(false);
+    expect(shopAppOpenHref(chat)).toBeUndefined();
+    expect(shopAppOpenHref(vault)).toBeUndefined();
   });
 
   it('holds operator apps from enabled_apps when the company node has them', () => {

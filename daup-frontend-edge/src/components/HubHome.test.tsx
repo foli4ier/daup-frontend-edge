@@ -428,7 +428,10 @@ describe('hub home after email', () => {
     expect(social?.textContent).toContain('Social.');
     expect(social?.textContent).toContain('EatOut');
     expect(social?.querySelector('[data-testid="shop-app-eatout"]')?.textContent).toContain('LIVE');
-    expect(social?.querySelector('[data-testid="coming-app-chat"]')?.textContent).toContain('Chat');
+    expect(social?.querySelector('[data-testid="shop-app-chat"]')?.textContent).toContain('Chat');
+    expect(social?.querySelector('[data-testid="shop-app-chat"]')?.textContent).toContain('LIVE');
+    expect(social?.querySelector('[data-testid="get-app-chat"]')?.textContent).toBe(GET_LABEL);
+    expect(social?.querySelector('[data-testid="coming-app-chat"]')).toBeNull();
     expect(social?.textContent).not.toContain('Eatery');
     expect(social?.textContent).not.toContain('Project');
     expect(paid?.textContent).toContain('Paid.');
@@ -460,6 +463,10 @@ describe('hub home after email', () => {
     expect(paid?.textContent).toContain('Reseller');
     expect(paid?.textContent).toContain('Maker');
     expect(paid?.querySelector('[data-testid="coming-app-farm"]')?.textContent).toContain('Coming');
+    expect(paid?.querySelector('[data-testid="shop-app-vault"]')?.textContent).toContain('Vault');
+    expect(paid?.querySelector('[data-testid="shop-app-vault"]')?.textContent).toContain('LIVE');
+    expect(paid?.querySelector('[data-testid="get-app-vault"]')?.textContent).toBe(GET_LABEL);
+    expect(paid?.querySelector('[data-testid="coming-app-vault"]')).toBeNull();
     expect(paid?.textContent).not.toContain('EatOut');
     expect(paid?.textContent).not.toContain('Chat');
     expect(shop?.querySelector('[data-testid="coming-app-eatout"]')).toBeNull();
@@ -628,6 +635,11 @@ describe('hub home after email', () => {
     const paid = container.querySelector('[data-testid="apps-paid"]');
     expect(paid?.textContent).toContain('Farm');
     expect(social?.textContent).toContain('Chat');
+    expect(social?.querySelector('[data-testid="shop-app-chat"]')?.textContent).toContain('LIVE');
+    expect(social?.querySelector('[data-testid="get-app-chat"]')?.textContent).toBe(GET_LABEL);
+    expect(social?.querySelector('[data-testid="coming-app-chat"]')).toBeNull();
+    expect(paid?.querySelector('[data-testid="shop-app-vault"]')?.textContent).toContain('Vault');
+    expect(paid?.querySelector('[data-testid="get-app-vault"]')?.textContent).toBe(GET_LABEL);
     expect(paid?.textContent).toContain('Coming');
     expect(paid?.textContent).not.toMatch(/Subscribe/i);
     expect(paid?.textContent).not.toMatch(/Subscribed/i);
@@ -692,6 +704,12 @@ describe('hub home after email', () => {
     expect(container.querySelector('[data-testid="get-apps"]')?.textContent).not.toContain('Marketplace');
     expect(container.querySelector('[data-testid="coming-app-eatout"]')).toBeNull();
     expect(container.querySelector('[data-testid="coming-app-project"]')).toBeNull();
+    expect(container.querySelector('[data-testid="coming-app-chat"]')).toBeNull();
+    expect(container.querySelector('[data-testid="coming-app-vault"]')).toBeNull();
+    expect(container.querySelector('[data-testid="get-app-chat"]')?.textContent).toBe(GET_LABEL);
+    expect(container.querySelector('[data-testid="get-app-vault"]')?.textContent).toBe(GET_LABEL);
+    expect(container.querySelector('[data-testid="open-app-chat"]')).toBeNull();
+    expect(container.querySelector('[data-testid="open-app-vault"]')).toBeNull();
     expect(container.querySelector('[data-testid="same-chain-caption"]')?.textContent).toBe(SAME_CHAIN_CAPTION);
     expect(container.querySelectorAll('[data-testid="same-chain-caption"]').length).toBe(1);
     unmount();
@@ -819,6 +837,88 @@ describe('hub home after email', () => {
     expect(container.querySelector('[data-testid="hub-home-open"]')).toBeNull();
     expect(JSON.parse(localStorage.getItem('daup_installed_apps') || '{}')['daup-project']).toBe(true);
     expect(container.querySelector('[data-testid="coming-app-project"]')).toBeNull();
+    unmount();
+  });
+
+  it('Get. holds Chat and Vault on the place and Open. is a button with no host', async () => {
+    const day = 24 * 60 * 60 * 1000;
+    saveIdentityVault({
+      ...houseVault,
+      companyNode: {
+        companyId: 'co_olive',
+        enabledApps: ['eatery'],
+        billableLocations: 1
+      }
+    });
+    saveNodeEntitlement({
+      companyId: 'co_olive',
+      node_subscription_status: 'trial',
+      trial_started_at: Date.now() - day,
+      trial_ends_at: Date.now() + 29 * day,
+      enabled_apps: ['eatery'],
+      billable_locations: 1,
+      payment_method_ok: false
+    });
+    registerPlaceOnPlatform({
+      placeName: 'The Olive',
+      app: 'eatery',
+      country: 'South Africa',
+      region: 'Western Cape',
+      city: 'Stellenbosch',
+      companyId: 'co_olive',
+      enabledApps: ['eatery'],
+      ownerEmail: 'owner@theolive.co.za'
+    });
+
+    const { container, unmount } = render(<App />);
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 80));
+    });
+    openApps(container);
+    const social = container.querySelector('[data-testid="apps-social"]');
+    const paid = container.querySelector('[data-testid="apps-paid"]');
+    expect(social?.querySelector('[data-testid="shop-app-chat"]')?.textContent).toContain('LIVE');
+    expect(paid?.querySelector('[data-testid="shop-app-vault"]')?.textContent).toContain('LIVE');
+    expect(container.querySelector('[data-testid="get-app-chat"]')?.textContent).toBe(GET_LABEL);
+    expect(container.querySelector('[data-testid="get-app-vault"]')?.textContent).toBe(GET_LABEL);
+    expect(container.querySelector('[data-testid="coming-app-chat"]')).toBeNull();
+    expect(container.querySelector('[data-testid="coming-app-vault"]')).toBeNull();
+
+    act(() => {
+      (container.querySelector('[data-testid="get-app-chat"]') as HTMLButtonElement).click();
+    });
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 40));
+    });
+    act(() => {
+      (container.querySelector('[data-testid="get-app-vault"]') as HTMLButtonElement).click();
+    });
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 40));
+    });
+
+    const chatOpen = container.querySelector('[data-testid="open-app-chat"]') as HTMLButtonElement | null;
+    const vaultOpen = container.querySelector('[data-testid="open-app-vault"]') as HTMLButtonElement | null;
+    expect(chatOpen?.textContent).toBe(OPEN_LABEL);
+    expect(vaultOpen?.textContent).toBe(OPEN_LABEL);
+    expect(chatOpen?.tagName).toBe('BUTTON');
+    expect(vaultOpen?.tagName).toBe('BUTTON');
+    expect(chatOpen?.getAttribute('href')).toBeNull();
+    expect(vaultOpen?.getAttribute('href')).toBeNull();
+    expect(container.querySelector('[data-testid="get-app-chat"]')).toBeNull();
+    expect(container.querySelector('[data-testid="get-app-vault"]')).toBeNull();
+    expect(loadPlaceEntitlement('co_olive')?.enabled_apps).toEqual(['eatery', 'vault', 'chat']);
+    expect(loadIdentityVault().companyNode?.enabledApps).toEqual(['eatery', 'vault', 'chat']);
+    const installed = JSON.parse(localStorage.getItem('daup_installed_apps') || '{}');
+    expect(installed['daup-chat']).toBe(true);
+    expect(installed['daup-vault']).toBe(true);
+    act(() => {
+      chatOpen?.click();
+      vaultOpen?.click();
+    });
+    expect(window.location.href).not.toMatch(/chat\.daup\.co\.za|vault\.daup\.co\.za/i);
+    expect(container.textContent).not.toMatch(/\b(peer|node|DID|DHT|wallet|MCP|npm|hydrate|neon)\b/i);
+    expect(container.textContent).not.toMatch(/statement/i);
     unmount();
   });
 
@@ -953,6 +1053,10 @@ describe('signed-in hub does not assume eatery', () => {
     expect(container.querySelector('[data-testid="shop-app-eatout"]')?.textContent).toContain('LIVE');
     expect(container.querySelector('[data-testid="shop-app-project"]')?.textContent).toContain('Project');
     expect(container.querySelector('[data-testid="shop-app-project"]')?.textContent).toContain('LIVE');
+    expect(container.querySelector('[data-testid="shop-app-chat"]')?.textContent).toContain('Chat');
+    expect(container.querySelector('[data-testid="shop-app-chat"]')?.textContent).toContain('LIVE');
+    expect(container.querySelector('[data-testid="shop-app-vault"]')?.textContent).toContain('Vault');
+    expect(container.querySelector('[data-testid="shop-app-vault"]')?.textContent).toContain('LIVE');
     expect(container.querySelector('[data-testid="on-the-chain"]')).toBeNull();
     expect(container.querySelector('[data-testid="ask-for-enhancement"]')).toBeNull();
     expect(container.querySelector('[data-testid="delete-the-house"]')).toBeNull();
@@ -1262,6 +1366,12 @@ describe('My places stays owned-only after register and delete', () => {
     clickContinue(container);
 
     expect(container.querySelector('[data-testid="enable-apps"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="enable-app-chat"]')?.textContent).toContain('Chat');
+    expect(container.querySelector('[data-testid="enable-app-chat"]')?.textContent).toContain('LIVE');
+    expect(container.querySelector('[data-testid="enable-app-vault"]')?.textContent).toContain('Vault');
+    expect(container.querySelector('[data-testid="enable-app-vault"]')?.textContent).toContain('LIVE');
+    expect(container.querySelector('[data-testid="enable-app-farm"]')?.textContent).toContain('Coming');
+    expect(container.querySelector('[data-testid="enable-app-eatout"]')).toBeNull();
     act(() => {
       (container.querySelector('[data-testid="enable-app-eatery"]') as HTMLButtonElement).click();
     });
@@ -1899,6 +2009,13 @@ describe('My places subscription display and Add apps.', () => {
       (container.querySelector('[data-testid="open-the-house"]') as HTMLButtonElement).click();
     });
     expect(container.querySelector('[data-testid="place-add-apps"]')?.textContent).toContain(ADD_APPS_LABEL);
+    expect(container.querySelector('[data-testid="add-app-chat"]')?.textContent).toContain('Chat');
+    expect(container.querySelector('[data-testid="add-app-chat"]')?.textContent).toContain('LIVE');
+    expect((container.querySelector('[data-testid="add-app-chat"]') as HTMLButtonElement).disabled).toBe(false);
+    expect(container.querySelector('[data-testid="add-app-vault"]')?.textContent).toContain('Vault');
+    expect(container.querySelector('[data-testid="add-app-vault"]')?.textContent).toContain('LIVE');
+    expect((container.querySelector('[data-testid="add-app-vault"]') as HTMLButtonElement).disabled).toBe(false);
+    expect(container.querySelector('[data-testid="add-app-eatout"]')).toBeNull();
     expect(container.querySelector('[data-testid="already-on-place-eatery"]')?.textContent)
       .toBe(ALREADY_ON_PLACE_LABEL);
     expect((container.querySelector('[data-testid="add-app-eatery"]') as HTMLButtonElement).disabled).toBe(true);
