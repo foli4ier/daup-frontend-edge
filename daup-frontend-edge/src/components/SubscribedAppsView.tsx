@@ -9,7 +9,7 @@ import {
 } from '../hub/copy';
 import { loadPlaceEntitlement } from '../hub/entitlements';
 import { DEFAULT_HUB_PANE, type HubPane } from '../hub/hubPane';
-import { ShopApp, listOwnerPlaces, ownerPlaceKey } from '../hub/places';
+import { ShopApp, launchHeldModule, listOwnerPlaces, ownerPlaceKey } from '../hub/places';
 import { placeSubscriptionDisplay } from '../hub/placeSubscription';
 import { loadSeednodeForPlace } from '../hub/seednode';
 import { navigateToEatOutHome } from '../hub/eatoutUrls';
@@ -133,7 +133,7 @@ export const SubscribedAppsView: React.FC<{
       navigateToProjectHome(handshakeFor(house, placeIds || []));
       return;
     }
-    // Chat and Vault are enabled on the place. No public host to open yet.
+    if (app.moduleKey && launchHeldModule(app.moduleKey)) return;
     if (app.id === 'chat' || app.id === 'vault') return;
     if (app.moduleKey) onLaunchApp?.(app.moduleKey);
   };
