@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { CHAIN_APP_CHAT, CHAIN_APP_EATOUT, CHAIN_APP_PROJECT, CHAIN_APP_VAULT, GET_LABEL, OPEN_LABEL, hasBannedDoorCopy } from './copy';
 import {
   EATOUT_SEARCH_HOME,
@@ -8,6 +8,7 @@ import {
   publicPlaceUrlHitsOwnerFloor
 } from './eatoutUrls';
 import {
+  CHAT_HOME,
   CHAT_MODULE_KEY,
   COMING_SHOP_APPS,
   EATOUT_MODULE_KEY,
@@ -17,7 +18,12 @@ import {
   PROJECT_MODULE_KEY,
   SHOP_APPS,
   SOCIAL_SHOP_APPS,
+  VAULT_HOME,
   VAULT_MODULE_KEY,
+  launchHeldModule,
+  navigateSameTab,
+  navigateToChatHome,
+  navigateToVaultHome,
   shopAppIsHeld,
   shopAppOpenHref
 } from './places';
@@ -89,7 +95,7 @@ describe('Get apps. shop catalog', () => {
     expect(shopAppOpenHref(eatery)).toBeUndefined();
   });
 
-  it('holds Chat and Vault from enabled_apps or their module, and Open. has no host', () => {
+  it('holds Chat and Vault from enabled_apps or their module', () => {
     const chat = SHOP_APPS.find(app => app.id === 'chat')!;
     const vault = SHOP_APPS.find(app => app.id === 'vault')!;
     expect(shopAppIsHeld(chat, { hasHouse: true, installed: {} })).toBe(false);
@@ -100,8 +106,54 @@ describe('Get apps. shop catalog', () => {
     expect(shopAppIsHeld(vault, { hasHouse: true, installed: {}, enabledApps: ['vault'] })).toBe(true);
     expect(shopAppIsHeld(chat, { hasHouse: true, installed: { [CHAT_MODULE_KEY]: true }, enabledApps: ['eatery'] })).toBe(false);
     expect(shopAppIsHeld(vault, { hasHouse: true, installed: { [VAULT_MODULE_KEY]: true }, enabledApps: ['eatery'] })).toBe(false);
-    expect(shopAppOpenHref(chat)).toBeUndefined();
-    expect(shopAppOpenHref(vault)).toBeUndefined();
+  });
+
+  it('Open. for Chat and Vault is the host home, same tab, and does not ping', () => {
+    const chat = SHOP_APPS.find(app => app.id === 'chat')!;
+    const vault = SHOP_APPS.find(app => app.id === 'vault')!;
+    expect(CHAT_MODULE_KEY).toBe('daup-chat');
+    expect(VAULT_MODULE_KEY).toBe('daup-vault');
+    expect(CHAT_HOME).toBe('https://chat.daup.co.za');
+    expect(VAULT_HOME).toBe('https://vault.daup.co.za');
+    expect(shopAppOpenHref(chat)).toBe(CHAT_HOME);
+    expect(shopAppOpenHref(vault)).toBe(VAULT_HOME);
+    expect(shopAppOpenHref(chat)).toBe('https://chat.daup.co.za');
+    expect(shopAppOpenHref(vault)).toBe('https://vault.daup.co.za');
+    expect(shopAppOpenHref(chat)).not.toMatch(/[?#]|eatery\.daup\.co\.za|\/owner|app\.daup\.co\.za/i);
+    expect(shopAppOpenHref(vault)).not.toMatch(/[?#]|eatery\.daup\.co\.za|\/owner|app\.daup\.co\.za/i);
+    expect(navigateSameTab.toString()).toContain('location.assign');
+    expect(navigateSameTab.toString()).not.toContain('fetch');
+    expect(launchHeldModule.toString()).toContain('navigateToChatHome');
+    expect(launchHeldModule.toString()).toContain('navigateToVaultHome');
+
+    const fetchSpy = vi.mocked(globalThis.fetch);
+    fetchSpy.mockClear();
+    const assign = vi.fn();
+    const location = window.location;
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { ...location, assign }
+    });
+    try {
+      expect(navigateToChatHome()).toBe('https://chat.daup.co.za');
+      expect(navigateToVaultHome()).toBe('https://vault.daup.co.za');
+      expect(launchHeldModule(CHAT_MODULE_KEY)).toBe('https://chat.daup.co.za');
+      expect(launchHeldModule(VAULT_MODULE_KEY)).toBe('https://vault.daup.co.za');
+      expect(launchHeldModule('daup-eatery')).toBeUndefined();
+      expect(launchHeldModule('daup-project')).toBeUndefined();
+      expect(assign.mock.calls.map(call => call[0])).toEqual([
+        'https://chat.daup.co.za',
+        'https://vault.daup.co.za',
+        'https://chat.daup.co.za',
+        'https://vault.daup.co.za'
+      ]);
+      expect(fetchSpy).not.toHaveBeenCalled();
+    } finally {
+      Object.defineProperty(window, 'location', {
+        configurable: true,
+        value: location
+      });
+    }
   });
 
   it('holds operator apps from enabled_apps when the company node has them', () => {

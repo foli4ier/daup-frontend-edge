@@ -180,18 +180,52 @@ export function shopAppIsHeld(app: ShopApp, held: {
   return Boolean(held.installed?.[app.moduleKey]);
 }
 
+/** Bare Open. homes. Same tab. No handshake query and no reachability check. */
+export const CHAT_HOME = 'https://chat.daup.co.za';
+export const VAULT_HOME = 'https://vault.daup.co.za';
+
 /**
  * EatOut Open. is search home. Project Open. is project.daup.co.za
  * (email + house → /d/hub?token= — see projectUrls.ts).
+ * Chat Open. is chat.daup.co.za. Vault Open. is vault.daup.co.za.
+ * Same-tab home only. Open still goes there if the host is briefly down.
  * Eatery Open. stays a house button — never this href.
- *
- * Chat and Vault are LIVE on the shop so a place can Get / enable them,
- * but chat.daup.co.za and vault.daup.co.za do not resolve yet. Open. is
- * the same in-hub button as Eatery (no href). Do not invent those hosts.
  */
 export function shopAppOpenHref(app: ShopApp, handshake?: ProjectOpenHandshake): string | undefined {
   if (!app.live) return undefined;
   if (app.id === 'eatout') return EATOUT_SEARCH_HOME;
   if (app.id === 'project') return buildProjectOpenUrl(handshake) || PROJECT_HOME;
+  if (app.id === 'chat') return CHAT_HOME;
+  if (app.id === 'vault') return VAULT_HOME;
+  return undefined;
+}
+
+/** Same-tab navigation. Does not ping the host first. */
+export function navigateSameTab(url: string): string {
+  if (typeof window !== 'undefined') {
+    try {
+      window.location.assign(url);
+    } catch {
+      // jsdom and some browsers throw on cross-origin assign in tests
+    }
+  }
+  return url;
+}
+
+export function navigateToChatHome(): string {
+  return navigateSameTab(CHAT_HOME);
+}
+
+export function navigateToVaultHome(): string {
+  return navigateSameTab(VAULT_HOME);
+}
+
+/**
+ * Open. for a held Vault or Chat module. Other modules stay with their own doors.
+ * Returns the URL after same-tab assign, or undefined when this key is not Vault/Chat.
+ */
+export function launchHeldModule(moduleName: string): string | undefined {
+  if (moduleName === CHAT_MODULE_KEY) return navigateToChatHome();
+  if (moduleName === VAULT_MODULE_KEY) return navigateToVaultHome();
   return undefined;
 }

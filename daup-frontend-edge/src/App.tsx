@@ -25,7 +25,7 @@ import { navigateToTheHouse } from './hub/ownerArrival';
 import { navigateToProjectHome, projectOpenHandshakeFromHub } from './hub/projectUrls';
 import { listOwnerPlaceRecords, listRegisteredPlaces } from './stores/identityStore';
 import { HUB_HOME_FALLBACK } from './hub/copy';
-import { ownerPlaceKey } from './hub/places';
+import { launchHeldModule, ownerPlaceKey } from './hub/places';
 import { goToAsks, goToHubHome, readHubPage } from './hub/asksPath';
 import { DEFAULT_HUB_PANE, type HubPane } from './hub/hubPane';
 
@@ -160,6 +160,7 @@ const DashboardContent: React.FC = () => {
       }));
       return;
     }
+    if (launchHeldModule(moduleName)) return;
     setLaunchedApp(moduleName);
   };
 

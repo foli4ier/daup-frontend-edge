@@ -742,6 +742,32 @@ describe('hub home after email', () => {
     unmount();
   });
 
+  it('held Chat and Vault show Open. to chat.daup.co.za and vault.daup.co.za', () => {
+    const { container, unmount } = render(
+      <GetAppsSection
+        hasHouse={true}
+        installedApps={{ 'daup-chat': true, 'daup-vault': true }}
+        onGet={() => undefined}
+        onOpen={() => undefined}
+      />
+    );
+    const chatOpen = container.querySelector('[data-testid="open-app-chat"]') as HTMLAnchorElement | null;
+    const vaultOpen = container.querySelector('[data-testid="open-app-vault"]') as HTMLAnchorElement | null;
+    expect(chatOpen?.textContent).toBe(OPEN_LABEL);
+    expect(vaultOpen?.textContent).toBe(OPEN_LABEL);
+    expect(chatOpen?.tagName).toBe('A');
+    expect(vaultOpen?.tagName).toBe('A');
+    expect(chatOpen?.getAttribute('href')).toBe('https://chat.daup.co.za');
+    expect(vaultOpen?.getAttribute('href')).toBe('https://vault.daup.co.za');
+    expect(chatOpen?.getAttribute('target')).toBe('_self');
+    expect(vaultOpen?.getAttribute('target')).toBe('_self');
+    expect(chatOpen?.getAttribute('href') || '').not.toMatch(/[?#]|eatery\.daup\.co\.za|\/owner|app\.daup\.co\.za/i);
+    expect(vaultOpen?.getAttribute('href') || '').not.toMatch(/[?#]|eatery\.daup\.co\.za|\/owner|app\.daup\.co\.za/i);
+    expect(container.querySelector('[data-testid="get-app-chat"]')).toBeNull();
+    expect(container.querySelector('[data-testid="get-app-vault"]')).toBeNull();
+    unmount();
+  });
+
   it('held Project shows Open. only to project.daup.co.za, never eatery /owner', () => {
     const { container, unmount } = render(
       <GetAppsSection
@@ -840,7 +866,7 @@ describe('hub home after email', () => {
     unmount();
   });
 
-  it('Get. holds Chat and Vault on the place and Open. is a button with no host', async () => {
+  it('Get. holds Chat and Vault on the place and Open. goes to the host', async () => {
     const day = 24 * 60 * 60 * 1000;
     saveIdentityVault({
       ...houseVault,
@@ -897,14 +923,16 @@ describe('hub home after email', () => {
       await new Promise(resolve => setTimeout(resolve, 40));
     });
 
-    const chatOpen = container.querySelector('[data-testid="open-app-chat"]') as HTMLButtonElement | null;
-    const vaultOpen = container.querySelector('[data-testid="open-app-vault"]') as HTMLButtonElement | null;
+    const chatOpen = container.querySelector('[data-testid="open-app-chat"]') as HTMLAnchorElement | null;
+    const vaultOpen = container.querySelector('[data-testid="open-app-vault"]') as HTMLAnchorElement | null;
     expect(chatOpen?.textContent).toBe(OPEN_LABEL);
     expect(vaultOpen?.textContent).toBe(OPEN_LABEL);
-    expect(chatOpen?.tagName).toBe('BUTTON');
-    expect(vaultOpen?.tagName).toBe('BUTTON');
-    expect(chatOpen?.getAttribute('href')).toBeNull();
-    expect(vaultOpen?.getAttribute('href')).toBeNull();
+    expect(chatOpen?.tagName).toBe('A');
+    expect(vaultOpen?.tagName).toBe('A');
+    expect(chatOpen?.getAttribute('href')).toBe('https://chat.daup.co.za');
+    expect(vaultOpen?.getAttribute('href')).toBe('https://vault.daup.co.za');
+    expect(chatOpen?.getAttribute('target')).toBe('_self');
+    expect(vaultOpen?.getAttribute('target')).toBe('_self');
     expect(container.querySelector('[data-testid="get-app-chat"]')).toBeNull();
     expect(container.querySelector('[data-testid="get-app-vault"]')).toBeNull();
     expect(loadPlaceEntitlement('co_olive')?.enabled_apps).toEqual(['eatery', 'vault', 'chat']);
@@ -912,11 +940,6 @@ describe('hub home after email', () => {
     const installed = JSON.parse(localStorage.getItem('daup_installed_apps') || '{}');
     expect(installed['daup-chat']).toBe(true);
     expect(installed['daup-vault']).toBe(true);
-    act(() => {
-      chatOpen?.click();
-      vaultOpen?.click();
-    });
-    expect(window.location.href).not.toMatch(/chat\.daup\.co\.za|vault\.daup\.co\.za/i);
     expect(container.textContent).not.toMatch(/\b(peer|node|DID|DHT|wallet|MCP|npm|hydrate|neon)\b/i);
     expect(container.textContent).not.toMatch(/statement/i);
     unmount();
