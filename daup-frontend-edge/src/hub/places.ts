@@ -6,6 +6,7 @@ import {
   CHAIN_APP_FARM,
   CHAIN_APP_MAKER,
   CHAIN_APP_PROJECT,
+  CHAIN_APP_PROPERTY,
   CHAIN_APP_RESELLER,
   CHAIN_APP_VAULT,
   EATERY_ROW_BODY,
@@ -46,11 +47,12 @@ export function ownerPlaceKey(place: {
   );
 }
 
-export type ShopAppId = 'eatery' | 'eatout' | 'project' | 'farm' | 'reseller' | 'maker' | 'chat' | 'vault';
+export type ShopAppId = 'eatery' | 'eatout' | 'project' | 'farm' | 'reseller' | 'maker' | 'chat' | 'vault' | 'property';
 
 export const EATOUT_MODULE_KEY = 'daup-eatout';
 export const CHAT_MODULE_KEY = 'daup-chat';
 export const VAULT_MODULE_KEY = 'daup-vault';
+export const PROPERTY_MODULE_KEY = 'daup-property';
 export { PROJECT_MODULE_KEY };
 
 export interface ShopApp {
@@ -128,6 +130,7 @@ export const SHOP_APPS: ShopApp[] = [
   { id: 'project', title: CHAIN_APP_PROJECT, live: true, moduleKey: PROJECT_MODULE_KEY },
   { id: 'vault', title: CHAIN_APP_VAULT, live: true, moduleKey: VAULT_MODULE_KEY },
   { id: 'chat', title: CHAIN_APP_CHAT, live: true, moduleKey: CHAT_MODULE_KEY },
+  { id: 'property', title: CHAIN_APP_PROPERTY, live: true, moduleKey: PROPERTY_MODULE_KEY },
   { id: 'farm', title: CHAIN_APP_FARM, live: false, moduleKey: 'daup-farmer' },
   { id: 'reseller', title: CHAIN_APP_RESELLER, live: false, moduleKey: 'daup-reseller' },
   { id: 'maker', title: CHAIN_APP_MAKER, live: false, moduleKey: 'daup-manufacturing' }
@@ -138,7 +141,7 @@ export const COMING_SHOP_APPS = SHOP_APPS.filter(app => !app.live);
 
 /** Apps pane IA: Social (top) then Paid. Coming apps stay Coming. */
 export const SOCIAL_SHOP_APP_IDS: ShopAppId[] = ['eatout', 'chat'];
-export const PAID_SHOP_APP_IDS: ShopAppId[] = ['eatery', 'project', 'vault', 'farm', 'reseller', 'maker'];
+export const PAID_SHOP_APP_IDS: ShopAppId[] = ['eatery', 'project', 'vault', 'property', 'farm', 'reseller', 'maker'];
 
 export const SOCIAL_SHOP_APPS = SOCIAL_SHOP_APP_IDS
   .map(id => SHOP_APPS.find(app => app.id === id))
@@ -176,6 +179,9 @@ export function shopAppIsHeld(app: ShopApp, held: {
   if (app.id === 'vault') {
     return Boolean(held.installed?.[app.moduleKey || VAULT_MODULE_KEY]);
   }
+  if (app.id === 'property') {
+    return Boolean(held.installed?.[app.moduleKey || PROPERTY_MODULE_KEY]);
+  }
   if (!app.moduleKey) return false;
   return Boolean(held.installed?.[app.moduleKey]);
 }
@@ -183,11 +189,13 @@ export function shopAppIsHeld(app: ShopApp, held: {
 /** Bare Open. homes. Same tab. No handshake query and no reachability check. */
 export const CHAT_HOME = 'https://chat.daup.co.za';
 export const VAULT_HOME = 'https://vault.daup.co.za';
+export const PROPERTY_HOME = 'https://property.daup.co.za';
 
 /**
  * EatOut Open. is search home. Project Open. is project.daup.co.za
  * (email + house → /d/hub?token= — see projectUrls.ts).
  * Chat Open. is chat.daup.co.za. Vault Open. is vault.daup.co.za.
+ * Property Open. is property.daup.co.za.
  * Same-tab home only. Open still goes there if the host is briefly down.
  * Eatery Open. stays a house button — never this href.
  */
@@ -197,6 +205,7 @@ export function shopAppOpenHref(app: ShopApp, handshake?: ProjectOpenHandshake):
   if (app.id === 'project') return buildProjectOpenUrl(handshake) || PROJECT_HOME;
   if (app.id === 'chat') return CHAT_HOME;
   if (app.id === 'vault') return VAULT_HOME;
+  if (app.id === 'property') return PROPERTY_HOME;
   return undefined;
 }
 
@@ -220,12 +229,17 @@ export function navigateToVaultHome(): string {
   return navigateSameTab(VAULT_HOME);
 }
 
+export function navigateToPropertyHome(): string {
+  return navigateSameTab(PROPERTY_HOME);
+}
+
 /**
- * Open. for a held Vault or Chat module. Other modules stay with their own doors.
- * Returns the URL after same-tab assign, or undefined when this key is not Vault/Chat.
+ * Open. for a held Vault, Chat, or Property module. Other modules stay with their own doors.
+ * Returns the URL after same-tab assign, or undefined when this key is not one of those.
  */
 export function launchHeldModule(moduleName: string): string | undefined {
   if (moduleName === CHAT_MODULE_KEY) return navigateToChatHome();
   if (moduleName === VAULT_MODULE_KEY) return navigateToVaultHome();
+  if (moduleName === PROPERTY_MODULE_KEY) return navigateToPropertyHome();
   return undefined;
 }

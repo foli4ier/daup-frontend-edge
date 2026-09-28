@@ -2,11 +2,13 @@ import { describe, expect, it, beforeEach } from 'vitest';
 import {
   flattenChainPlaces,
   groupPlacesOnTheChain,
+  chainAppLabel,
   chainPlaceRow,
   chainPlaceWhere,
   filterOtherPlaces,
   listOtherPlacesAppCards,
   listOtherPlacesForApp,
+  OTHER_PLACES_APPS,
   SAMPLE_OTHER_EATERY_PLACES
 } from './placeDirectory';
 import {
@@ -14,6 +16,7 @@ import {
   CHAIN_APP_EATERY,
   CHAIN_APP_FARM,
   CHAIN_APP_MAKER,
+  CHAIN_APP_PROPERTY,
   NAV_OTHER_PLACES_LABEL,
   NAV_PLACES_LABEL,
   OTHER_PLACES_KICKER,
@@ -145,6 +148,11 @@ describe('Other places discovery', () => {
     const farm = cards.find(card => card.id === 'farm');
     expect(farm?.publicSurface).toBe(false);
     expect(farm?.total).toBe(0);
+    expect(chainAppLabel('property')).toBe(CHAIN_APP_PROPERTY);
+    expect(chainAppLabel('property')).toBe('Property');
+    expect(chainAppLabel('property')).not.toMatch(/rental/i);
+    expect(OTHER_PLACES_APPS.some(app => app.title === 'Property' || app.title === 'Rental')).toBe(false);
+    expect(cards.some(card => card.title === 'Property' || card.title === 'Rental')).toBe(false);
   });
 
   it('filters Country · Region · Town', () => {
