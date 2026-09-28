@@ -134,7 +134,7 @@ export const SubscribedAppsView: React.FC<{
       return;
     }
     if (app.moduleKey && launchHeldModule(app.moduleKey)) return;
-    if (app.id === 'chat' || app.id === 'vault') return;
+    if (app.id === 'chat' || app.id === 'vault' || app.id === 'property') return;
     if (app.moduleKey) onLaunchApp?.(app.moduleKey);
   };
 

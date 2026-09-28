@@ -11,6 +11,7 @@ export const ENABLEABLE_APP_IDS = [
   'eatery',
   'project',
   'vault',
+  'property',
   'farm',
   'reseller',
   'maker',

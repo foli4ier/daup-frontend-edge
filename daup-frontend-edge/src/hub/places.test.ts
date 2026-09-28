@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { CHAIN_APP_CHAT, CHAIN_APP_EATOUT, CHAIN_APP_PROJECT, CHAIN_APP_VAULT, GET_LABEL, OPEN_LABEL, hasBannedDoorCopy } from './copy';
+import { CHAIN_APP_CHAT, CHAIN_APP_EATOUT, CHAIN_APP_PROJECT, CHAIN_APP_PROPERTY, CHAIN_APP_VAULT, GET_LABEL, OPEN_LABEL, hasBannedDoorCopy } from './copy';
 import {
   EATOUT_SEARCH_HOME,
   eatoutHomeUrl,
@@ -16,6 +16,8 @@ import {
   LIVE_SHOP_APPS,
   PAID_SHOP_APPS,
   PROJECT_MODULE_KEY,
+  PROPERTY_HOME,
+  PROPERTY_MODULE_KEY,
   SHOP_APPS,
   SOCIAL_SHOP_APPS,
   VAULT_HOME,
@@ -23,6 +25,7 @@ import {
   launchHeldModule,
   navigateSameTab,
   navigateToChatHome,
+  navigateToPropertyHome,
   navigateToVaultHome,
   shopAppIsHeld,
   shopAppOpenHref
@@ -31,8 +34,8 @@ import { PROJECT_HOME, buildProjectOpenUrl, projectOpenHandshakeFromHub } from '
 import { readOwnerArrivalToken } from './ownerArrival';
 
 describe('Get apps. shop catalog', () => {
-  it('lists EatOut, Chat, Project, and Vault as LIVE and keeps Coming to Farm / Reseller / Maker', () => {
-    expect(LIVE_SHOP_APPS.map(app => app.id)).toEqual(['eatery', 'eatout', 'project', 'vault', 'chat']);
+  it('lists EatOut, Chat, Project, Vault, and Property as LIVE and keeps Coming to Farm / Reseller / Maker', () => {
+    expect(LIVE_SHOP_APPS.map(app => app.id)).toEqual(['eatery', 'eatout', 'project', 'vault', 'chat', 'property']);
     const eatout = LIVE_SHOP_APPS.find(app => app.id === 'eatout');
     expect(eatout?.title).toBe(CHAIN_APP_EATOUT);
     expect(eatout?.title).toBe('EatOut');
@@ -53,23 +56,40 @@ describe('Get apps. shop catalog', () => {
     expect(vault?.title).toBe('Vault');
     expect(vault?.live).toBe(true);
     expect(vault?.moduleKey).toBe(VAULT_MODULE_KEY);
+    const property = LIVE_SHOP_APPS.find(app => app.id === 'property');
+    expect(property?.title).toBe(CHAIN_APP_PROPERTY);
+    expect(property?.title).toBe('Property');
+    expect(property?.title).not.toMatch(/rental/i);
+    expect(property?.live).toBe(true);
+    expect(property?.moduleKey).toBe(PROPERTY_MODULE_KEY);
     expect(COMING_SHOP_APPS.map(app => app.id)).toEqual(['farm', 'reseller', 'maker']);
     expect(SOCIAL_SHOP_APPS.map(app => app.id)).toEqual(['eatout', 'chat']);
-    expect(PAID_SHOP_APPS.map(app => app.id)).toEqual(['eatery', 'project', 'vault', 'farm', 'reseller', 'maker']);
+    expect(PAID_SHOP_APPS.map(app => app.id)).toEqual([
+      'eatery', 'project', 'vault', 'property', 'farm', 'reseller', 'maker'
+    ]);
+    expect(PAID_SHOP_APPS.findIndex(app => app.id === 'property'))
+      .toBe(PAID_SHOP_APPS.findIndex(app => app.id === 'vault') + 1);
+    expect(PAID_SHOP_APPS.findIndex(app => app.id === 'farm'))
+      .toBe(PAID_SHOP_APPS.findIndex(app => app.id === 'property') + 1);
     expect(ENABLEABLE_SHOP_APPS.map(app => app.id)).toEqual([
-      'eatery', 'project', 'vault', 'farm', 'reseller', 'maker', 'chat'
+      'eatery', 'project', 'vault', 'property', 'farm', 'reseller', 'maker', 'chat'
     ]);
     expect(ENABLEABLE_SHOP_APPS.some(app => app.id === 'eatout')).toBe(false);
-    expect(COMING_SHOP_APPS.some(app => app.id === 'eatout' || app.id === 'project' || app.id === 'chat' || app.id === 'vault')).toBe(false);
+    expect(COMING_SHOP_APPS.some(app => (
+      app.id === 'eatout' || app.id === 'project' || app.id === 'chat' || app.id === 'vault' || app.id === 'property'
+    ))).toBe(false);
     expect(SHOP_APPS.find(app => app.id === 'eatout')?.live).toBe(true);
     expect(SHOP_APPS.find(app => app.id === 'project')?.live).toBe(true);
     expect(SHOP_APPS.find(app => app.id === 'chat')?.live).toBe(true);
     expect(SHOP_APPS.find(app => app.id === 'vault')?.live).toBe(true);
+    expect(SHOP_APPS.find(app => app.id === 'property')?.live).toBe(true);
     expect(hasBannedDoorCopy(CHAIN_APP_EATOUT)).toBe(false);
     expect(hasBannedDoorCopy(CHAIN_APP_PROJECT)).toBe(false);
     expect(hasBannedDoorCopy(CHAIN_APP_CHAT)).toBe(false);
     expect(hasBannedDoorCopy(CHAIN_APP_VAULT)).toBe(false);
+    expect(hasBannedDoorCopy(CHAIN_APP_PROPERTY)).toBe(false);
     expect(CHAIN_APP_VAULT).not.toMatch(/statement/i);
+    expect(CHAIN_APP_PROPERTY).not.toMatch(/rental/i);
   });
 
   it('holds EatOut by daup-eatout, never hasHouse', () => {
@@ -106,6 +126,11 @@ describe('Get apps. shop catalog', () => {
     expect(shopAppIsHeld(vault, { hasHouse: true, installed: {}, enabledApps: ['vault'] })).toBe(true);
     expect(shopAppIsHeld(chat, { hasHouse: true, installed: { [CHAT_MODULE_KEY]: true }, enabledApps: ['eatery'] })).toBe(false);
     expect(shopAppIsHeld(vault, { hasHouse: true, installed: { [VAULT_MODULE_KEY]: true }, enabledApps: ['eatery'] })).toBe(false);
+    const property = SHOP_APPS.find(app => app.id === 'property')!;
+    expect(shopAppIsHeld(property, { hasHouse: true, installed: {} })).toBe(false);
+    expect(shopAppIsHeld(property, { hasHouse: false, installed: { [PROPERTY_MODULE_KEY]: true } })).toBe(true);
+    expect(shopAppIsHeld(property, { hasHouse: true, installed: {}, enabledApps: ['property'] })).toBe(true);
+    expect(shopAppIsHeld(property, { hasHouse: true, installed: { [PROPERTY_MODULE_KEY]: true }, enabledApps: ['eatery'] })).toBe(false);
   });
 
   it('Open. for Chat and Vault is the host home, same tab, and does not ping', () => {
@@ -125,6 +150,13 @@ describe('Get apps. shop catalog', () => {
     expect(navigateSameTab.toString()).not.toContain('fetch');
     expect(launchHeldModule.toString()).toContain('navigateToChatHome');
     expect(launchHeldModule.toString()).toContain('navigateToVaultHome');
+    expect(launchHeldModule.toString()).toContain('navigateToPropertyHome');
+    const property = SHOP_APPS.find(app => app.id === 'property')!;
+    expect(PROPERTY_MODULE_KEY).toBe('daup-property');
+    expect(PROPERTY_HOME).toBe('https://property.daup.co.za');
+    expect(shopAppOpenHref(property)).toBe(PROPERTY_HOME);
+    expect(shopAppOpenHref(property)).toBe('https://property.daup.co.za');
+    expect(shopAppOpenHref(property)).not.toMatch(/[?#]|eatery\.daup\.co\.za|\/owner|app\.daup\.co\.za|rental/i);
 
     const fetchSpy = vi.mocked(globalThis.fetch);
     fetchSpy.mockClear();
@@ -137,15 +169,19 @@ describe('Get apps. shop catalog', () => {
     try {
       expect(navigateToChatHome()).toBe('https://chat.daup.co.za');
       expect(navigateToVaultHome()).toBe('https://vault.daup.co.za');
+      expect(navigateToPropertyHome()).toBe('https://property.daup.co.za');
       expect(launchHeldModule(CHAT_MODULE_KEY)).toBe('https://chat.daup.co.za');
       expect(launchHeldModule(VAULT_MODULE_KEY)).toBe('https://vault.daup.co.za');
+      expect(launchHeldModule(PROPERTY_MODULE_KEY)).toBe('https://property.daup.co.za');
       expect(launchHeldModule('daup-eatery')).toBeUndefined();
       expect(launchHeldModule('daup-project')).toBeUndefined();
       expect(assign.mock.calls.map(call => call[0])).toEqual([
         'https://chat.daup.co.za',
         'https://vault.daup.co.za',
+        'https://property.daup.co.za',
         'https://chat.daup.co.za',
-        'https://vault.daup.co.za'
+        'https://vault.daup.co.za',
+        'https://property.daup.co.za'
       ]);
       expect(fetchSpy).not.toHaveBeenCalled();
     } finally {

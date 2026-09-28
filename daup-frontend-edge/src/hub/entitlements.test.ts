@@ -70,9 +70,17 @@ describe('companyId / placeId bind', () => {
       'vault',
       'chat'
     ]);
+    expect(normalizeEnabledApps(['property', 'vault', 'chat', 'rental', 'eatery'])).toEqual([
+      'eatery',
+      'vault',
+      'property',
+      'chat'
+    ]);
     expect(enabledAppForModule('daup-vault')).toBe('vault');
     expect(enabledAppForModule('daup-chat')).toBe('chat');
+    expect(enabledAppForModule('daup-property')).toBe('property');
     expect(enabledAppForModule('daup-statements')).toBeNull();
+    expect(enabledAppForModule('daup-rental')).toBeNull();
   });
 });
 
@@ -332,6 +340,16 @@ describe('one instance of each app per place', () => {
       added: [],
       already: ['vault']
     });
+    expect(mergeEnabledApps(['eatery', 'vault'], ['property', 'chat', 'property'])).toEqual({
+      next: ['eatery', 'vault', 'property', 'chat'],
+      added: ['property', 'chat'],
+      already: []
+    });
+    expect(mergeEnabledApps(['eatery', 'property'], ['property'])).toEqual({
+      next: ['eatery', 'property'],
+      added: [],
+      already: ['property']
+    });
   });
 
   it('enables a missing app on an existing place and never mints a second instance', () => {
@@ -385,6 +403,30 @@ describe('one instance of each app per place', () => {
     expect(vaultAgain.noOp).toBe(true);
     expect(vaultAgain.already).toEqual(['vault']);
     expect(loadPlaceEntitlement('co_olive')?.enabled_apps).toEqual(['eatery', 'project', 'vault', 'chat']);
+
+    const property = enableAppsOnPlace({
+      placeId: 'co_olive',
+      incoming: ['property', 'property'],
+      current: ['eatery', 'project', 'vault', 'chat']
+    });
+    expect(property.ok).toBe(true);
+    expect(property.noOp).toBe(false);
+    expect(property.added).toEqual(['property']);
+    expect(property.already).toEqual([]);
+    expect(loadPlaceEntitlement('co_olive')?.enabled_apps).toEqual([
+      'eatery', 'project', 'vault', 'property', 'chat'
+    ]);
+
+    const propertyAgain = enableAppsOnPlace({
+      placeId: 'co_olive',
+      incoming: ['property'],
+      current: ['eatery', 'project', 'vault', 'property', 'chat']
+    });
+    expect(propertyAgain.noOp).toBe(true);
+    expect(propertyAgain.already).toEqual(['property']);
+    expect(loadPlaceEntitlement('co_olive')?.enabled_apps).toEqual([
+      'eatery', 'project', 'vault', 'property', 'chat'
+    ]);
   });
 });
 

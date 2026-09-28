@@ -1,5 +1,5 @@
 import React from 'react';
-import { Factory, FolderKanban, MessageCircle, Store, Utensils, UtensilsCrossed, Vault, Wheat, type LucideIcon } from 'lucide-react';
+import { Building2, Factory, FolderKanban, MessageCircle, Store, Utensils, UtensilsCrossed, Vault, Wheat, type LucideIcon } from 'lucide-react';
 import {
   APPS_PAID_KICKER,
   APPS_SOCIAL_KICKER,
@@ -27,7 +27,8 @@ const SHOP_ICONS: Record<ShopAppId, LucideIcon> = {
   reseller: Store,
   maker: Factory,
   chat: MessageCircle,
-  vault: Vault
+  vault: Vault,
+  property: Building2
 };
 
 export interface GetAppsProps {
