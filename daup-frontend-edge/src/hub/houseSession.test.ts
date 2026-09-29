@@ -1,0 +1,262 @@
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { hasBannedDoorCopy } from './copy';
+import {
+  CHAT_HOME,
+  FINANCE_HOME,
+  HOUSE_REDEEM_QUERY,
+  HouseSeedError,
+  PROJECT_HOME,
+  TRADE_HOME,
+  appUsesHouseRedeem,
+  bearerFromSessionBody,
+  buildChatOpenUrl,
+  buildHouseAppOpenUrl,
+  clearPlaceSessionHold,
+  createPlaceSession,
+  phoneHasEnoughDigits,
+  readHouseRedeem,
+  readPlaceSession,
+  rememberPlaceSession,
+  requestOtpChallenge,
+  resolveHouseSeedOrigin,
+  sha256Base64Url
+} from './house-session';
+import { continueHouseOpen as openHouse } from './houseOpen';
+import { handoffPresentsCredential, ownerArrivalExposesBannedQuery } from './ownerArrival';
+
+const REDEEM = 'hr_abcdefghijklmnopqrstuvwxyz012345';
+
+function jsonResponse(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'content-type': 'application/json' }
+  });
+}
+
+describe('house seed origin and redeem urls', () => {
+  beforeEach(() => {
+    clearPlaceSessionHold();
+  });
+
+  it('defaults the seed to Kortrijk and strips a trailing /mcp', () => {
+    expect(resolveHouseSeedOrigin('https://mcp.daup.co.za/mcp')).toBe('https://mcp.daup.co.za');
+    expect(resolveHouseSeedOrigin('https://mcp.daup.co.za/')).toBe('https://mcp.daup.co.za');
+  });
+
+  it('keeps Project on /d/hub and puts houseRedeem beside hints', () => {
+    const href = buildHouseAppOpenUrl('project', {
+      email: 'Owner@TheOlive.co.za',
+      house: 'The Olive',
+      placeIds: ['place-olive'],
+      houseRedeem: REDEEM,
+      origin: PROJECT_HOME
+    });
+    const parsed = new URL(href);
+    expect(parsed.origin).toBe('https://project.daup.co.za');
+    expect(parsed.pathname).toBe('/d/hub');
+    expect(parsed.searchParams.get('emailHint')).toBe('owner@theolive.co.za');
+    expect(parsed.searchParams.get('houseHint')).toBe('The Olive');
+    expect(parsed.searchParams.get('placeIdHint')).toBe('place-olive');
+    expect(parsed.searchParams.get(HOUSE_REDEEM_QUERY)).toBe(REDEEM);
+    expect(handoffPresentsCredential(href)).toBe(false);
+    expect(ownerArrivalExposesBannedQuery(href)).toBe(false);
+    expect(href).not.toMatch(/[?&](token|email|places|hubPlaces|role|daup1|pepper)=/i);
+  });
+
+  it('opens Finance, Trade, Vault, and Property on the home with houseRedeem', () => {
+    for (const [app, origin] of [
+      ['finance', FINANCE_HOME],
+      ['trade', TRADE_HOME],
+      ['vault', 'https://vault.daup.co.za'],
+      ['property', 'https://property.daup.co.za']
+    ] as const) {
+      const href = buildHouseAppOpenUrl(app, {
+        email: 'owner@theolive.co.za',
+        house: 'The Olive',
+        placeIds: ['co_olive'],
+        houseRedeem: REDEEM
+      });
+      const parsed = new URL(href);
+      expect(parsed.origin).toBe(origin);
+      expect(parsed.pathname).toBe('/');
+      expect(parsed.searchParams.get(HOUSE_REDEEM_QUERY)).toBe(REDEEM);
+      expect(parsed.searchParams.get('emailHint')).toBe('owner@theolive.co.za');
+      expect(handoffPresentsCredential(href)).toBe(false);
+      expect(href).not.toMatch(/\/d\/hub/);
+    }
+  });
+
+  it('leaves Chat on the host with no redeem', () => {
+    expect(appUsesHouseRedeem('chat')).toBe(false);
+    expect(buildChatOpenUrl()).toBe(CHAT_HOME);
+    expect(buildChatOpenUrl()).not.toMatch(/[?#]/);
+    expect(openHouse).toBeTypeOf('function');
+  });
+
+  it('does not ship a signing secret or a parent-domain cookie', () => {
+    const dir = dirname(fileURLToPath(import.meta.url));
+    const combined = [
+      'houseOpen.ts',
+      'house-session/seed.ts',
+      'house-session/openUrl.ts',
+      'house-session/hold.ts',
+      'house-session/crypto.ts',
+      'house-session/claims.ts',
+      'house-session/index.ts'
+    ].map(name => readFileSync(join(dir, name), 'utf8')).join('\n');
+    expect(combined).not.toMatch(/HOUSE_SESSION_SECRET/);
+    expect(combined).not.toMatch(/SESSION_SECRET/);
+    expect(combined).not.toMatch(/VITE_HOUSE_SESSION/);
+    expect(combined).not.toMatch(/Domain\s*=/);
+    expect(combined).not.toContain('DAUP1');
+    expect(combined).not.toContain('daup-hub-owner-arrival-v1');
+    expect(hasBannedDoorCopy('Open with a code.')).toBe(false);
+  });
+});
+
+describe('otp challenge then redeem', () => {
+  beforeEach(() => {
+    clearPlaceSessionHold();
+  });
+
+  it('asks for a number, then a code, then opens Finance with the issued redeem', async () => {
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      const body = JSON.parse(String(init?.body || '{}')) as Record<string, unknown>;
+      expect(init?.credentials).toBe('include');
+      expect(init?.method).toBe('POST');
+      if (url.endsWith('/house/otp/challenge')) {
+        expect(body).toEqual({ placeId: 'co_olive', phone: '+27820000000' });
+        return jsonResponse({ ok: true, challengeId: 'ch_test', expiresAt: 1 });
+      }
+      if (url.endsWith('/house/session')) {
+        expect(body).toEqual({
+          placeId: 'co_olive',
+          phone: '+27820000000',
+          challengeId: 'ch_test',
+          code: '424242'
+        });
+        return jsonResponse({ ok: true, placeSession: 'sess-opaque', expiresAt: Date.now() + 60_000 });
+      }
+      if (url.endsWith('/house/session/redeem/issue')) {
+        expect(init?.headers).toMatchObject({ authorization: 'Bearer sess-opaque' });
+        expect(body).toEqual({});
+        return jsonResponse({ ok: true, houseRedeem: REDEEM });
+      }
+      return jsonResponse({ error: 'Not found' }, 404);
+    });
+
+    const needPhone = await openHouse({
+      appId: 'finance',
+      placeId: 'co_olive',
+      hints: { email: 'owner@theolive.co.za', house: 'The Olive', placeIds: ['co_olive'] },
+      fetchImpl
+    });
+    expect(needPhone).toEqual({ status: 'phone', message: '' });
+    expect(fetchImpl).not.toHaveBeenCalled();
+
+    const needCode = await openHouse({
+      appId: 'finance',
+      placeId: 'co_olive',
+      hints: { email: 'owner@theolive.co.za', house: 'The Olive' },
+      phone: '+27820000000',
+      fetchImpl
+    });
+    expect(needCode).toMatchObject({ status: 'code', challengeId: 'ch_test', phone: '+27820000000' });
+
+    const opened = await openHouse({
+      appId: 'finance',
+      placeId: 'co_olive',
+      hints: { email: 'owner@theolive.co.za', house: 'The Olive', placeIds: ['co_olive'] },
+      phone: '+27820000000',
+      challengeId: 'ch_test',
+      code: '424242',
+      fetchImpl
+    });
+    expect(opened.status).toBe('navigate');
+    if (opened.status !== 'navigate') return;
+    const parsed = new URL(opened.url);
+    expect(parsed.origin).toBe(FINANCE_HOME);
+    expect(parsed.searchParams.get(HOUSE_REDEEM_QUERY)).toBe(REDEEM);
+    expect(parsed.searchParams.has('token')).toBe(false);
+    expect(opened.url).not.toContain('sess-opaque');
+    expect(readPlaceSession('co_olive')?.bearer).toBe('sess-opaque');
+  });
+
+  it('refuses Chat and a missing place before any fetch', async () => {
+    const fetchImpl = vi.fn();
+    const chat = await openHouse({ appId: 'chat', placeId: 'co_olive', fetchImpl });
+    const missing = await openHouse({ appId: 'trade', placeId: ' ', fetchImpl });
+    expect(chat.status).toBe('error');
+    expect(missing.status).toBe('error');
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it('rejects a short number without calling the seed', async () => {
+    expect(phoneHasEnoughDigits('1234567')).toBe(false);
+    expect(phoneHasEnoughDigits('+27821234567')).toBe(true);
+    const fetchImpl = vi.fn();
+    const result = await openHouse({
+      appId: 'vault',
+      placeId: 'co_olive',
+      phone: '1234567',
+      fetchImpl
+    });
+    expect(result).toMatchObject({ status: 'phone' });
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it('drops a role claim and still keeps the bearer off the URL', () => {
+    const bearer = bearerFromSessionBody({
+      placeSession: 'sess-opaque',
+      claims: { role: 'owner', placeId: 'co_olive' }
+    });
+    expect(bearer).toBe('sess-opaque');
+    const href = buildHouseAppOpenUrl('property', { houseRedeem: REDEEM, house: 'The Olive', email: 'a@b.co' });
+    expect(href).not.toMatch(/role=/);
+  });
+
+  it('treats a bad code as a code-step failure and a dead session as a new number', async () => {
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.endsWith('/house/session')) return jsonResponse({ error: 'otp verification failed' }, 401);
+      if (url.endsWith('/house/session/redeem/issue')) return jsonResponse({ error: 'place session required' }, 401);
+      return jsonResponse({ error: 'Not found' }, 404);
+    });
+    const badCode = await openHouse({
+      appId: 'project',
+      placeId: 'co_olive',
+      phone: '+27820000000',
+      challengeId: 'ch_test',
+      code: '000000',
+      fetchImpl
+    });
+    expect(badCode).toMatchObject({ status: 'code', message: 'That code is not the one we sent.' });
+
+    rememberPlaceSession({ placeId: 'co_olive', bearer: 'stale', expiresAt: null });
+    const again = await openHouse({
+      appId: 'project',
+      placeId: 'co_olive',
+      hints: { email: 'a@b.co', house: 'Olive' },
+      fetchImpl
+    });
+    expect(again.status).toBe('phone');
+    expect(readPlaceSession('co_olive')).toBeNull();
+  });
+
+  it('hashes with Web Crypto and recognises a seed redeem id', async () => {
+    const digest = await sha256Base64Url('house');
+    expect(digest.length).toBeGreaterThan(20);
+    expect(readHouseRedeem({ houseRedeem: REDEEM })).toBe(REDEEM);
+    expect(readHouseRedeem({ houseRedeem: 'abc' })).toBe('');
+    await expect(requestOtpChallenge({
+      placeId: '',
+      phone: '+27820000000',
+      fetchImpl: vi.fn()
+    })).rejects.toBeInstanceOf(HouseSeedError);
+    expect(createPlaceSession).toBeTypeOf('function');
+  });
+});

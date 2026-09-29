@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useUserProfile } from '../context/UserProfileContext';
 import {
   HOSTED_SEED_SUMMARY,
@@ -9,14 +9,17 @@ import {
 } from '../hub/copy';
 import { loadPlaceEntitlement } from '../hub/entitlements';
 import { DEFAULT_HUB_PANE, type HubPane } from '../hub/hubPane';
-import { ShopApp, launchHeldModule, listOwnerPlaces, ownerPlaceKey } from '../hub/places';
+import { continueHouseOpen } from '../hub/houseOpen';
+import { appUsesHouseRedeem } from '../hub/house-session/openUrl';
+import { ShopApp, listOwnerPlaces, navigateSameTab, navigateToChatHome, ownerPlaceKey } from '../hub/places';
 import { placeSubscriptionDisplay } from '../hub/placeSubscription';
 import { loadSeednodeForPlace } from '../hub/seednode';
 import { navigateToEatOutHome } from '../hub/eatoutUrls';
 import { navigateToTheHouse } from '../hub/ownerArrival';
-import { navigateToProjectHome, projectOpenHandshakeFromHub } from '../hub/projectUrls';
+import { projectOpenHandshakeFromHub } from '../hub/projectUrls';
 import { listOwnerPlaceRecords, listRegisteredPlaces } from '../stores/identityStore';
 import { GetAppsSection } from './GetApps';
+import { HouseOtpDoor } from './HouseOtpDoor';
 import { OtherPlacesView } from './OtherPlaces';
 import { PlaceDetailView } from './PlaceDetailView';
 
@@ -39,6 +42,18 @@ export const SubscribedAppsView: React.FC<{
   onClosePlace
 }) => {
   const [localOpenKey, setLocalOpenKey] = useState<string | null>(null);
+  const houseBusy = useRef(false);
+  const [houseDoor, setHouseDoor] = useState<{
+    app: ShopApp;
+    house: string;
+    placeIds: string[];
+    placeId: string;
+    step: 'phone' | 'code';
+    phone: string;
+    challengeId: string;
+    error: string;
+    busy: boolean;
+  } | null>(null);
   const resolvedOpenKey = onOpenPlace ? openPlaceKey : localOpenKey;
   const openPlace = onOpenPlace || setLocalOpenKey;
   const closePlace = onClosePlace || (() => setLocalOpenKey(null));
@@ -113,7 +128,7 @@ export const SubscribedAppsView: React.FC<{
       });
       return;
     }
-    if (app.live && (app.id === 'eatout' || app.id === 'project') && app.moduleKey) {
+    if (app.live && (app.id === 'eatout' || appUsesHouseRedeem(app.id)) && app.moduleKey) {
       if (!installedApps[app.moduleKey]) onSubscribeApp?.(app.moduleKey);
       return;
     }
@@ -123,7 +138,99 @@ export const SubscribedAppsView: React.FC<{
     }
   };
 
+  const preferredPhone = (
+    profile.demographics.whatsappNumber || profile.demographics.contactNumber || ''
+  ).trim();
+
+  const placeIdFor = (explicit?: string[]) => {
+    const fromList = (explicit || []).map(id => id.trim()).filter(Boolean)[0];
+    if (fromList) return fromList;
+    const primary = ownerRecords.find(record => record.placeName.trim() === houseName);
+    return (primary?.placeId || primary?.companyId || companyId || '').trim();
+  };
+
+  const runHouseOpen = async (
+    app: ShopApp,
+    house: string,
+    placeIds: string[] | undefined,
+    extra?: { phone?: string; code?: string; challengeId?: string }
+  ) => {
+    if (!appUsesHouseRedeem(app.id) || houseBusy.current) return;
+    houseBusy.current = true;
+    const ids = (placeIds || []).map(id => id.trim()).filter(Boolean);
+    const placeId = placeIdFor(ids);
+    setHouseDoor(current => (
+      current && current.app.id === app.id
+        ? { ...current, busy: true, error: '' }
+        : current
+    ));
+    try {
+      const result = await continueHouseOpen({
+        appId: app.id,
+        placeId,
+        hints: { email, house, placeIds: ids },
+        phone: extra?.phone,
+        code: extra?.code,
+        challengeId: extra?.challengeId
+      });
+      if (result.status === 'navigate') {
+        setHouseDoor(null);
+        navigateSameTab(result.url);
+        return;
+      }
+      if (result.status === 'phone') {
+        setHouseDoor({
+          app,
+          house,
+          placeIds: ids,
+          placeId,
+          step: 'phone',
+          phone: extra?.phone || preferredPhone,
+          challengeId: '',
+          error: result.message,
+          busy: false
+        });
+        return;
+      }
+      if (result.status === 'code') {
+        setHouseDoor({
+          app,
+          house,
+          placeIds: ids,
+          placeId,
+          step: 'code',
+          phone: result.phone,
+          challengeId: result.challengeId,
+          error: result.message,
+          busy: false
+        });
+        return;
+      }
+      setHouseDoor(current => (
+        current
+          ? { ...current, busy: false, error: result.message }
+          : {
+              app,
+              house,
+              placeIds: ids,
+              placeId,
+              step: 'phone',
+              phone: preferredPhone,
+              challengeId: '',
+              error: result.message,
+              busy: false
+            }
+      ));
+    } finally {
+      houseBusy.current = false;
+    }
+  };
+
   const handleOpen = (app: ShopApp, house = houseName, placeIds?: string[]) => {
+    if (app.id === 'chat') {
+      navigateToChatHome();
+      return;
+    }
     if (app.id === 'eatery') {
       if (!email.trim() || !house.trim()) return;
       navigateToTheHouse({ email, house, placeIds });
@@ -133,12 +240,10 @@ export const SubscribedAppsView: React.FC<{
       navigateToEatOutHome();
       return;
     }
-    if (app.id === 'project') {
-      navigateToProjectHome(handshakeFor(house, placeIds || []));
+    if (appUsesHouseRedeem(app.id)) {
+      void runHouseOpen(app, house, placeIds);
       return;
     }
-    if (app.moduleKey && launchHeldModule(app.moduleKey)) return;
-    if (app.id === 'chat' || app.id === 'vault' || app.id === 'property') return;
     if (app.moduleKey) onLaunchApp?.(app.moduleKey);
   };
 
@@ -154,6 +259,28 @@ export const SubscribedAppsView: React.FC<{
 
   return (
     <div className="apps-home" data-testid="hub-home" data-pane={pane}>
+      {houseDoor ? (
+        <HouseOtpDoor
+          key={`${houseDoor.app.id}:${houseDoor.step}:${houseDoor.challengeId}`}
+          appTitle={houseDoor.app.title}
+          placeName={houseDoor.house || houseName}
+          step={houseDoor.step}
+          phone={houseDoor.phone}
+          error={houseDoor.error}
+          busy={houseDoor.busy}
+          onSendCode={phone => {
+            void runHouseOpen(houseDoor.app, houseDoor.house, houseDoor.placeIds, { phone });
+          }}
+          onSubmitCode={code => {
+            void runHouseOpen(houseDoor.app, houseDoor.house, houseDoor.placeIds, {
+              phone: houseDoor.phone,
+              code,
+              challengeId: houseDoor.challengeId
+            });
+          }}
+          onCancel={() => setHouseDoor(null)}
+        />
+      ) : null}
       {showPlaces && openRecord ? (
         <PlaceDetailView
           key={ownerPlaceKey(openRecord)}

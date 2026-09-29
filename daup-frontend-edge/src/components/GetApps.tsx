@@ -1,5 +1,5 @@
 import React from 'react';
-import { Building2, Factory, FolderKanban, MessageCircle, Store, Utensils, UtensilsCrossed, Vault, Wheat, type LucideIcon } from 'lucide-react';
+import { ArrowLeftRight, Building2, Factory, FolderKanban, Landmark, MessageCircle, Store, Utensils, UtensilsCrossed, Vault, Wheat, type LucideIcon } from 'lucide-react';
 import {
   APPS_PAID_KICKER,
   APPS_SOCIAL_KICKER,
@@ -14,6 +14,7 @@ import {
   SOCIAL_SHOP_APPS,
   ShopApp,
   ShopAppId,
+  interceptHouseRedeemClick,
   shopAppIsHeld,
   shopAppOpenHref
 } from '../hub/places';
@@ -23,6 +24,8 @@ const SHOP_ICONS: Record<ShopAppId, LucideIcon> = {
   eatery: Utensils,
   eatout: UtensilsCrossed,
   project: FolderKanban,
+  finance: Landmark,
+  trade: ArrowLeftRight,
   farm: Wheat,
   reseller: Store,
   maker: Factory,
@@ -59,6 +62,7 @@ function OpenControl({
         href={openHref}
         target="_self"
         data-testid={`open-app-${app.id}`}
+        onClick={event => interceptHouseRedeemClick(app, event, onOpen)}
       >
         {OPEN_LABEL}
       </a>

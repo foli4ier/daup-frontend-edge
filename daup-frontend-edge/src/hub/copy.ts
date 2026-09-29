@@ -99,7 +99,19 @@ export const RESERVE_A_TABLE_LABEL = 'Reserve a table.';
 export const CHAIN_BACK_LABEL = 'Back.';
 export const CHAIN_APP_CHAT = 'Chat';
 export const CHAIN_APP_VAULT = 'Vault';
+export const CHAIN_APP_FINANCE = 'Finance';
+export const CHAIN_APP_TRADE = 'Trade';
 export const CHAIN_APP_PROPERTY = 'Property';
+export const YOUR_WHATSAPP_LABEL = 'Your WhatsApp number.';
+export const SEND_CODE_LABEL = 'Send a code.';
+export const CODE_LABEL = 'Code.';
+export const HOUSE_OTP_TITLE = 'Open with a code.';
+export const HOUSE_OTP_BODY = 'We text a code to this number. Then the app opens for this place.';
+export const HOUSE_OTP_CODE_HINT = 'Type the code from the message.';
+export const HOUSE_OTP_BAD_CODE = 'That code is not the one we sent.';
+export const HOUSE_OTP_BAD_PHONE = 'Use a WhatsApp number we can text.';
+export const HOUSE_OTP_FAILED = 'We could not open that just now.';
+export const HOUSE_OTP_NEED_PLACE = 'Open a place first.';
 export const CHAIN_APP_EATOUT = 'EatOut';
 export const CHAIN_APP_PROJECT = 'Project';
 export const EATERY_ROW_BODY = 'Tables, tickets, kitchen, stock.';
@@ -142,6 +154,8 @@ export const CHAIN_APP_LABELS = {
   eatery: CHAIN_APP_EATERY,
   eatout: CHAIN_APP_EATOUT,
   project: CHAIN_APP_PROJECT,
+  finance: CHAIN_APP_FINANCE,
+  trade: CHAIN_APP_TRADE,
   farm: CHAIN_APP_FARM,
   reseller: CHAIN_APP_RESELLER,
   maker: CHAIN_APP_MAKER,
@@ -218,7 +232,19 @@ export const HUB_HOME_COPY = [
   CHAIN_APP_MAKER,
   CHAIN_APP_CHAT,
   CHAIN_APP_VAULT,
+  CHAIN_APP_FINANCE,
+  CHAIN_APP_TRADE,
   CHAIN_APP_PROPERTY,
+  YOUR_WHATSAPP_LABEL,
+  SEND_CODE_LABEL,
+  CODE_LABEL,
+  HOUSE_OTP_TITLE,
+  HOUSE_OTP_BODY,
+  HOUSE_OTP_CODE_HINT,
+  HOUSE_OTP_BAD_CODE,
+  HOUSE_OTP_BAD_PHONE,
+  HOUSE_OTP_FAILED,
+  HOUSE_OTP_NEED_PLACE,
   ASK_FOR_ENHANCEMENT_LABEL,
   NAV_PLACES_LABEL,
   NAV_APPS_LABEL,

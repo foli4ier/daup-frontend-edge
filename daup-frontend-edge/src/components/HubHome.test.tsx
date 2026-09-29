@@ -477,6 +477,8 @@ describe('hub home after email', () => {
       .map(el => el.getAttribute('data-testid'))).toEqual([
       'shop-app-eatery',
       'shop-app-project',
+      'shop-app-finance',
+      'shop-app-trade',
       'shop-app-vault',
       'shop-app-property',
       'coming-app-farm',
@@ -1497,6 +1499,8 @@ describe('My places stays owned-only after register and delete', () => {
       .map(el => el.getAttribute('data-testid'))).toEqual([
       'enable-app-eatery',
       'enable-app-project',
+      'enable-app-finance',
+      'enable-app-trade',
       'enable-app-vault',
       'enable-app-property',
       'enable-app-farm',

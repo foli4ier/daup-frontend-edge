@@ -22,10 +22,10 @@ import { MODULE_METADATA } from './components/withLicenseCheck';
 import { deriveSeedNode, deployAppInstance } from './stores/identityStore';
 import { navigateToEatOutHome } from './hub/eatoutUrls';
 import { navigateToTheHouse } from './hub/ownerArrival';
-import { navigateToProjectHome, projectOpenHandshakeFromHub } from './hub/projectUrls';
 import { listOwnerPlaceRecords, listRegisteredPlaces } from './stores/identityStore';
 import { HUB_HOME_FALLBACK } from './hub/copy';
-import { launchHeldModule, ownerPlaceKey } from './hub/places';
+import { houseRedeemAppForModule } from './hub/house-session/openUrl';
+import { CHAT_MODULE_KEY, navigateToChatHome, ownerPlaceKey } from './hub/places';
 import { goToAsks, goToHubHome, readHubPage } from './hub/asksPath';
 import { DEFAULT_HUB_PANE, type HubPane } from './hub/hubPane';
 
@@ -155,18 +155,15 @@ const DashboardContent: React.FC = () => {
       navigateToEatOutHome();
       return;
     }
-    if (moduleName === 'daup-project') {
-      const house = activeWallet?.legalName || instanceName || '';
-      navigateToProjectHome(projectOpenHandshakeFromHub({
-        email: ownerSession?.email || '',
-        house,
-        placeIds: listRegisteredPlaces()
-          .map(place => (place.placeId || '').trim())
-          .filter(Boolean)
-      }));
+    if (moduleName === CHAT_MODULE_KEY) {
+      navigateToChatHome();
       return;
     }
-    if (launchHeldModule(moduleName)) return;
+    if (moduleName === 'daup-project' || houseRedeemAppForModule(moduleName)) {
+      // Open. on the apps door issues houseRedeem. This fallback must not
+      // mint a place session or skip the code step.
+      return;
+    }
     setLaunchedApp(moduleName);
   };
 

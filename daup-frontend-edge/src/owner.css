@@ -1539,6 +1539,10 @@ body {
   gap: 8px;
 }
 
+.house-otp-door {
+  margin: 0 0 18px;
+}
+
 .ask-app-flag {
   display: inline-flex;
   align-items: center;

@@ -250,7 +250,18 @@ describe('Open the house arrival', () => {
 
   it('does not ship the owner-arrival pepper or a signer', () => {
     const dir = dirname(fileURLToPath(import.meta.url));
-    const combined = ['ownerArrival.ts', 'ownerSession.ts', 'projectUrls.ts', 'places.ts']
+    const combined = [
+      'ownerArrival.ts',
+      'ownerSession.ts',
+      'projectUrls.ts',
+      'places.ts',
+      'houseOpen.ts',
+      'house-session/seed.ts',
+      'house-session/openUrl.ts',
+      'house-session/hold.ts',
+      'house-session/claims.ts',
+      'house-session/crypto.ts'
+    ]
       .map(name => readFileSync(join(dir, name), 'utf8'))
       .join('\n');
     expect(combined).not.toContain('daup-hub-owner-arrival-v1');

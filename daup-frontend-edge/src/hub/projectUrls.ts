@@ -5,28 +5,28 @@
  *   Email + house:   https://project.daup.co.za/d/hub?emailHint=&houseHint=&placeIdHint=
  *
  * Query params are non-authoritative hints (email prefill, house name, place
- * ids). They are not a credential. Never did / wallet / mcp / token / email /
- * places / hubPlaces. Project verifies place ownership after its own login.
+ * ids) plus an optional one-time houseRedeem from the seed. They are not a
+ * client-signed credential. Never did / wallet / mcp / token / email /
+ * places / hubPlaces. Project verifies the redeem after its own cutover.
  *
  * Advanced launch (`buildAppLaunchUrl`) is a different handshake and stays off Get apps.
  */
 
 import { getModuleEndpoint } from '../utils/envResolver';
-import { appendAppHandoffHints, ownerArrivalExposesBannedQuery } from './ownerArrival';
+import { ownerArrivalExposesBannedQuery } from './ownerArrival';
+import { buildHouseAppOpenUrl, PROJECT_HOME, PROJECT_HUB_PATH } from './house-session/openUrl';
 
 export const PROJECT_MODULE_KEY = 'daup-project';
 
-/** Production Open. home. Locked so Get apps cannot land on the hub or Eatery. */
-export const PROJECT_HOME = 'https://project.daup.co.za';
-
-/** Project first-run path. Query is hints only, not a credential. */
-export const PROJECT_HUB_PATH = '/d/hub';
+export { PROJECT_HOME, PROJECT_HUB_PATH };
 
 export interface ProjectOpenHandshake {
   email?: string;
   house?: string;
   instance?: string;
   placeIds?: string[];
+  /** One-time seed redeem. Omitted from the static href until Open. issues it. */
+  houseRedeem?: string;
 }
 
 export function projectOrigin(origin?: string): string {
@@ -72,21 +72,18 @@ export function projectOpenHandshakeFromHub(args: {
 
 /**
  * Hub Open. deep-link.
- * Email + house → /d/hub with hint params only. Else PROJECT_HOME.
- * Missing hints still open Project; Project does not need a token.
+ * Email + house → /d/hub with hint params. houseRedeem, when the seed
+ * just issued one, is the proof. Else PROJECT_HOME.
+ * Missing hints still open Project. The Hub does not invent a token.
  */
 export function buildProjectOpenUrl(handshake?: ProjectOpenHandshake, origin?: string): string {
-  const email = (handshake?.email || '').trim().toLowerCase();
-  const house = (handshake?.house || '').trim();
-  const base = (origin || PROJECT_HOME).replace(/\/+$/, '');
-  if (!email || !house) return origin ? base : PROJECT_HOME;
-  const url = new URL(`${base}${PROJECT_HUB_PATH}`);
-  appendAppHandoffHints(url, {
-    email,
-    house,
-    placeIds: handshake?.placeIds
+  return buildHouseAppOpenUrl('project', {
+    email: handshake?.email,
+    house: handshake?.house,
+    placeIds: handshake?.placeIds,
+    houseRedeem: handshake?.houseRedeem,
+    origin: origin || PROJECT_HOME
   });
-  return url.toString();
 }
 
 export function projectOpenHitsHubOrEatery(url: string): boolean {

@@ -1,0 +1,185 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { act } from 'react';
+import { Simulate } from 'react-dom/test-utils';
+import { SubscribedAppsView } from './SubscribedAppsView';
+import { UserProfileProvider } from '../context/UserProfileContext';
+import { saveIdentityVault, resetIdentityVault, type UserIdentityVault } from '../stores/identityStore';
+import { OWNER_SESSION_STORAGE_KEY } from '../hub/ownerSession';
+import { clearPlaceSessionHold } from '../hub/house-session/hold';
+import { hasBannedDoorCopy } from '../hub/copy';
+
+const vault: UserIdentityVault = {
+  version: 1,
+  hasCompletedOnboarding: true,
+  registeredAt: 1,
+  updatedAt: 1,
+  profile: {
+    demographics: {
+      email: 'owner@theolive.co.za',
+      contactNumber: '+27820000000',
+      whatsappNumber: '',
+      language: 'en',
+      sex: 'prefer_not_to_say',
+      birthdate: ''
+    },
+    location: {
+      country: 'South Africa',
+      provinceState: 'Western Cape',
+      city: 'Stellenbosch',
+      address: '12 Church Street'
+    },
+    socials: { website: '', instagram: '', facebook: '' },
+    wallets: [],
+    primaryWalletId: 'w-olive',
+    isOnboarded: true,
+    createdAt: 1,
+    updatedAt: 1
+  },
+  registeredWallets: [{
+    id: 'w-olive',
+    type: 'bank',
+    legalName: 'The Olive',
+    bankName: '',
+    accountNumber: '',
+    routingCode: '',
+    isPrimary: true,
+    createdAt: 1
+  }],
+  activeWallet: {
+    id: 'w-olive',
+    type: 'bank',
+    legalName: 'The Olive',
+    bankName: '',
+    accountNumber: '',
+    routingCode: '',
+    isPrimary: true,
+    createdAt: 1
+  },
+  identityKeySeedNode: null,
+  trialState: {
+    hasStartedTrial: true,
+    trialStartedAt: 1,
+    trialExpiresAt: 2,
+    isTrialActive: true,
+    tier: 'Trial',
+    isSubscribed: false
+  },
+  companyNode: {
+    companyId: 'co_olive',
+    enabledApps: ['eatery', 'finance', 'trade', 'chat'],
+    billableLocations: 1
+  }
+};
+
+function render(ui: React.ReactElement) {
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+  const root = createRoot(container);
+  act(() => {
+    root.render(ui);
+  });
+  return {
+    container,
+    unmount() {
+      act(() => root.unmount());
+      container.remove();
+    }
+  };
+}
+
+describe('House code door on Get apps', () => {
+  beforeEach(() => {
+    resetIdentityVault();
+    localStorage.clear();
+    clearPlaceSessionHold();
+    localStorage.setItem(OWNER_SESSION_STORAGE_KEY, JSON.stringify({
+      email: 'owner@theolive.co.za',
+      signedInAt: 1
+    }));
+    saveIdentityVault(vault);
+  });
+
+  it('opens Finance with houseRedeem after the code, and leaves Chat without one', async () => {
+    const redeem = 'hr_abcdefghijklmnopqrstuvwxyz012345';
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes('/house/otp/challenge')) {
+        return new Response(JSON.stringify({ ok: true, challengeId: 'ch_ui', expiresAt: 1 }), { status: 200 });
+      }
+      if (url.endsWith('/house/session')) {
+        return new Response(JSON.stringify({ ok: true, placeSession: 'sess-ui' }), { status: 200 });
+      }
+      if (url.includes('/house/session/redeem/issue')) {
+        expect(init?.credentials).toBe('include');
+        return new Response(JSON.stringify({ ok: true, houseRedeem: redeem }), { status: 200 });
+      }
+      throw new TypeError('Failed to fetch');
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const assign = vi.fn();
+    const location = window.location;
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { ...location, assign }
+    });
+
+    const { container, unmount } = render(
+      <UserProfileProvider>
+        <SubscribedAppsView pane="apps" />
+      </UserProfileProvider>
+    );
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 30));
+    });
+
+    const finance = container.querySelector('[data-testid="open-app-finance"]') as HTMLAnchorElement | null;
+    const chat = container.querySelector('[data-testid="open-app-chat"]') as HTMLAnchorElement | null;
+    const trade = container.querySelector('[data-testid="open-app-trade"]') as HTMLAnchorElement | null;
+    expect(finance?.textContent).toBe('Open.');
+    expect(finance?.getAttribute('href')).toBe('https://finance.daup.co.za');
+    expect(trade?.getAttribute('href')).toBe('https://trade.daup.co.za');
+    expect(chat?.getAttribute('href')).toBe('https://chat.daup.co.za');
+    expect(chat?.getAttribute('href') || '').not.toMatch(/houseRedeem|token=/);
+
+    await act(async () => {
+      finance?.click();
+    });
+    expect(container.querySelector('[data-testid="house-otp-door"]')).toBeTruthy();
+    const doorText = container.querySelector('[data-testid="house-otp-door"]')?.textContent || '';
+    expect(hasBannedDoorCopy(doorText)).toBe(false);
+    expect(doorText).not.toMatch(/\b(peer|node|DID|DHT|wallet|MCP|npm|hydrate|neon)\b/i);
+    expect((container.querySelector('[data-testid="house-whatsapp"]') as HTMLInputElement).value).toBe('+27820000000');
+
+    await act(async () => {
+      (container.querySelector('[data-testid="house-otp-form"]') as HTMLFormElement).requestSubmit();
+    });
+    expect(container.querySelector('[data-testid="house-code"]')).toBeTruthy();
+
+    const code = container.querySelector('[data-testid="house-code"]') as HTMLInputElement;
+    await act(async () => {
+      code.focus();
+      code.value = '424242';
+      Simulate.change(code);
+    });
+    await act(async () => {
+      (container.querySelector('[data-testid="house-otp-form"]') as HTMLFormElement).requestSubmit();
+    });
+
+    expect(assign).toHaveBeenCalled();
+    const href = String(assign.mock.calls.at(-1)?.[0] || '');
+    const parsed = new URL(href);
+    expect(parsed.origin).toBe('https://finance.daup.co.za');
+    expect(parsed.searchParams.get('houseRedeem')).toBe(redeem);
+    expect(parsed.searchParams.get('emailHint')).toBe('owner@theolive.co.za');
+    expect(parsed.searchParams.get('houseHint')).toBe('The Olive');
+    expect(parsed.searchParams.has('token')).toBe(false);
+    expect(href).not.toContain('sess-ui');
+    expect(chat?.getAttribute('href')).toBe('https://chat.daup.co.za');
+
+    unmount();
+    Object.defineProperty(window, 'location', { configurable: true, value: location });
+  });
+});

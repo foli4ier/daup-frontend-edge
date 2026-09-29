@@ -4,10 +4,12 @@ import {
   CHAIN_APP_EATERY,
   CHAIN_APP_EATOUT,
   CHAIN_APP_FARM,
+  CHAIN_APP_FINANCE,
   CHAIN_APP_MAKER,
   CHAIN_APP_PROJECT,
   CHAIN_APP_PROPERTY,
   CHAIN_APP_RESELLER,
+  CHAIN_APP_TRADE,
   CHAIN_APP_VAULT,
   EATERY_ROW_BODY,
   HUB_HOME_FALLBACK,
@@ -15,8 +17,20 @@ import {
   OPEN_LABEL
 } from './copy';
 import { EATOUT_SEARCH_HOME } from './eatoutUrls';
+import {
+  CHAT_HOME,
+  FINANCE_HOME,
+  PROPERTY_HOME,
+  TRADE_HOME,
+  VAULT_HOME,
+  appUsesHouseRedeem,
+  buildChatOpenUrl,
+  buildHouseAppOpenUrl
+} from './house-session/openUrl';
 import { buildOpenTheHouseUrl } from './ownerArrival';
-import { PROJECT_HOME, PROJECT_MODULE_KEY, ProjectOpenHandshake, buildProjectOpenUrl } from './projectUrls';
+import { PROJECT_MODULE_KEY, type ProjectOpenHandshake } from './projectUrls';
+
+export { CHAT_HOME, FINANCE_HOME, PROPERTY_HOME, TRADE_HOME, VAULT_HOME };
 
 export interface HubPlaceRow {
   id: string;
@@ -47,10 +61,12 @@ export function ownerPlaceKey(place: {
   );
 }
 
-export type ShopAppId = 'eatery' | 'eatout' | 'project' | 'farm' | 'reseller' | 'maker' | 'chat' | 'vault' | 'property';
+export type ShopAppId = 'eatery' | 'eatout' | 'project' | 'finance' | 'trade' | 'farm' | 'reseller' | 'maker' | 'chat' | 'vault' | 'property';
 
 export const EATOUT_MODULE_KEY = 'daup-eatout';
 export const CHAT_MODULE_KEY = 'daup-chat';
+export const FINANCE_MODULE_KEY = 'daup-finance';
+export const TRADE_MODULE_KEY = 'daup-trade';
 export const VAULT_MODULE_KEY = 'daup-vault';
 export const PROPERTY_MODULE_KEY = 'daup-property';
 export { PROJECT_MODULE_KEY };
@@ -129,6 +145,8 @@ export const SHOP_APPS: ShopApp[] = [
   { id: 'eatery', title: CHAIN_APP_EATERY, live: true, moduleKey: 'daup-eatery' },
   { id: 'eatout', title: CHAIN_APP_EATOUT, live: true, moduleKey: EATOUT_MODULE_KEY },
   { id: 'project', title: CHAIN_APP_PROJECT, live: true, moduleKey: PROJECT_MODULE_KEY },
+  { id: 'finance', title: CHAIN_APP_FINANCE, live: true, moduleKey: FINANCE_MODULE_KEY },
+  { id: 'trade', title: CHAIN_APP_TRADE, live: true, moduleKey: TRADE_MODULE_KEY },
   { id: 'vault', title: CHAIN_APP_VAULT, live: true, moduleKey: VAULT_MODULE_KEY },
   { id: 'chat', title: CHAIN_APP_CHAT, live: true, moduleKey: CHAT_MODULE_KEY },
   { id: 'property', title: CHAIN_APP_PROPERTY, live: true, moduleKey: PROPERTY_MODULE_KEY },
@@ -142,7 +160,7 @@ export const COMING_SHOP_APPS = SHOP_APPS.filter(app => !app.live);
 
 /** Apps pane IA: Social (top) then Paid. Coming apps stay Coming. */
 export const SOCIAL_SHOP_APP_IDS: ShopAppId[] = ['eatout', 'chat'];
-export const PAID_SHOP_APP_IDS: ShopAppId[] = ['eatery', 'project', 'vault', 'property', 'farm', 'reseller', 'maker'];
+export const PAID_SHOP_APP_IDS: ShopAppId[] = ['eatery', 'project', 'finance', 'trade', 'vault', 'property', 'farm', 'reseller', 'maker'];
 
 export const SOCIAL_SHOP_APPS = SOCIAL_SHOP_APP_IDS
   .map(id => SHOP_APPS.find(app => app.id === id))
@@ -187,27 +205,36 @@ export function shopAppIsHeld(app: ShopApp, held: {
   return Boolean(held.installed?.[app.moduleKey]);
 }
 
-/** Bare Open. homes. Same tab. No handshake query and no reachability check. */
-export const CHAT_HOME = 'https://chat.daup.co.za';
-export const VAULT_HOME = 'https://vault.daup.co.za';
-export const PROPERTY_HOME = 'https://property.daup.co.za';
-
 /**
- * EatOut Open. is search home. Project Open. is project.daup.co.za
- * (email + house → /d/hub with emailHint, houseHint, placeIdHint — see projectUrls.ts).
- * Chat Open. is chat.daup.co.za. Vault Open. is vault.daup.co.za.
- * Property Open. is property.daup.co.za.
- * Same-tab home only. Open still goes there if the host is briefly down.
+ * EatOut Open. is search home. Chat Open. is the chat host with no redeem.
+ * Finance, Trade, Vault, Project, and Property use house Open URLs
+ * (hints, and houseRedeem once the seed has issued one).
  * Eatery Open. stays a house button — never this href.
  */
 export function shopAppOpenHref(app: ShopApp, handshake?: ProjectOpenHandshake): string | undefined {
   if (!app.live) return undefined;
   if (app.id === 'eatout') return EATOUT_SEARCH_HOME;
-  if (app.id === 'project') return buildProjectOpenUrl(handshake) || PROJECT_HOME;
-  if (app.id === 'chat') return CHAT_HOME;
-  if (app.id === 'vault') return VAULT_HOME;
-  if (app.id === 'property') return PROPERTY_HOME;
+  if (app.id === 'chat') return buildChatOpenUrl();
+  if (appUsesHouseRedeem(app.id)) {
+    return buildHouseAppOpenUrl(app.id, {
+      email: handshake?.email,
+      house: handshake?.house,
+      placeIds: handshake?.placeIds,
+      houseRedeem: handshake?.houseRedeem
+    });
+  }
   return undefined;
+}
+
+/** Door click for a house app. Chat, EatOut, and Eatery keep their own hrefs. */
+export function interceptHouseRedeemClick(
+  app: ShopApp,
+  event: { preventDefault(): void },
+  onOpen: (app: ShopApp) => void
+): void {
+  if (!appUsesHouseRedeem(app.id)) return;
+  event.preventDefault();
+  onOpen(app);
 }
 
 /** Same-tab navigation. Does not ping the host first. */
@@ -235,8 +262,9 @@ export function navigateToPropertyHome(): string {
 }
 
 /**
- * Open. for a held Vault, Chat, or Property module. Other modules stay with their own doors.
- * Returns the URL after same-tab assign, or undefined when this key is not one of those.
+ * Bare same-tab host for Chat, Vault, or Property.
+ * Door Open. for Finance, Trade, Vault, Project, and Property issues a
+ * houseRedeem instead of calling this. Chat stays on this path.
  */
 export function launchHeldModule(moduleName: string): string | undefined {
   if (moduleName === CHAT_MODULE_KEY) return navigateToChatHome();
