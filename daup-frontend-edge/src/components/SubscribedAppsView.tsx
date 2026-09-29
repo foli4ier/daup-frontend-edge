@@ -106,7 +106,11 @@ export const SubscribedAppsView: React.FC<{
     }
     if (app.live && app.id === 'eatery') {
       if (!email.trim() || !houseName.trim()) return;
-      navigateToTheHouse({ email, house: houseName });
+      navigateToTheHouse({
+        email,
+        house: houseName,
+        placeIds: ownerRecords.map(place => (place.placeId || '').trim()).filter(Boolean)
+      });
       return;
     }
     if (app.live && (app.id === 'eatout' || app.id === 'project') && app.moduleKey) {
@@ -122,7 +126,7 @@ export const SubscribedAppsView: React.FC<{
   const handleOpen = (app: ShopApp, house = houseName, placeIds?: string[]) => {
     if (app.id === 'eatery') {
       if (!email.trim() || !house.trim()) return;
-      navigateToTheHouse({ email, house });
+      navigateToTheHouse({ email, house, placeIds });
       return;
     }
     if (app.id === 'eatout') {

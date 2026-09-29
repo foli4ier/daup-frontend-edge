@@ -142,7 +142,13 @@ const DashboardContent: React.FC = () => {
       const house = activeWallet?.legalName || instanceName || '';
       const email = ownerSession?.email || '';
       if (!email.trim() || !house.trim()) return;
-      navigateToTheHouse({ email, house });
+      navigateToTheHouse({
+        email,
+        house,
+        placeIds: listRegisteredPlaces()
+          .map(place => (place.placeId || '').trim())
+          .filter(Boolean)
+      });
       return;
     }
     if (moduleName === 'daup-eatout') {

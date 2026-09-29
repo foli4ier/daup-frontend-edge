@@ -8,7 +8,7 @@ Home was removed: it duplicated Places (**Open.** / **+ Register**) and Apps (**
 
 1. **Place context** — house name, city, email. No Advanced, Profile, or Log off.
 2. **Places (default)** — **Your places.** with **Open.** when a house is live, or **+ Register** when there is none. **On the chain.** sits under the bound place.
-3. **Get apps.** — LIVE: Eatery, EatOut, Project. Held app: **Open.** only (terracotta). Not held: one **Get.** as primary. Never Get.+Open. together. Project **Open.** is `https://project.daup.co.za` — or `/d/hub?token=` when Hub already has email + house (same owner arrival as Eatery; see `src/hub/projectUrls.ts`).
+3. **Get apps.** — LIVE: Eatery, EatOut, Project. Held app: **Open.** only (terracotta). Not held: one **Get.** as primary. Never Get.+Open. together. Project **Open.** is `https://project.daup.co.za` — or `/d/hub?emailHint=&houseHint=&placeIdHint=` when Hub already has email + house (prefill hints only, not a credential; see `src/hub/projectUrls.ts`).
 4. **Thumb nav** — Places / Apps / You
 
 Protocol stays off this surface. **You.** holds visible **Log off.**, then **Settings.** (**Register a new house.** / **Delete the house.** / **Ask for an enhancement.**), then Advanced.

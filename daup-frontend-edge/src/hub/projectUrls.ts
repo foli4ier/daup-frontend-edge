@@ -2,27 +2,24 @@
  * Hub → Project Open. query contract (first-run).
  *
  *   No house facts:  https://project.daup.co.za
- *   Email + house:   https://project.daup.co.za/d/hub?token=
+ *   Email + house:   https://project.daup.co.za/d/hub?emailHint=&houseHint=&placeIdHint=
  *
- * Token is the same DAUP1 owner arrival as Eatery Open the house
- * (email, house, role=owner). Query is token-only — never did / wallet / mcp.
- * Project first-run UI (separate PR) reads the token at /d/hub.
- *
- * Hub may also know owned place ids; those stay off this door URL. Project
- * can list them from the house after it consumes email from the token.
+ * Query params are non-authoritative hints (email prefill, house name, place
+ * ids). They are not a credential. Never did / wallet / mcp / token / email /
+ * places / hubPlaces. Project verifies place ownership after its own login.
  *
  * Advanced launch (`buildAppLaunchUrl`) is a different handshake and stays off Get apps.
  */
 
 import { getModuleEndpoint } from '../utils/envResolver';
-import { mintOwnerArrivalToken, ownerArrivalExposesBannedQuery } from './ownerArrival';
+import { appendAppHandoffHints, ownerArrivalExposesBannedQuery } from './ownerArrival';
 
 export const PROJECT_MODULE_KEY = 'daup-project';
 
 /** Production Open. home. Locked so Get apps cannot land on the hub or Eatery. */
 export const PROJECT_HOME = 'https://project.daup.co.za';
 
-/** Project consumes the hub owner token here. */
+/** Project first-run path. Query is hints only, not a credential. */
 export const PROJECT_HUB_PATH = '/d/hub';
 
 export interface ProjectOpenHandshake {
@@ -30,7 +27,6 @@ export interface ProjectOpenHandshake {
   house?: string;
   instance?: string;
   placeIds?: string[];
-  now?: Date;
 }
 
 export function projectOrigin(origin?: string): string {
@@ -61,7 +57,6 @@ export function projectOpenHandshakeFromHub(args: {
   house?: string;
   instance?: string;
   placeIds?: string[];
-  now?: Date;
 }): ProjectOpenHandshake {
   const email = (args.email || '').trim().toLowerCase();
   const house = (args.house || '').trim();
@@ -71,22 +66,27 @@ export function projectOpenHandshakeFromHub(args: {
     ...(email ? { email } : {}),
     ...(house ? { house } : {}),
     ...(instance ? { instance } : {}),
-    ...(placeIds.length ? { placeIds } : {}),
-    ...(args.now ? { now: args.now } : {})
+    ...(placeIds.length ? { placeIds } : {})
   };
 }
 
 /**
  * Hub Open. deep-link.
- * Email + house → /d/hub?token= (same arrival as Eatery). Else PROJECT_HOME.
+ * Email + house → /d/hub with hint params only. Else PROJECT_HOME.
+ * Missing hints still open Project; Project does not need a token.
  */
 export function buildProjectOpenUrl(handshake?: ProjectOpenHandshake, origin?: string): string {
   const email = (handshake?.email || '').trim().toLowerCase();
   const house = (handshake?.house || '').trim();
   const base = (origin || PROJECT_HOME).replace(/\/+$/, '');
   if (!email || !house) return origin ? base : PROJECT_HOME;
-  const token = mintOwnerArrivalToken({ email, house, now: handshake?.now });
-  return `${base}${PROJECT_HUB_PATH}?token=${encodeURIComponent(token)}`;
+  const url = new URL(`${base}${PROJECT_HUB_PATH}`);
+  appendAppHandoffHints(url, {
+    email,
+    house,
+    placeIds: handshake?.placeIds
+  });
+  return url.toString();
 }
 
 export function projectOpenHitsHubOrEatery(url: string): boolean {

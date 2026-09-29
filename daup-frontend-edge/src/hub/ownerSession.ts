@@ -1,4 +1,4 @@
-import { persistOwnerCookie, mintOwnerArrivalToken, readOwnerArrivalToken, readOwnerCookie, expireOwnerCookie } from './ownerArrival';
+import { expireOwnerCookie } from './ownerArrival';
 import { INVALID_EMAIL_MESSAGE } from './copy';
 
 export const OWNER_SESSION_STORAGE_KEY = 'daup:hub:owner_session';
@@ -13,8 +13,7 @@ export function normalizeOwnerEmail(email: string): string {
 }
 
 export function isRegisteredOwnerEmail(email: string): boolean {
-  const value = normalizeOwnerEmail(email);
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeOwnerEmail(email));
 }
 
 export function readOwnerSession(raw: string | null): OwnerSession | null {
@@ -44,23 +43,23 @@ export function clearOwnerSession(): void {
   } catch {
     // ignore
   }
-  expireOwnerCookie();
+  retireOwnerArrivalCookie();
 }
 
+/**
+ * Email the person typed on the hub door, stored in localStorage.
+ * The legacy daup_owner cookie is not a session and is not read.
+ * Previously this restored claims.email from that cookie after checking
+ * its pepper hash — that was treating a forgeable token as identity.
+ */
 export function loadOwnerSession(): OwnerSession | null {
+  retireOwnerArrivalCookie();
   if (typeof window === 'undefined') return null;
   try {
-    const stored = readOwnerSession(localStorage.getItem(OWNER_SESSION_STORAGE_KEY));
-    if (stored) return stored;
+    return readOwnerSession(localStorage.getItem(OWNER_SESSION_STORAGE_KEY));
   } catch {
-    // fall through to cookie
+    return null;
   }
-  const cookieToken = readOwnerCookie();
-  const claims = readOwnerArrivalToken(cookieToken || undefined);
-  if (claims?.email) {
-    return { email: claims.email, signedInAt: Date.now() };
-  }
-  return null;
 }
 
 export function signInWithEmail(
@@ -75,14 +74,8 @@ export function signInWithEmail(
     signedInAt: now.getTime()
   };
   saveOwnerSession(session);
+  retireOwnerArrivalCookie();
   return { ok: true, session };
-}
-
-export function writeOwnerCompanionCookie(email: string, house = ''): void {
-  // Host-only on the hub. Never Domain=.daup.co.za. Handoff is the token URL.
-  if (!house.trim() || !isRegisteredOwnerEmail(email)) return;
-  const token = mintOwnerArrivalToken({ email, house });
-  persistOwnerCookie(token);
 }
 
 export type HubSurface = 'email-door' | 'wizard' | 'home';
@@ -99,9 +92,14 @@ export function resolveHubSurface(args: {
   return 'home';
 }
 
-/** Drop the host-only house cookie. Keep the signed-in email session. */
-export function clearHouseCompanionCookie(): void {
+/** Drop the legacy host-only house cookie. Keep the typed email session. */
+export function retireOwnerArrivalCookie(): void {
   expireOwnerCookie();
+}
+
+/** Drop the legacy host-only house cookie. Keep the typed email session. */
+export function clearHouseCompanionCookie(): void {
+  retireOwnerArrivalCookie();
 }
 
 export function hasNamedHouse(placeName?: string | null): boolean {

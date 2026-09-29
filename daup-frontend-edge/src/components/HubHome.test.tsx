@@ -50,7 +50,7 @@ import {
   subscribedCountLabel
 } from '../hub/copy';
 import { App } from '../App';
-import { persistOwnerCookie, mintOwnerArrivalToken, readOwnerArrivalToken, buildOpenTheHouseUrl, cookieSetsParentDomain, expireOwnerCookie } from '../hub/ownerArrival';
+import { HANDOFF_EMAIL_HINT, HANDOFF_HOUSE_HINT, buildOpenTheHouseUrl, cookieSetsParentDomain, expireOwnerCookie, handoffPresentsCredential } from '../hub/ownerArrival';
 import { loadSeednodeForPlace, ON_PREM_SEED_ENDPOINT } from '../hub/seednode';
 
 const houseVault: UserIdentityVault = {
@@ -398,11 +398,12 @@ describe('hub home after email', () => {
     expect(container.querySelector('[data-testid="place-apps"]')).toBeTruthy();
     const eateryOpen = container.querySelector('[data-testid="open-place-app-eatery"]') as HTMLAnchorElement | null;
     const href = eateryOpen?.getAttribute('href') || '';
-    expect(href).toMatch(/\/owner\?token=/);
-    const token = new URL(href, 'https://eatery.daup.co.za').searchParams.get('token') || '';
-    const claims = readOwnerArrivalToken(token);
-    expect(claims?.house).toBe('The Olive');
-    expect(claims?.email).toBe('owner@theolive.co.za');
+    const hints = new URL(href, 'https://eatery.daup.co.za');
+    expect(hints.pathname).toBe('/owner');
+    expect(hints.searchParams.get(HANDOFF_EMAIL_HINT)).toBe('owner@theolive.co.za');
+    expect(hints.searchParams.get(HANDOFF_HOUSE_HINT)).toBe('The Olive');
+    expect(hints.searchParams.has('token')).toBe(false);
+    expect(handoffPresentsCredential(href)).toBe(false);
     expect(container.textContent).not.toMatch(/\b(peer|node|DID|DHT|wallet|MCP|npm|hydrate|neon)\b/i);
     expect(container.textContent).not.toMatch(/seednode/i);
     expect(container.textContent).not.toContain('co_');
@@ -884,11 +885,11 @@ describe('hub home after email', () => {
     const parsed = new URL(href);
     expect(parsed.origin).toBe('https://project.daup.co.za');
     expect(parsed.pathname).toBe('/d/hub');
-    expect([...parsed.searchParams.keys()]).toEqual(['token']);
-    const claims = readOwnerArrivalToken(parsed.searchParams.get('token') || '');
-    expect(claims?.email).toBe('owner@theolive.co.za');
-    expect(claims?.house).toBe('The Olive');
-    expect(href).not.toMatch(/[?&](did|walletName|instance|mcp|email|house)=/i);
+    expect(parsed.searchParams.get(HANDOFF_EMAIL_HINT)).toBe('owner@theolive.co.za');
+    expect(parsed.searchParams.get(HANDOFF_HOUSE_HINT)).toBe('The Olive');
+    expect(parsed.searchParams.has('token')).toBe(false);
+    expect(handoffPresentsCredential(href)).toBe(false);
+    expect(href).not.toMatch(/[?&](did|walletName|instance|mcp|email|house|token)=/i);
     expect(href).not.toMatch(/eatery\.daup\.co\.za|\/owner|app\.daup\.co\.za/i);
     expect(open?.getAttribute('target')).toBe('_self');
     expect(open?.className).toContain('btn-primary');
@@ -1053,10 +1054,7 @@ describe('hub home after email', () => {
     });
     localStorage.setItem(HUB_INSTALLED_APPS_KEY, JSON.stringify({ 'daup-eatout': true }));
     sessionStorage.setItem('daup:hub:scratch', '1');
-    persistOwnerCookie(
-      mintOwnerArrivalToken({ email: 'owner@theolive.co.za', house: 'The Olive' }),
-      'localhost'
-    );
+    document.cookie = 'daup_owner=legacy-owner-token; Path=/';
     const { container, unmount } = render(<App />);
 
     await act(async () => {
@@ -1347,10 +1345,7 @@ describe('delete and register a house from hub home', () => {
       }
     });
 
-    persistOwnerCookie(
-      mintOwnerArrivalToken({ email: 'owner@theolive.co.za', house: 'The Olive' }),
-      'localhost'
-    );
+    document.cookie = 'daup_owner=legacy-owner-token; Path=/';
 
     const { container, unmount } = render(<App />);
     await act(async () => {
@@ -1433,10 +1428,11 @@ describe('delete and register a house from hub home', () => {
     });
     const eateryOpen = container.querySelector('[data-testid="open-place-app-eatery"]') as HTMLAnchorElement;
     const href = eateryOpen?.getAttribute('href') || '';
-    const token = new URL(href, 'https://eatery.daup.co.za').searchParams.get('token') || '';
-    const claims = readOwnerArrivalToken(token);
-    expect(claims?.email).toBe('owner@theolive.co.za');
-    expect(claims?.house).toBe('The Olive');
+    const hints = new URL(href, 'https://eatery.daup.co.za');
+    expect(hints.searchParams.get(HANDOFF_EMAIL_HINT)).toBe('owner@theolive.co.za');
+    expect(hints.searchParams.get(HANDOFF_HOUSE_HINT)).toBe('The Olive');
+    expect(hints.searchParams.has('token')).toBe(false);
+    expect(handoffPresentsCredential(href)).toBe(false);
     expect(buildOpenTheHouseUrl({
       email: 'owner@theolive.co.za',
       house: '',

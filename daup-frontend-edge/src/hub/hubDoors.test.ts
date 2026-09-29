@@ -34,20 +34,19 @@ import {
   houseNameMatchesConfirm
 } from './copy';
 import {
+  HANDOFF_EMAIL_HINT,
+  HANDOFF_HOUSE_HINT,
+  HANDOFF_PLACE_ID_HINT,
   buildExpireOwnerCookie,
   buildOpenTheHouseUrl,
-  buildOwnerHubCookie,
   cookieSetsParentDomain,
-  mintOwnerArrivalToken,
-  OWNER_ARRIVAL_PEPPER,
-  ownerArrivalExposesBannedQuery,
-  persistOwnerCookie,
-  readOwnerArrivalToken,
-  readOwnerCookie
+  handoffPresentsCredential,
+  ownerArrivalExposesBannedQuery
 } from './ownerArrival';
 import {
   clearOwnerSession,
   isRegisteredOwnerEmail,
+  loadOwnerSession,
   resolveHubSurface,
   signInWithEmail,
   OWNER_SESSION_STORAGE_KEY
@@ -212,61 +211,75 @@ describe('hub surface', () => {
 });
 
 describe('Open the house arrival', () => {
-  it('navigates to eatery.daup.co.za/owner with a signed token', () => {
-    expect(OWNER_ARRIVAL_PEPPER).toBe('daup-hub-owner-arrival-v1');
+  it('navigates to eatery.daup.co.za/owner with hints, not a token', () => {
     const url = buildOpenTheHouseUrl({
       email: 'foli4ier@gmail.com',
       house: 'Kortrijk',
+      placeId: 'place-kortrijk',
       origin: 'https://eatery.daup.co.za'
     });
     const parsed = new URL(url);
     expect(parsed.origin).toBe('https://eatery.daup.co.za');
     expect(parsed.pathname).toBe('/owner');
-    expect([...parsed.searchParams.keys()]).toEqual(['token']);
+    expect([...parsed.searchParams.keys()]).toEqual([
+      HANDOFF_EMAIL_HINT,
+      HANDOFF_HOUSE_HINT,
+      HANDOFF_PLACE_ID_HINT
+    ]);
+    expect(parsed.searchParams.get(HANDOFF_EMAIL_HINT)).toBe('foli4ier@gmail.com');
+    expect(parsed.searchParams.get(HANDOFF_HOUSE_HINT)).toBe('Kortrijk');
+    expect(parsed.searchParams.get(HANDOFF_PLACE_ID_HINT)).toBe('place-kortrijk');
+    expect(parsed.searchParams.has('token')).toBe(false);
     expect(ownerArrivalExposesBannedQuery(url)).toBe(false);
-
-    const claims = readOwnerArrivalToken(parsed.searchParams.get('token') || '');
-    expect(claims?.email).toBe('foli4ier@gmail.com');
-    expect(claims?.house).toBe('Kortrijk');
-    expect(claims?.role).toBe('owner');
+    expect(handoffPresentsCredential(url)).toBe(false);
+    expect(url).not.toContain('daup-hub-owner-arrival-v1');
   });
 
-  it('never mints an arrival with an empty email or house', () => {
-    expect(() => mintOwnerArrivalToken({ email: '', house: 'Kortrijk' })).toThrow();
-    expect(() => mintOwnerArrivalToken({ email: 'foli4ier@gmail.com', house: '' })).toThrow();
+  it('never opens the house with an empty email or house', () => {
     expect(buildOpenTheHouseUrl({
       email: '',
       house: 'Kortrijk',
       origin: 'https://eatery.daup.co.za'
     })).toBe('');
+    expect(buildOpenTheHouseUrl({
+      email: 'foli4ier@gmail.com',
+      house: '',
+      origin: 'https://eatery.daup.co.za'
+    })).toBe('');
   });
 
-  it('rejects a tampered or expired arrival', () => {
-    const token = mintOwnerArrivalToken({
-      email: 'owner@theolive.co.za',
-      house: 'The Olive',
-      now: new Date('2026-01-01T00:00:00Z'),
-      ttlMs: 1000
-    });
-    expect(readOwnerArrivalToken(token, new Date('2026-01-01T00:00:02Z'))).toBeNull();
-    expect(readOwnerArrivalToken(token.slice(0, -2) + 'xx')).toBeNull();
+  it('does not ship the owner-arrival pepper or a signer', () => {
+    const dir = dirname(fileURLToPath(import.meta.url));
+    const combined = ['ownerArrival.ts', 'ownerSession.ts', 'projectUrls.ts', 'places.ts']
+      .map(name => readFileSync(join(dir, name), 'utf8'))
+      .join('\n');
+    expect(combined).not.toContain('daup-hub-owner-arrival-v1');
+    expect(combined).not.toContain('DAUP1');
+    expect(combined).not.toContain('signArrival');
+    expect(combined).not.toContain('mintOwnerArrivalToken');
+    expect(combined).not.toContain('persistOwnerCookie');
   });
 
-  it('writes a host-only hub cookie, never Domain=.daup.co.za', () => {
-    const token = mintOwnerArrivalToken({ email: 'owner@theolive.co.za', house: 'The Olive' });
-    persistOwnerCookie(token, 'localhost');
-    expect(document.cookie).toContain('daup_owner=');
-    expect(readOwnerCookie()).toBe(token);
+  it('does not treat daup_owner as a signed-in session, and expires it without Domain', () => {
+    localStorage.clear();
+    document.cookie = 'daup_owner=forged-owner-token; Path=/';
+    expect(loadOwnerSession()).toBeNull();
+    expect(document.cookie).not.toContain('daup_owner=forged-owner-token');
 
-    const live = buildOwnerHubCookie(token, 'app.daup.co.za');
-    expect(live).toBeTruthy();
+    const live = buildExpireOwnerCookie('app.daup.co.za');
     expect(live).toContain('Secure');
-    expect(cookieSetsParentDomain(live || '')).toBe(false);
+    expect(live).toContain('Max-Age=0');
+    expect(cookieSetsParentDomain(live)).toBe(false);
     expect(live).not.toMatch(/Domain=/i);
-
-    expect(buildOwnerHubCookie(token, 'www.daup.co.za')).toBeNull();
-    expect(buildOwnerHubCookie(token, 'eatery.daup.co.za')).toBeNull();
     expect(cookieSetsParentDomain('daup_owner=x; Domain=.daup.co.za; Path=/')).toBe(true);
+
+    localStorage.setItem(OWNER_SESSION_STORAGE_KEY, JSON.stringify({
+      email: 'owner@theolive.co.za',
+      signedInAt: 1
+    }));
+    document.cookie = 'daup_owner=forged-owner-token; Path=/';
+    expect(loadOwnerSession()?.email).toBe('owner@theolive.co.za');
+    expect(document.cookie).not.toContain('daup_owner=forged-owner-token');
   });
 
   it('expires daup_owner with Max-Age=0, Path=/, and no Domain', () => {
@@ -299,7 +312,7 @@ describe('Open the house arrival', () => {
     expect(writes.every(write => !/Domain=/i.test(write))).toBe(true);
   });
 
-  it('does not write a cookie to build Open the house; the token URL is the handoff', () => {
+  it('does not write a cookie to build Open the house; the hint URL is the handoff', () => {
     const writes: string[] = [];
     Object.defineProperty(document, 'cookie', {
       configurable: true,
@@ -319,7 +332,8 @@ describe('Open the house arrival', () => {
     const parsed = new URL(url);
     expect(parsed.origin).toBe('https://eatery.daup.co.za');
     expect(parsed.pathname).toBe('/owner');
-    expect([...parsed.searchParams.keys()]).toEqual(['token']);
+    expect([...parsed.searchParams.keys()]).toEqual([HANDOFF_EMAIL_HINT, HANDOFF_HOUSE_HINT]);
+    expect(handoffPresentsCredential(url)).toBe(false);
   });
 
   it('Open the house navigation does not persist a cookie', async () => {
@@ -346,7 +360,9 @@ describe('eatery row on hub home', () => {
     expect(rows[0].status).toBe('LIVE');
     expect(rows[0].actionLabel).toBe(OPEN_LABEL);
     expect(rows[0].placeKey).toBe('The Olive');
-    expect(rows[0].href).toMatch(/^https:\/\/eatery\.daup\.co\.za\/owner\?token=/);
+    expect(rows[0].href).toMatch(/^https:\/\/eatery\.daup\.co\.za\/owner\?emailHint=/);
+    expect(rows[0].href).not.toMatch(/[?&]token=/);
+    expect(handoffPresentsCredential(rows[0].href || '')).toBe(false);
     expect(hasBannedDoorCopy(rows[0].title + rows[0].city + rows[0].status + (rows[0].actionLabel || ''))).toBe(false);
   });
 });
