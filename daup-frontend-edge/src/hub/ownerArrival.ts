@@ -1,102 +1,74 @@
 /**
- * Hub → eatery handoff.
+ * Hub → app handoff hints.
  *
- * The Open the house tap is a short-lived signed arrival:
- * https://eatery.daup.co.za/owner?token=
- * (same DAUP1 envelope as Floor WhatsApp invites). Query is token-only.
+ * Open the house and Get into Project used to carry a browser-minted
+ * owner-arrival token (a hash over a public pepper). That token is not a
+ * credential. These URLs pass only non-authoritative hints: an email prefill,
+ * a house name, and place ids. Apps must not treat them as proof of identity
+ * or ownership.
  *
  * Never set Domain=.daup.co.za. www.daup.co.za has no cookies.
- * A hub session cookie, if written, is host-only on app.daup.co.za.
- * Eatery may set its own host-only cookie after it consumes the token.
+ * The legacy host-only `daup_owner` cookie is expired and never rewritten.
  */
 
 import { getModuleEndpoint } from '../utils/envResolver';
 
-export const OWNER_ARRIVAL_PEPPER = 'daup-hub-owner-arrival-v1';
-export const OWNER_ARRIVAL_TTL_MS = 15 * 60 * 1000;
 export const OWNER_COOKIE_NAME = 'daup_owner';
-export const OWNER_COOKIE_MAX_AGE = 60 * 60 * 24;
 
-export interface OwnerArrivalClaims {
-  v: 1;
-  role: 'owner';
-  email: string;
-  house: string;
-  exp: number;
+/** Query keys that are UX hints only. Not a session, role, or ownership grant. */
+export const HANDOFF_EMAIL_HINT = 'emailHint';
+export const HANDOFF_HOUSE_HINT = 'houseHint';
+export const HANDOFF_PLACE_ID_HINT = 'placeIdHint';
+
+const CREDENTIAL_QUERY_KEYS = new Set([
+  'token',
+  'email',
+  'places',
+  'hubplaces',
+  'role',
+  'daup_owner',
+  'daup1'
+]);
+
+export interface AppHandoffHints {
+  email?: string;
+  house?: string;
+  placeIds?: string[];
 }
 
-function utf8ToB64url(text: string): string {
-  const bytes = new TextEncoder().encode(text);
-  let binary = '';
-  bytes.forEach(byte => {
-    binary += String.fromCharCode(byte);
-  });
-  const b64 = btoa(binary);
-  return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
-}
-
-function b64urlToUtf8(value: string): string {
-  const padded = value + '==='.slice((value.length + 3) % 4);
-  const b64 = padded.replace(/-/g, '+').replace(/_/g, '/');
-  const binary = atob(b64);
-  const bytes = Uint8Array.from(binary, ch => ch.charCodeAt(0));
-  return new TextDecoder().decode(bytes);
-}
-
-function signArrival(headerAndPayload: string): string {
-  const raw = `${OWNER_ARRIVAL_PEPPER}.${headerAndPayload}`;
-  let h1 = 0x811c9dc5;
-  let h2 = 0x27d4eb2f;
-  for (let i = 0; i < raw.length; i++) {
-    const char = raw.charCodeAt(i);
-    h1 ^= char;
-    h1 = Math.imul(h1, 0x01000193);
-    h2 ^= char;
-    h2 = Math.imul(h2, 0x000001b3);
+export function handoffHintPlaceIds(placeIds?: string[]): string[] {
+  const seen = new Set<string>();
+  const ids: string[] = [];
+  for (const raw of placeIds || []) {
+    const id = (raw || '').trim();
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    ids.push(id);
   }
-  return utf8ToB64url(`${(h1 >>> 0).toString(16).padStart(8, '0')}${(h2 >>> 0).toString(16).padStart(8, '0')}`);
+  return ids;
 }
 
-export function mintOwnerArrivalToken(args: {
-  email: string;
-  house: string;
-  now?: Date;
-  ttlMs?: number;
-}): string {
-  const email = (args.email || '').trim().toLowerCase();
-  const house = (args.house || '').trim();
-  if (!email || !house) {
-    throw new Error('Open the house needs the house email.');
+/** Append hint params. Never writes token, email, places, or hubPlaces. */
+export function appendAppHandoffHints(url: URL, hints: AppHandoffHints): void {
+  const email = (hints.email || '').trim().toLowerCase();
+  const house = (hints.house || '').trim();
+  if (email) url.searchParams.set(HANDOFF_EMAIL_HINT, email);
+  if (house) url.searchParams.set(HANDOFF_HOUSE_HINT, house);
+  for (const id of handoffHintPlaceIds(hints.placeIds)) {
+    url.searchParams.append(HANDOFF_PLACE_ID_HINT, id);
   }
-  const now = args.now ?? new Date();
-  const ttl = args.ttlMs ?? OWNER_ARRIVAL_TTL_MS;
-  const payload: OwnerArrivalClaims = {
-    v: 1,
-    role: 'owner',
-    email,
-    house,
-    exp: now.getTime() + ttl
-  };
-  const header = utf8ToB64url(JSON.stringify({ alg: 'DAUP1', typ: 'JWT' }));
-  const body = utf8ToB64url(JSON.stringify(payload));
-  return `${header}.${body}.${signArrival(`${header}.${body}`)}`;
 }
 
-export function readOwnerArrivalToken(token?: string, now: Date = new Date()): OwnerArrivalClaims | null {
-  if (!token) return null;
-  const parts = token.trim().split('.');
-  if (parts.length !== 3) return null;
-  const [header, body, sig] = parts;
-  if (!header || !body || !sig) return null;
-  if (signArrival(`${header}.${body}`) !== sig) return null;
+/** True when a handoff URL still carries a credential-shaped query param. */
+export function handoffPresentsCredential(url: string): boolean {
   try {
-    const payload = JSON.parse(b64urlToUtf8(body)) as OwnerArrivalClaims;
-    if (payload.v !== 1 || payload.role !== 'owner') return null;
-    if (!payload.email || !payload.house) return null;
-    if (typeof payload.exp !== 'number' || payload.exp <= now.getTime()) return null;
-    return payload;
+    const parsed = new URL(url, 'https://app.daup.co.za');
+    for (const key of parsed.searchParams.keys()) {
+      if (CREDENTIAL_QUERY_KEYS.has(key.toLowerCase())) return true;
+    }
+    return false;
   } catch {
-    return null;
+    return /[?&](token|email|places|hubPlaces|role|daup_owner|daup1)=/i.test(url);
   }
 }
 
@@ -105,19 +77,28 @@ export function eateryOwnerOrigin(moduleEndpoint?: string): string {
   return raw;
 }
 
-/** Full navigation target. Token-only query. Owner and house already known. */
+/**
+ * Eatery owner door. Email + house required so an empty handoff is not opened.
+ * Query is hints only.
+ */
 export function buildOpenTheHouseUrl(args: {
   email: string;
   house: string;
-  now?: Date;
+  placeId?: string;
+  placeIds?: string[];
   origin?: string;
 }): string {
   const email = (args.email || '').trim();
   const house = (args.house || '').trim();
   if (!email || !house) return '';
-  const token = mintOwnerArrivalToken({ email, house, now: args.now });
   const origin = eateryOwnerOrigin(args.origin);
-  return `${origin}/owner?token=${encodeURIComponent(token)}`;
+  const url = new URL(`${origin}/owner`);
+  appendAppHandoffHints(url, {
+    email,
+    house,
+    placeIds: [args.placeId || '', ...(args.placeIds || [])]
+  });
+  return url.toString();
 }
 
 export function ownerArrivalExposesBannedQuery(url: string): boolean {
@@ -144,40 +125,9 @@ export function cookieSetsParentDomain(header: string): boolean {
 }
 
 /**
- * Host-only hub cookie. Omit Domain entirely so www.daup.co.za stays cookieless.
- * Returns null on www / eatery — this PR does not write there.
- */
-export function buildOwnerHubCookie(token: string, hostname?: string): string | null {
-  const host = hostname ?? (typeof window !== 'undefined' ? window.location.hostname : '');
-  if (host === 'www.daup.co.za' || host === 'eatery.daup.co.za') {
-    return null;
-  }
-  const parts = [
-    `${OWNER_COOKIE_NAME}=${encodeURIComponent(token)}`,
-    'Path=/',
-    `Max-Age=${OWNER_COOKIE_MAX_AGE}`,
-    'SameSite=Lax'
-  ];
-  if (host === 'app.daup.co.za') {
-    parts.push('Secure');
-  }
-  const header = parts.join('; ');
-  if (cookieSetsParentDomain(header)) {
-    return null;
-  }
-  return header;
-}
-
-export function persistOwnerCookie(token: string, hostname?: string): void {
-  if (typeof document === 'undefined') return;
-  const header = buildOwnerHubCookie(token, hostname);
-  if (!header) return;
-  document.cookie = header;
-}
-
-/**
- * Expire the host-only hub cookie. Max-Age=0, Path=/, never Domain.
+ * Expire the legacy host-only hub cookie. Max-Age=0, Path=/, never Domain.
  * Must match how it was written so the browser actually drops it.
+ * This is the only daup_owner write the Hub still performs.
  */
 export function buildExpireOwnerCookie(hostname?: string): string {
   const host = hostname ?? (typeof window !== 'undefined' ? window.location.hostname : '');
@@ -204,20 +154,14 @@ export function expireOwnerCookie(hostname?: string): void {
   document.cookie = header;
 }
 
-export function readOwnerCookie(cookieHeader?: string): string | null {
-  const raw = cookieHeader ?? (typeof document !== 'undefined' ? document.cookie : '');
-  if (!raw) return null;
-  const match = raw.split(';').map(part => part.trim()).find(part => part.startsWith(`${OWNER_COOKIE_NAME}=`));
-  if (!match) return null;
-  try {
-    return decodeURIComponent(match.slice(OWNER_COOKIE_NAME.length + 1));
-  } catch {
-    return null;
-  }
-}
-
-/** Full navigation. Token URL is the handoff — no cookie write. */
-export function navigateToTheHouse(args: { email: string; house: string; origin?: string }): string {
+/** Full navigation. Hint URL is the handoff — no cookie write. */
+export function navigateToTheHouse(args: {
+  email: string;
+  house: string;
+  placeId?: string;
+  placeIds?: string[];
+  origin?: string;
+}): string {
   const url = buildOpenTheHouseUrl(args);
   if (!url) return '';
   if (typeof window !== 'undefined') {

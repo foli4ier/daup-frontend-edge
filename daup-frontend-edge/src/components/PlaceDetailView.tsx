@@ -123,7 +123,11 @@ export function PlaceDetailView({
   const apps = SHOP_APPS.filter(app => app.id !== 'eatout' && enabledApps.includes(app.id));
   const heldApps = new Set(enabledApps);
   const eateryHref = email
-    ? buildOpenTheHouseUrl({ email, house: place.placeName })
+    ? buildOpenTheHouseUrl({
+        email,
+        house: place.placeName,
+        placeId: openedPlaceId
+      })
     : undefined;
 
   const chooseMode = (next: SeednodeMode) => {

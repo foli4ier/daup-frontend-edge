@@ -129,6 +129,6 @@ export function publicPlaceUrlHitsOwnerFloor(url: string): boolean {
     const hitsOwnerPath = path === '/owner' || path.startsWith('/owner/');
     return hitsEateryOwner || (host !== new URL(DEFAULT_EATOUT_ORIGIN).hostname && hitsOwnerPath && host.includes('eatery'));
   } catch {
-    return /eatery\.daup\.co\.za\/owner/i.test(url) || /\/owner\?token=/i.test(url);
+    return /eatery\.daup\.co\.za\/owner/i.test(url) || /\/owner\?/i.test(url);
   }
 }

@@ -12,7 +12,13 @@ import {
   projectOpenHitsHubOrEatery
 } from './projectUrls';
 import { getModuleEndpoint } from '../utils/envResolver';
-import { ownerArrivalExposesBannedQuery, readOwnerArrivalToken } from './ownerArrival';
+import {
+  HANDOFF_EMAIL_HINT,
+  HANDOFF_HOUSE_HINT,
+  HANDOFF_PLACE_ID_HINT,
+  handoffPresentsCredential,
+  ownerArrivalExposesBannedQuery
+} from './ownerArrival';
 
 describe('Project Open. URLs', () => {
   it('Open. home is exactly https://project.daup.co.za without handshake', () => {
@@ -31,7 +37,7 @@ describe('Project Open. URLs', () => {
     expect(OPEN_LABEL).toBe('Open.');
   });
 
-  it('email + house Open. is /d/hub?token= only, same arrival as Eatery', () => {
+  it('email + house Open. is /d/hub with hint params only', () => {
     const handshake = projectOpenHandshakeFromHub({
       email: 'Owner@TheOlive.co.za',
       house: 'The Olive',
@@ -43,18 +49,30 @@ describe('Project Open. URLs', () => {
     const parsed = new URL(href);
     expect(parsed.origin).toBe('https://project.daup.co.za');
     expect(parsed.pathname).toBe('/d/hub');
-    expect([...parsed.searchParams.keys()]).toEqual(['token']);
+    expect([...parsed.searchParams.keys()]).toEqual([
+      HANDOFF_EMAIL_HINT,
+      HANDOFF_HOUSE_HINT,
+      HANDOFF_PLACE_ID_HINT
+    ]);
+    expect(parsed.searchParams.get(HANDOFF_EMAIL_HINT)).toBe('owner@theolive.co.za');
+    expect(parsed.searchParams.get(HANDOFF_HOUSE_HINT)).toBe('The Olive');
+    expect(parsed.searchParams.get(HANDOFF_PLACE_ID_HINT)).toBe('place-olive');
+    expect(parsed.searchParams.has('token')).toBe(false);
+    expect(handoffPresentsCredential(href)).toBe(false);
     expect(projectOpenExposesBannedQuery(href)).toBe(false);
     expect(ownerArrivalExposesBannedQuery(href)).toBe(false);
-    expect(href).not.toMatch(/[?&](did|walletName|instance|mcp|email|house|place)=/i);
-    const claims = readOwnerArrivalToken(parsed.searchParams.get('token') || '');
-    expect(claims?.email).toBe('owner@theolive.co.za');
-    expect(claims?.house).toBe('The Olive');
-    expect(claims?.role).toBe('owner');
+    expect(href).not.toMatch(/[?&](did|walletName|instance|mcp|email|house|place|token|places|hubPlaces)=/i);
+    expect(href).not.toContain('daup-hub-owner-arrival-v1');
     expect(projectOpenHitsHubOrEatery(href)).toBe(false);
   });
 
-  it('never mints a Project arrival without email and house', () => {
+  it('still opens Project with no handshake, so a missing token does not block Open.', () => {
+    expect(buildProjectOpenUrl()).toBe(PROJECT_HOME);
+    expect(buildProjectOpenUrl({ email: 'you@gmail.com', house: 'The Olive' })).toContain('/d/hub?');
+    expect(buildProjectOpenUrl({ email: 'you@gmail.com', house: 'The Olive' })).not.toMatch(/[?&]token=/);
+  });
+
+  it('never opens a Project handoff without email and house', () => {
     expect(buildProjectOpenUrl({ email: '', house: 'The Olive' })).toBe(PROJECT_HOME);
     expect(buildProjectOpenUrl({ email: 'you@gmail.com', house: '' })).toBe(PROJECT_HOME);
   });

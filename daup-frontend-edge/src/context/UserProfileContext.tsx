@@ -44,8 +44,8 @@ import {
   clearOwnerSession,
   hasNamedHouse,
   loadOwnerSession,
-  saveOwnerSession,
-  writeOwnerCompanionCookie
+  retireOwnerArrivalCookie,
+  saveOwnerSession
 } from '../hub/ownerSession';
 import { bindCompanyId, normalizeEnabledApps, primaryChainApp, type EnableableAppId } from '../hub/companyNode';
 import {
@@ -139,7 +139,7 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
     setVault(next);
     const house = (next.activeWallet?.legalName || '').trim();
     if (email && house) {
-      writeOwnerCompanionCookie(email, house);
+      retireOwnerArrivalCookie();
     }
     return next;
   }, []);
@@ -815,7 +815,7 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
 
     if (email && house && !addingAnother) {
-      writeOwnerCompanionCookie(email, house);
+      retireOwnerArrivalCookie();
     }
 
     if (email && house) {

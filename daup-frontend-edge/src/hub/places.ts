@@ -92,6 +92,7 @@ export function listOwnerPlaces(args: {
       ? buildOpenTheHouseUrl({
           email,
           house: title,
+          placeId: record.placeId,
           origin: args.origin
         })
       : undefined;
@@ -193,7 +194,7 @@ export const PROPERTY_HOME = 'https://property.daup.co.za';
 
 /**
  * EatOut Open. is search home. Project Open. is project.daup.co.za
- * (email + house → /d/hub?token= — see projectUrls.ts).
+ * (email + house → /d/hub with emailHint, houseHint, placeIdHint — see projectUrls.ts).
  * Chat Open. is chat.daup.co.za. Vault Open. is vault.daup.co.za.
  * Property Open. is property.daup.co.za.
  * Same-tab home only. Open still goes there if the host is briefly down.

@@ -27,7 +27,7 @@ House **The Olive** on this hub.
 - Context: The Olive · Stellenbosch · email
 - Home **Open.** is the terracotta primary
 - **Get apps.**: Eatery **Open.** · EatOut **Get.** · Project **Open.**
-- Hover **Open.** on Project: `https://project.daup.co.za/d/hub?token=`
-- Query is token only
+- Hover **Open.** on Project: `https://project.daup.co.za/d/hub?emailHint=&houseHint=`
+- Query is non-authoritative hints only (email prefill, house name, place id). No token.
 
 Project create/join UI is not this Hub PR.
