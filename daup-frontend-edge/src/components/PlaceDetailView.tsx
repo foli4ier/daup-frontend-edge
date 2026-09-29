@@ -47,11 +47,10 @@ import {
   type SeednodeConfig,
   type SeednodeMode
 } from '../hub/seednode';
-import { ENABLEABLE_SHOP_APPS, SHOP_APPS, type ShopApp } from '../hub/places';
+import { ENABLEABLE_SHOP_APPS, SHOP_APPS, interceptHouseRedeemClick, shopAppOpenHref, type ShopApp } from '../hub/places';
 import { remainingPeriodCopy } from '../hub/placeSubscription';
 import { formatTrialEndsOn } from '../hub/zaFormat';
 import { buildOpenTheHouseUrl } from '../hub/ownerArrival';
-import { shopAppOpenHref } from '../hub/places';
 import type { ProjectOpenHandshake } from '../hub/projectUrls';
 import type { PlatformPlaceRecord } from '../stores/identityStore';
 
@@ -227,6 +226,7 @@ export function PlaceDetailView({
                       href={openHref}
                       target="_self"
                       data-testid={`open-place-app-${app.id}`}
+                      onClick={event => interceptHouseRedeemClick(app, event, onOpenApp)}
                     >
                       {OPEN_LABEL}
                     </a>

@@ -473,6 +473,8 @@ export const MODULE_TO_ENABLED_APP: Record<string, EnableableAppId> = {
   'daup-reseller': 'reseller',
   'daup-manufacturing': 'maker',
   'daup-project': 'project',
+  'daup-finance': 'finance',
+  'daup-trade': 'trade',
   'daup-chat': 'chat',
   'daup-vault': 'vault',
   'daup-property': 'property'

@@ -8,6 +8,19 @@ Visual tokens live in [`daup-theme`](https://github.com/foli4ier/daup-theme) (`i
 
 **Licensing (A+B).** Place-first company / place, node entitlements, month-1 trial — see [`docs/license-pivot.md`](docs/license-pivot.md).
 
+## House place session
+
+Hub sign-in stays the email door. Opening **Finance, Trade, Vault, Project, or Property** asks for a WhatsApp code, then the Kortrijk seed mints a place session and a one-time `houseRedeem`. **Chat** stays off that path.
+
+| Env | Where | Value |
+| --- | --- | --- |
+| `VITE_HOUSE_SEED_URL` | Hub build (public) | Seed origin. Production `https://mcp.daup.co.za`. Falls back to `VITE_APP_MCP_URL`, then that same host. |
+| `HOUSE_SEED_URL` | Ops name for the same origin | Not a Vite secret. Do not put a signing secret beside it. |
+| `HOUSE_SESSION_SECRET` | Kortrijk seed only | Already set on the seed. Never a `VITE_` variable and never in this static bundle. |
+| `SESSION_SECRET` | Not used by this Hub | App cookies are minted by each house app after redeem. If a future Worker mints a host-only Hub cookie, that secret stays a Worker secret. |
+
+The challenge response does not include the code (WhatsApp send is not live). Read the code for that `challengeId` from the seed log while the mock/test provider is on. The Hub only shows a code field. See [`docs/house-sso.md`](docs/house-sso.md).
+
 ## Local
 
 From the repo root:

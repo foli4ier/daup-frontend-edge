@@ -47,6 +47,8 @@ No new door copy. No protocol words on Your places.
 
 No OAuth, passwords, or chain contracts in this wire.
 
+Place-session OTP and `houseRedeem` Open URLs are separate from `/mcp`. See [`docs/house-sso.md`](house-sso.md). The signing secret stays on Kortrijk.
+
 ## UX lock
 
 1. `places_register` only on **Register a new house.**

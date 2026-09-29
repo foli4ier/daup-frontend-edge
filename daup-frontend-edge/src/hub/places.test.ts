@@ -35,7 +35,9 @@ import { HANDOFF_EMAIL_HINT, HANDOFF_HOUSE_HINT, HANDOFF_PLACE_ID_HINT, handoffP
 
 describe('Get apps. shop catalog', () => {
   it('lists EatOut, Chat, Project, Vault, and Property as LIVE and keeps Coming to Farm / Reseller / Maker', () => {
-    expect(LIVE_SHOP_APPS.map(app => app.id)).toEqual(['eatery', 'eatout', 'project', 'vault', 'chat', 'property']);
+    expect(LIVE_SHOP_APPS.map(app => app.id)).toEqual([
+      'eatery', 'eatout', 'project', 'finance', 'trade', 'vault', 'chat', 'property'
+    ]);
     const eatout = LIVE_SHOP_APPS.find(app => app.id === 'eatout');
     expect(eatout?.title).toBe(CHAIN_APP_EATOUT);
     expect(eatout?.title).toBe('EatOut');
@@ -65,14 +67,14 @@ describe('Get apps. shop catalog', () => {
     expect(COMING_SHOP_APPS.map(app => app.id)).toEqual(['farm', 'reseller', 'maker']);
     expect(SOCIAL_SHOP_APPS.map(app => app.id)).toEqual(['eatout', 'chat']);
     expect(PAID_SHOP_APPS.map(app => app.id)).toEqual([
-      'eatery', 'project', 'vault', 'property', 'farm', 'reseller', 'maker'
+      'eatery', 'project', 'finance', 'trade', 'vault', 'property', 'farm', 'reseller', 'maker'
     ]);
     expect(PAID_SHOP_APPS.findIndex(app => app.id === 'property'))
       .toBe(PAID_SHOP_APPS.findIndex(app => app.id === 'vault') + 1);
     expect(PAID_SHOP_APPS.findIndex(app => app.id === 'farm'))
       .toBe(PAID_SHOP_APPS.findIndex(app => app.id === 'property') + 1);
     expect(ENABLEABLE_SHOP_APPS.map(app => app.id)).toEqual([
-      'eatery', 'project', 'vault', 'property', 'farm', 'reseller', 'maker', 'chat'
+      'eatery', 'project', 'finance', 'trade', 'vault', 'property', 'farm', 'reseller', 'maker', 'chat'
     ]);
     expect(ENABLEABLE_SHOP_APPS.some(app => app.id === 'eatout')).toBe(false);
     expect(COMING_SHOP_APPS.some(app => (

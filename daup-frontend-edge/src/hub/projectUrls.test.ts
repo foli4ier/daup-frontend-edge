@@ -72,6 +72,24 @@ describe('Project Open. URLs', () => {
     expect(buildProjectOpenUrl({ email: 'you@gmail.com', house: 'The Olive' })).not.toMatch(/[?&]token=/);
   });
 
+  it('adds houseRedeem on /d/hub and still refuses credential query keys', () => {
+    const redeem = 'hr_abcdefghijklmnopqrstuvwxyz012345';
+    const href = buildProjectOpenUrl({
+      email: 'owner@theolive.co.za',
+      house: 'The Olive',
+      placeIds: ['place-olive'],
+      houseRedeem: redeem
+    });
+    const parsed = new URL(href);
+    expect(parsed.origin).toBe(PROJECT_HOME);
+    expect(parsed.pathname).toBe('/d/hub');
+    expect(parsed.searchParams.get('houseRedeem')).toBe(redeem);
+    expect(parsed.searchParams.get(HANDOFF_EMAIL_HINT)).toBe('owner@theolive.co.za');
+    expect(parsed.searchParams.has('token')).toBe(false);
+    expect(handoffPresentsCredential(href)).toBe(false);
+    expect(href).not.toMatch(/[?&](token|email|places|hubPlaces|role|daup1)=/i);
+  });
+
   it('never opens a Project handoff without email and house', () => {
     expect(buildProjectOpenUrl({ email: '', house: 'The Olive' })).toBe(PROJECT_HOME);
     expect(buildProjectOpenUrl({ email: 'you@gmail.com', house: '' })).toBe(PROJECT_HOME);

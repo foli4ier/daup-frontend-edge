@@ -1,4 +1,5 @@
 import { expireOwnerCookie } from './ownerArrival';
+import { clearPlaceSessionHold } from './house-session/hold';
 import { INVALID_EMAIL_MESSAGE } from './copy';
 
 export const OWNER_SESSION_STORAGE_KEY = 'daup:hub:owner_session';
@@ -37,6 +38,7 @@ export function saveOwnerSession(session: OwnerSession): void {
 }
 
 export function clearOwnerSession(): void {
+  clearPlaceSessionHold();
   if (typeof window === 'undefined') return;
   try {
     localStorage.removeItem(OWNER_SESSION_STORAGE_KEY);
