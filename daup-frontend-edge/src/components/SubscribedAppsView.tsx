@@ -9,7 +9,7 @@ import {
 } from '../hub/copy';
 import { loadPlaceEntitlement } from '../hub/entitlements';
 import { DEFAULT_HUB_PANE, type HubPane } from '../hub/hubPane';
-import { continueHouseOpen } from '../hub/houseOpen';
+import { continueHouseOpen, pickHousePlaceId } from '../hub/houseOpen';
 import { appUsesHouseRedeem } from '../hub/house-session/openUrl';
 import { ShopApp, listOwnerPlaces, navigateSameTab, navigateToChatHome, ownerPlaceKey } from '../hub/places';
 import { placeSubscriptionDisplay } from '../hub/placeSubscription';
@@ -17,7 +17,7 @@ import { loadSeednodeForPlace } from '../hub/seednode';
 import { navigateToEatOutHome } from '../hub/eatoutUrls';
 import { navigateToTheHouse } from '../hub/ownerArrival';
 import { projectOpenHandshakeFromHub } from '../hub/projectUrls';
-import { listOwnerPlaceRecords, listRegisteredPlaces } from '../stores/identityStore';
+import { listOwnerPlaceRecords, listRegisteredPlaces, placeIdFromHubWallet } from '../stores/identityStore';
 import { GetAppsSection } from './GetApps';
 import { HouseOtpDoor } from './HouseOtpDoor';
 import { OtherPlacesView } from './OtherPlaces';
@@ -51,6 +51,7 @@ export const SubscribedAppsView: React.FC<{
     step: 'phone' | 'code';
     phone: string;
     challengeId: string;
+    mockCode: string;
     error: string;
     busy: boolean;
   } | null>(null);
@@ -143,10 +144,14 @@ export const SubscribedAppsView: React.FC<{
   ).trim();
 
   const placeIdFor = (explicit?: string[]) => {
-    const fromList = (explicit || []).map(id => id.trim()).filter(Boolean)[0];
-    if (fromList) return fromList;
     const primary = ownerRecords.find(record => record.placeName.trim() === houseName);
-    return (primary?.placeId || primary?.companyId || companyId || '').trim();
+    return pickHousePlaceId([
+      ...(explicit || []),
+      primary?.placeId,
+      placeIdFromHubWallet(activeWallet),
+      primary?.companyId,
+      companyId
+    ]);
   };
 
   const runHouseOpen = async (
@@ -187,13 +192,14 @@ export const SubscribedAppsView: React.FC<{
           step: 'phone',
           phone: extra?.phone || preferredPhone,
           challengeId: '',
+          mockCode: '',
           error: result.message,
           busy: false
         });
         return;
       }
       if (result.status === 'code') {
-        setHouseDoor({
+        setHouseDoor(current => ({
           app,
           house,
           placeIds: ids,
@@ -201,9 +207,10 @@ export const SubscribedAppsView: React.FC<{
           step: 'code',
           phone: result.phone,
           challengeId: result.challengeId,
+          mockCode: result.mockCode || (current?.challengeId === result.challengeId ? current.mockCode : ''),
           error: result.message,
           busy: false
-        });
+        }));
         return;
       }
       setHouseDoor(current => (
@@ -217,6 +224,7 @@ export const SubscribedAppsView: React.FC<{
               step: 'phone',
               phone: preferredPhone,
               challengeId: '',
+              mockCode: '',
               error: result.message,
               busy: false
             }
@@ -266,6 +274,7 @@ export const SubscribedAppsView: React.FC<{
           placeName={houseDoor.house || houseName}
           step={houseDoor.step}
           phone={houseDoor.phone}
+          mockCode={houseDoor.mockCode}
           error={houseDoor.error}
           busy={houseDoor.busy}
           onSendCode={phone => {

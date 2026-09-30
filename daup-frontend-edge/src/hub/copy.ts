@@ -112,6 +112,10 @@ export const HOUSE_OTP_BAD_CODE = 'That code is not the one we sent.';
 export const HOUSE_OTP_BAD_PHONE = 'Use a WhatsApp number we can text.';
 export const HOUSE_OTP_FAILED = 'We could not open that just now.';
 export const HOUSE_OTP_NEED_PLACE = 'Open a place first.';
+export const HOUSE_OTP_MOCK_TITLE = 'Code for this try.';
+export const HOUSE_OTP_MOCK_BODY = 'The text is not going out yet. Use this code, then open.';
+export const HOUSE_OTP_MOCK_FILL = 'Use this code.';
+export const HOUSE_OTP_MOCK_TYPE = 'I will type it.';
 export const CHAIN_APP_EATOUT = 'EatOut';
 export const CHAIN_APP_PROJECT = 'Project';
 export const EATERY_ROW_BODY = 'Tables, tickets, kitchen, stock.';
@@ -245,6 +249,10 @@ export const HUB_HOME_COPY = [
   HOUSE_OTP_BAD_PHONE,
   HOUSE_OTP_FAILED,
   HOUSE_OTP_NEED_PLACE,
+  HOUSE_OTP_MOCK_TITLE,
+  HOUSE_OTP_MOCK_BODY,
+  HOUSE_OTP_MOCK_FILL,
+  HOUSE_OTP_MOCK_TYPE,
   ASK_FOR_ENHANCEMENT_LABEL,
   NAV_PLACES_LABEL,
   NAV_APPS_LABEL,

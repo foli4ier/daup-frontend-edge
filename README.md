@@ -19,7 +19,7 @@ Hub sign-in stays the email door. Opening **Finance, Trade, Vault, Project, or P
 | `HOUSE_SESSION_SECRET` | Kortrijk seed only | Already set on the seed. Never a `VITE_` variable and never in this static bundle. |
 | `SESSION_SECRET` | Not used by this Hub | App cookies are minted by each house app after redeem. If a future Worker mints a host-only Hub cookie, that secret stays a Worker secret. |
 
-The challenge response does not include the code (WhatsApp send is not live). Read the code for that `challengeId` from the seed log while the mock/test provider is on. The Hub only shows a code field. See [`docs/house-sso.md`](docs/house-sso.md).
+While WhatsApp send is off, the seed should return `mockCode` on `POST /house/otp/challenge` (the same digits as the stderr log). The Hub shows that code in a popup; the person still confirms it. Until mcp-servers sends `mockCode`, read the code from the seed log. See [`docs/house-sso.md`](docs/house-sso.md).
 
 ## Local
 

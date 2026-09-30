@@ -5,6 +5,8 @@
  * from the Hub origin. It is not a client-signed credential.
  */
 
+import { expiryToMs } from './seed';
+
 export interface PlaceSessionHold {
   placeId: string;
   bearer: string;
@@ -48,10 +50,11 @@ export function rememberPlaceSession(hold: PlaceSessionHold): void {
   const placeId = (hold.placeId || '').trim();
   if (!placeId) return;
   const store = { ...readStore() };
+  const expiresAt = typeof hold.expiresAt === 'number' ? expiryToMs(hold.expiresAt) : null;
   store[placeId] = {
     placeId,
     bearer: (hold.bearer || '').trim(),
-    expiresAt: typeof hold.expiresAt === 'number' ? hold.expiresAt : null
+    expiresAt
   };
   writeStore(store);
 }

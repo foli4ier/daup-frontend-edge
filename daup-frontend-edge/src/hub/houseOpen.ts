@@ -25,10 +25,18 @@ import {
 } from './house-session';
 import type { AppHandoffHints } from './ownerArrival';
 
+const PLACE_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** House network place id when we have one. Company ids stay as a last resort. */
+export function pickHousePlaceId(candidates: Array<string | null | undefined>): string {
+  const ids = candidates.map(id => (id || '').trim()).filter(Boolean);
+  return ids.find(id => PLACE_UUID_RE.test(id)) || ids[0] || '';
+}
+
 export type HouseOpenResult =
   | { status: 'navigate'; url: string }
   | { status: 'phone'; message: string }
-  | { status: 'code'; challengeId: string; phone: string; message: string }
+  | { status: 'code'; challengeId: string; phone: string; message: string; mockCode: string }
   | { status: 'error'; message: string };
 
 function kitchenMessage(error: unknown): string {
@@ -65,7 +73,8 @@ export async function continueHouseOpen(args: {
     if (!phone) return { status: 'phone', message: '' };
     if (!phoneHasEnoughDigits(phone)) return { status: 'phone', message: HOUSE_OTP_BAD_PHONE };
     let challengeId = (args.challengeId || '').trim();
-    const code = (args.code || '').trim();
+    const code = (args.code || '').replace(/\s+/g, '').trim();
+    let mockCode = '';
     if (!challengeId) {
       try {
         const challenge = await requestOtpChallenge({
@@ -75,12 +84,13 @@ export async function continueHouseOpen(args: {
           fetchImpl: args.fetchImpl
         });
         challengeId = challenge.challengeId;
+        mockCode = challenge.mockCode;
       } catch (error) {
         return { status: 'phone', message: kitchenMessage(error) };
       }
-      if (!code) return { status: 'code', challengeId, phone, message: '' };
+      if (!code) return { status: 'code', challengeId, phone, message: '', mockCode };
     }
-    if (!code) return { status: 'code', challengeId, phone, message: '' };
+    if (!code) return { status: 'code', challengeId, phone, message: '', mockCode };
     try {
       const issued = await createPlaceSession({
         placeId,
@@ -93,8 +103,13 @@ export async function continueHouseOpen(args: {
       hold = { placeId, bearer: issued.bearer, expiresAt: issued.expiresAt };
       rememberPlaceSession(hold);
     } catch (error) {
-      return { status: 'code', challengeId, phone, message: kitchenMessage(error) };
+      return { status: 'code', challengeId, phone, message: kitchenMessage(error), mockCode: '' };
     }
+  }
+
+  if (!hold.bearer) {
+    forgetPlaceSession(placeId);
+    return { status: 'phone', message: HOUSE_OTP_FAILED };
   }
 
   try {

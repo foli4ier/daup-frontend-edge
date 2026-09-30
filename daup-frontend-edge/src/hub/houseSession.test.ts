@@ -24,15 +24,15 @@ import {
   resolveHouseSeedOrigin,
   sha256Base64Url
 } from './house-session';
-import { continueHouseOpen as openHouse } from './houseOpen';
+import { continueHouseOpen as openHouse, pickHousePlaceId } from './houseOpen';
 import { handoffPresentsCredential, ownerArrivalExposesBannedQuery } from './ownerArrival';
 
 const REDEEM = 'hr_abcdefghijklmnopqrstuvwxyz012345';
 
-function jsonResponse(body: unknown, status = 200): Response {
+function jsonResponse(body: unknown, status = 200, headers: Record<string, string> = {}): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { 'content-type': 'application/json' }
+    headers: { 'content-type': 'application/json', ...headers }
   });
 }
 
@@ -111,6 +111,7 @@ describe('house seed origin and redeem urls', () => {
     expect(combined).not.toMatch(/SESSION_SECRET/);
     expect(combined).not.toMatch(/VITE_HOUSE_SESSION/);
     expect(combined).not.toMatch(/Domain\s*=/);
+    expect(combined).not.toContain('DAUP_SKIP_OTP');
     expect(combined).not.toContain('DAUP1');
     expect(combined).not.toContain('daup-hub-owner-arrival-v1');
     expect(hasBannedDoorCopy('Open with a code.')).toBe(false);
@@ -139,12 +140,17 @@ describe('otp challenge then redeem', () => {
           challengeId: 'ch_test',
           code: '424242'
         });
-        return jsonResponse({ ok: true, placeSession: 'sess-opaque', expiresAt: Date.now() + 60_000 });
+        return jsonResponse({
+          ok: true,
+          message: 'Place session ready',
+          placeSession: 'sess-opaque',
+          expiresAt: Date.now() + 60_000
+        });
       }
       if (url.endsWith('/house/session/redeem/issue')) {
         expect(init?.headers).toMatchObject({ authorization: 'Bearer sess-opaque' });
         expect(body).toEqual({});
-        return jsonResponse({ ok: true, houseRedeem: REDEEM });
+        return jsonResponse({ ok: true, message: 'issued', houseRedeem: REDEEM });
       }
       return jsonResponse({ error: 'Not found' }, 404);
     });
@@ -165,7 +171,12 @@ describe('otp challenge then redeem', () => {
       phone: '+27820000000',
       fetchImpl
     });
-    expect(needCode).toMatchObject({ status: 'code', challengeId: 'ch_test', phone: '+27820000000' });
+    expect(needCode).toMatchObject({
+      status: 'code',
+      challengeId: 'ch_test',
+      phone: '+27820000000',
+      mockCode: ''
+    });
 
     const opened = await openHouse({
       appId: 'finance',
@@ -252,11 +263,119 @@ describe('otp challenge then redeem', () => {
     expect(digest.length).toBeGreaterThan(20);
     expect(readHouseRedeem({ houseRedeem: REDEEM })).toBe(REDEEM);
     expect(readHouseRedeem({ houseRedeem: 'abc' })).toBe('');
+    expect(readHouseRedeem({ id: 'not-a-redeem', houseRedeem: { id: REDEEM } })).toBe(REDEEM);
     await expect(requestOtpChallenge({
       placeId: '',
       phone: '+27820000000',
       fetchImpl: vi.fn()
     })).rejects.toBeInstanceOf(HouseSeedError);
     expect(createPlaceSession).toBeTypeOf('function');
+  });
+
+  it('opens Vault when the code is valid, even if success JSON includes a message', async () => {
+    const placeId = '80a48803-e2fb-492c-8fe3-431e22a1e2cb';
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      const body = JSON.parse(String(init?.body || '{}')) as Record<string, unknown>;
+      if (url.endsWith('/house/otp/challenge')) {
+        expect(body).toEqual({ placeId, phone: '0829261373' });
+        return jsonResponse({
+          ok: true,
+          challengeId: 'ch_vault',
+          expiresAt: 1_790_741_320_790,
+          mockCode: '482913'
+        });
+      }
+      if (url.endsWith('/house/session')) {
+        expect(body).toEqual({
+          placeId,
+          phone: '0829261373',
+          challengeId: 'ch_vault',
+          code: '482913'
+        });
+        return jsonResponse({
+          ok: true,
+          message: 'Place session ready',
+          session: { placeSession: 'sess-vault' },
+          expiresAt: Math.floor(Date.now() / 1000) + 120
+        });
+      }
+      if (url.endsWith('/house/session/redeem/issue')) {
+        expect(init?.headers).toMatchObject({ authorization: 'Bearer sess-vault' });
+        expect(body).toEqual({});
+        return jsonResponse({ ok: true, message: 'issued', houseRedeem: REDEEM });
+      }
+      return jsonResponse({ error: 'Not found' }, 404);
+    });
+
+    const needCode = await openHouse({
+      appId: 'vault',
+      placeId,
+      phone: '0829261373',
+      hints: { email: 'owner@theolive.co.za', house: 'The Olive', placeIds: [placeId] },
+      fetchImpl
+    });
+    expect(needCode).toMatchObject({ status: 'code', challengeId: 'ch_vault', mockCode: '482913' });
+
+    const opened = await openHouse({
+      appId: 'vault',
+      placeId,
+      phone: '0829261373',
+      challengeId: 'ch_vault',
+      code: '482 913',
+      hints: { email: 'owner@theolive.co.za', house: 'The Olive', placeIds: [placeId] },
+      fetchImpl
+    });
+    expect(opened.status).toBe('navigate');
+    if (opened.status !== 'navigate') return;
+    const parsed = new URL(opened.url);
+    expect(parsed.origin).toBe('https://vault.daup.co.za');
+    expect(parsed.pathname).toBe('/');
+    expect(parsed.searchParams.get(HOUSE_REDEEM_QUERY)).toBe(REDEEM);
+    expect(parsed.searchParams.has('token')).toBe(false);
+    expect(opened.url).not.toContain('sess-vault');
+    expect(readPlaceSession(placeId)?.bearer).toBe('sess-vault');
+  });
+
+  it('uses Mcp-Session-Id when the mint JSON has no bearer string', async () => {
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.endsWith('/house/session')) {
+        return jsonResponse({ ok: true, message: 'ready' }, 200, { 'Mcp-Session-Id': 'sess-header' });
+      }
+      if (url.endsWith('/house/session/redeem/issue')) {
+        return jsonResponse({ ok: true, houseRedeem: REDEEM });
+      }
+      return jsonResponse({ error: 'Not found' }, 404);
+    });
+    const opened = await openHouse({
+      appId: 'vault',
+      placeId: '80a48803-e2fb-492c-8fe3-431e22a1e2cb',
+      phone: '0829261373',
+      challengeId: 'ch_vault',
+      code: '482913',
+      fetchImpl
+    });
+    expect(opened.status).toBe('navigate');
+    const redeemCall = fetchImpl.mock.calls.find(call => String(call[0]).endsWith('/house/session/redeem/issue'));
+    expect(redeemCall?.[1]?.headers).toMatchObject({ authorization: 'Bearer sess-header' });
+  });
+
+  it('prefers a house place id over a company id', () => {
+    expect(pickHousePlaceId([
+      'co_olive',
+      '80a48803-e2fb-492c-8fe3-431e22a1e2cb'
+    ])).toBe('80a48803-e2fb-492c-8fe3-431e22a1e2cb');
+    expect(pickHousePlaceId(['co_olive'])).toBe('co_olive');
+  });
+
+  it('keeps a session whose expiry arrived as unix seconds', () => {
+    const placeId = '80a48803-e2fb-492c-8fe3-431e22a1e2cb';
+    rememberPlaceSession({
+      placeId,
+      bearer: 'sess-seconds',
+      expiresAt: Math.floor(Date.now() / 1000) + 120
+    });
+    expect(readPlaceSession(placeId)?.bearer).toBe('sess-seconds');
   });
 });

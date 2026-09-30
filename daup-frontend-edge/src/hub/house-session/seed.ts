@@ -44,6 +44,8 @@ export interface HouseFetchOptions {
 export interface OtpChallenge {
   challengeId: string;
   expiresAt: number | null;
+  /** Present only while the seed is in mock OTP mode. Empty when WhatsApp sends the code. */
+  mockCode: string;
 }
 
 export interface PlaceSessionIssue {
@@ -80,22 +82,53 @@ function readString(body: unknown, keys: string[]): string {
   return '';
 }
 
+/** Seed may send unix seconds. The hold compares epoch milliseconds. */
+export function expiryToMs(value: number): number {
+  if (value > 0 && value < 1e11) return Math.round(value * 1000);
+  return value;
+}
+
 function readExpiry(body: unknown): number | null {
   const record = asRecord(body);
   const value = record?.expiresAt ?? record?.expires_at;
-  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+  if (typeof value === 'number' && Number.isFinite(value)) return expiryToMs(value);
+  if (typeof value === 'string' && /^\d+$/.test(value.trim())) return expiryToMs(Number(value));
+  return null;
 }
 
-function errorText(body: unknown): string {
-  return readString(body, ['error', 'message']);
+function readError(body: unknown): string {
+  const record = asRecord(body);
+  if (!record) return '';
+  const error = record.error;
+  if (typeof error === 'string' && error.trim()) return error.trim();
+  const nested = asRecord(error);
+  if (nested) {
+    const message = nested.message ?? nested.error;
+    if (typeof message === 'string' && message.trim()) return message.trim();
+  }
+  return '';
 }
 
-async function postJson(path: string, payload: unknown, options: HouseFetchOptions = {}): Promise<{ status: number; body: unknown }> {
+/**
+ * A 2xx body may include a human `message` ("Place session ready") next to
+ * placeSession / houseRedeem. That string is not a failure. Only `error`,
+ * `ok: false`, or a non-2xx status abort the call.
+ */
+function failureCode(body: unknown, httpOk: boolean): string {
+  const error = readError(body);
+  if (error) return error;
+  const record = asRecord(body);
+  if (record?.ok === false) return readString(body, ['message']) || 'request failed';
+  if (!httpOk) return readString(body, ['message']) || 'request failed';
+  return '';
+}
+
+async function postJson(path: string, payload: unknown, options: HouseFetchOptions = {}): Promise<{ status: number; body: unknown; response: Response }> {
   const headers: Record<string, string> = {
     'content-type': 'application/json',
     accept: 'application/json'
   };
-  const bearer = (options.bearer || '').trim();
+  const bearer = stripBearerPrefix(options.bearer || '');
   if (bearer) headers.authorization = `Bearer ${bearer}`;
   const doFetch = options.fetchImpl || fetch;
   const response = await doFetch(`${resolveHouseSeedOrigin(options.seed)}${path}`, {
@@ -113,11 +146,32 @@ async function postJson(path: string, payload: unknown, options: HouseFetchOptio
       body = { error: 'bad response' };
     }
   }
-  const failure = errorText(body);
+  const failure = failureCode(body, response.ok);
   if (!response.ok || failure) {
     throw new HouseSeedError(response.status, failure || 'request failed');
   }
-  return { status: response.status, body };
+  return { status: response.status, body, response };
+}
+
+function stripBearerPrefix(value: string): string {
+  return (value || '').trim().replace(/^Bearer\s+/i, '').trim();
+}
+
+const BEARER_KEYS = ['placeSession', 'place_session', 'session', 'daup_house_session', 'token'];
+
+function readBearerValue(value: unknown): string {
+  if (typeof value === 'string') return stripBearerPrefix(value);
+  const record = asRecord(value);
+  if (!record) return '';
+  for (const key of BEARER_KEYS) {
+    const child = record[key];
+    if (typeof child === 'string' && child.trim()) return stripBearerPrefix(child);
+  }
+  for (const key of BEARER_KEYS) {
+    const inner = readString(asRecord(record[key]), BEARER_KEYS);
+    if (inner) return stripBearerPrefix(inner);
+  }
+  return '';
 }
 
 export function phoneHasEnoughDigits(phone: string): boolean {
@@ -143,18 +197,39 @@ export async function requestOtpChallenge(args: {
   }, args);
   const challengeId = readString(body, ['challengeId', 'challenge_id']);
   if (!challengeId) throw new HouseSeedError(502, 'challenge missing');
-  return { challengeId, expiresAt: readExpiry(body) };
+  return { challengeId, expiresAt: readExpiry(body), mockCode: readMockCode(body) };
 }
 
-export function bearerFromSessionBody(body: unknown): string {
+/** Digits the seed returns only while mock OTP is on. Never invented here. */
+export function readMockCode(body: unknown): string {
+  const code = readString(body, ['mockCode', 'mock_code']).replace(/\s+/g, '');
+  if (!/^[0-9A-Za-z]{4,12}$/.test(code)) return '';
+  return code;
+}
+
+export function normalizeOtpCode(code: string): string {
+  return (code || '').replace(/\s+/g, '').trim();
+}
+
+function sessionHeaderBearer(response: Response | undefined): string {
+  if (!response || typeof response.headers?.get !== 'function') return '';
+  return stripBearerPrefix(response.headers.get('mcp-session-id') || '');
+}
+
+export function bearerFromSessionBody(body: unknown, response?: Response): string {
   const record = asRecord(body);
   if (record && claimsIncludeRole(record.claims)) {
     delete record.claims;
   }
-  const named = readString(body, ['placeSession', 'session', 'daup_house_session']);
+  const named = readBearerValue(body);
   if (named) return named;
-  // Last-resort JSON bearer. Callers must not copy this onto an app URL.
-  return readString(body, ['token']);
+  // `session` may be the bearer string (handled above) or `{ placeSession, token }`.
+  for (const key of ['session', 'data', 'result']) {
+    const nested = readBearerValue(asRecord(body)?.[key]);
+    if (nested) return nested;
+  }
+  // CORS exposes Mcp-Session-Id. The browser can read it; Set-Cookie it cannot.
+  return sessionHeaderBearer(response);
 }
 
 export async function createPlaceSession(args: {
@@ -166,30 +241,57 @@ export async function createPlaceSession(args: {
 } & HouseFetchOptions): Promise<PlaceSessionIssue> {
   const placeId = (args.placeId || '').trim();
   const challengeId = (args.challengeId || '').trim();
-  const code = (args.code || '').trim();
+  const code = normalizeOtpCode(args.code || '');
   const phone = (args.phone || '').trim();
   const peerId = (args.peerId || '').trim();
   if (!placeId || !challengeId || !code) throw new HouseSeedError(400, 'otp verification required');
-  const { body } = await postJson('/house/session', {
+  const { body, response } = await postJson('/house/session', {
     placeId,
     challengeId,
     code,
     ...(phone ? { phone } : {}),
     ...(peerId ? { peerId } : {})
   }, args);
+  const bearer = bearerFromSessionBody(body, response);
+  if (!bearer) throw new HouseSeedError(502, 'session missing');
   return {
-    bearer: bearerFromSessionBody(body),
+    bearer,
     expiresAt: readExpiry(body)
   };
 }
 
+const REDEEM_KEYS = ['houseRedeem', 'house_redeem', 'redeem', 'redeemId', 'id'];
+
+function firstRedeem(body: unknown): string {
+  const record = asRecord(body);
+  if (!record) {
+    const direct = typeof body === 'string' ? body.trim() : '';
+    return REDEEM_RE.test(direct) ? direct : '';
+  }
+  for (const key of REDEEM_KEYS) {
+    const value = record[key];
+    if (typeof value === 'string' && REDEEM_RE.test(value.trim())) return value.trim();
+    const nested = asRecord(value);
+    if (!nested) continue;
+    const inner = readString(nested, ['houseRedeem', 'house_redeem', 'id', 'redeem']);
+    if (REDEEM_RE.test(inner)) return inner;
+  }
+  return '';
+}
+
 export function readHouseRedeem(body: unknown): string {
-  const redeem = readString(body, ['houseRedeem', 'redeem', 'id']);
-  if (!REDEEM_RE.test(redeem)) return '';
-  return redeem;
+  const direct = firstRedeem(body);
+  if (direct) return direct;
+  const record = asRecord(body);
+  for (const key of ['data', 'result']) {
+    const nested = firstRedeem(record?.[key]);
+    if (nested) return nested;
+  }
+  return '';
 }
 
 export async function issueHouseRedeem(options: HouseFetchOptions = {}): Promise<string> {
+  // Empty body. The seed checks the bearer before any audience field.
   const { body } = await postJson('/house/session/redeem/issue', {}, options);
   const redeem = readHouseRedeem(body);
   if (!redeem) throw new HouseSeedError(502, 'redeem missing');

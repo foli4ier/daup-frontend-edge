@@ -1430,6 +1430,15 @@ body {
   max-width: 440px;
 }
 
+.house-otp-mock-code {
+  margin: 16px 0;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  text-align: center;
+  color: var(--forest);
+}
+
 .owner-modal-actions {
   display: flex;
   justify-content: flex-end;
