@@ -4,6 +4,10 @@ import {
   CODE_LABEL,
   HOUSE_OTP_BODY,
   HOUSE_OTP_CODE_HINT,
+  HOUSE_OTP_MOCK_BODY,
+  HOUSE_OTP_MOCK_FILL,
+  HOUSE_OTP_MOCK_TITLE,
+  HOUSE_OTP_MOCK_TYPE,
   HOUSE_OTP_TITLE,
   OPEN_LABEL,
   SEND_CODE_LABEL,
@@ -17,6 +21,7 @@ export interface HouseOtpDoorProps {
   phone: string;
   error: string;
   busy: boolean;
+  mockCode?: string;
   onSendCode: (phone: string) => void;
   onSubmitCode: (code: string) => void;
   onCancel: () => void;
@@ -29,12 +34,14 @@ export const HouseOtpDoor: React.FC<HouseOtpDoorProps> = ({
   phone,
   error,
   busy,
+  mockCode = '',
   onSendCode,
   onSubmitCode,
   onCancel
 }) => {
   const [draftPhone, setDraftPhone] = useState(phone);
   const [code, setCode] = useState('');
+  const [showMock, setShowMock] = useState(Boolean(mockCode));
 
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -43,8 +50,50 @@ export const HouseOtpDoor: React.FC<HouseOtpDoorProps> = ({
     else onSubmitCode(code);
   };
 
+  const fillMockCode = () => {
+    if (!mockCode) return;
+    setCode(mockCode);
+    setShowMock(false);
+  };
+
   return (
     <section className="card house-otp-door" data-testid="house-otp-door">
+      {step === 'code' && mockCode && showMock ? (
+        <div className="owner-modal-overlay" data-testid="house-otp-mock">
+          <div
+            className="owner-modal owner-modal-narrow"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="house-otp-mock-title"
+          >
+            <div className="owner-modal-header">
+              <h2 id="house-otp-mock-title">{HOUSE_OTP_MOCK_TITLE}</h2>
+            </div>
+            <div className="owner-modal-body">
+              <p data-testid="house-otp-mock-body">{HOUSE_OTP_MOCK_BODY}</p>
+              <p className="house-otp-mock-code" data-testid="house-otp-mock-code">{mockCode}</p>
+              <div className="owner-modal-actions">
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  data-testid="house-otp-mock-type"
+                  onClick={() => setShowMock(false)}
+                >
+                  {HOUSE_OTP_MOCK_TYPE}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  data-testid="house-otp-mock-fill"
+                  onClick={fillMockCode}
+                >
+                  {HOUSE_OTP_MOCK_FILL}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
       <h2 className="hub-door-title">{HOUSE_OTP_TITLE}</h2>
       <p className="hub-door-body" data-testid="house-otp-body">{HOUSE_OTP_BODY}</p>
       <p className="caption" data-testid="house-otp-target">{appTitle}. {placeName}.</p>

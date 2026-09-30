@@ -40,6 +40,33 @@ Project keeps `/d/hub`. The other four stay on the app home so a pre-cutover app
 
 ## Reading the mock code
 
-`POST /house/otp/challenge` returns `{ ok, challengeId, expiresAt }` only. The code is not in the JSON and not in a response header. With Meta send off, read the code for that `challengeId` from the Kortrijk seed log (the mock/test provider PR1 already runs). Type it into **Code.** on the Hub. Do not expect the Hub to display or invent it.
+While WhatsApp delivery is off, Kortrijk still logs `[house-otp] mock code challengeId=… code=…` to stderr. The Hub does not invent a code.
+
+When mock mode is on, `POST /house/otp/challenge` should also return the same digits as `mockCode` (string). The Hub then shows that code in a popup after **Send a code.** The person still types it, or taps **Use this code.**, and then **Open.**
+
+```json
+{
+  "ok": true,
+  "challengeId": "ch_…",
+  "expiresAt": 1790741320790,
+  "mockCode": "482913"
+}
+```
+
+Omit `mockCode` entirely once WhatsApp sends the text. Do not send `null`. The Hub also accepts `mock_code`, but the seed field to add is `mockCode`.
+
+Probed live on 30 Sep 2026: the challenge body is still `{ ok, challengeId, expiresAt }` only, so the popup stays hidden until mcp-servers returns `mockCode`.
 
 Unknown numbers still fail closed at session mint when the seed says so. A short number (under 8 digits) is rejected before the call.
+
+## Why Open showed "We could not open that just now."
+
+That sentence is the Hub's generic failure. It is what you see when mint or redeem does not produce a usable bearer, including HTTP 401 `place session required` / `place session is not valid` from `POST /house/session/redeem/issue`.
+
+Checked against the live seed and this client:
+
+- CORS from `https://app.daup.co.za` already allows credentialed `POST` with `Authorization`. The cookie stays host-only `SameSite=Lax`. The Hub does not set `Domain`.
+- Mint already sends `placeId`, `phone`, `challengeId`, and `code`. A body without `placeId` is `400 {"error":"placeId is required"}` on the seed.
+- A success JSON `message` (for example "Place session ready") used to abort the client before it read `placeSession` or `houseRedeem`. Redeem then never saw `Authorization`, or the success redeem was thrown away.
+- The bearer is read from `placeSession`, `place_session`, `session`, `daup_house_session`, or `token` (including one object wrap), and from the CORS-exposed `Mcp-Session-Id` header when the JSON has no bearer string. It is sent as `Authorization: Bearer` on redeem issue. It is not put on the app URL.
+- The place id sent on mint prefers the house UUID over `companyId`. The soft-test place is `80a48803-e2fb-492c-8fe3-431e22a1e2cb`.

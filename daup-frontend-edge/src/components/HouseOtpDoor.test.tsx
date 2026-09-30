@@ -157,6 +157,7 @@ describe('House code door on Get apps', () => {
       (container.querySelector('[data-testid="house-otp-form"]') as HTMLFormElement).requestSubmit();
     });
     expect(container.querySelector('[data-testid="house-code"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="house-otp-mock"]')).toBeNull();
 
     const code = container.querySelector('[data-testid="house-code"]') as HTMLInputElement;
     await act(async () => {
@@ -178,6 +179,118 @@ describe('House code door on Get apps', () => {
     expect(parsed.searchParams.has('token')).toBe(false);
     expect(href).not.toContain('sess-ui');
     expect(chat?.getAttribute('href')).toBe('https://chat.daup.co.za');
+
+    unmount();
+    Object.defineProperty(window, 'location', { configurable: true, value: location });
+  });
+
+  it('shows mockCode after Send code, then opens Vault once that code is used', async () => {
+    const placeId = '80a48803-e2fb-492c-8fe3-431e22a1e2cb';
+    const redeem = 'hr_abcdefghijklmnopqrstuvwxyz012345';
+    saveIdentityVault({
+      ...vault,
+      activeWallet: { ...vault.activeWallet, id: `wallet_place_${placeId}` },
+      registeredWallets: vault.registeredWallets.map(wallet => ({ ...wallet, id: `wallet_place_${placeId}` })),
+      profile: {
+        ...vault.profile,
+        demographics: {
+          ...vault.profile.demographics,
+          contactNumber: '0829261373',
+          whatsappNumber: '0829261373'
+        }
+      },
+      companyNode: {
+        companyId: 'co_olive',
+        enabledApps: ['eatery', 'vault'],
+        billableLocations: 1
+      }
+    });
+
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      const body = JSON.parse(String(init?.body || '{}')) as Record<string, unknown>;
+      if (url.includes('/house/otp/challenge')) {
+        expect(body).toEqual({ placeId, phone: '0829261373' });
+        return new Response(JSON.stringify({
+          ok: true,
+          challengeId: 'ch_vault',
+          expiresAt: 1,
+          mockCode: '482913'
+        }), { status: 200 });
+      }
+      if (url.endsWith('/house/session')) {
+        expect(body).toEqual({
+          placeId,
+          phone: '0829261373',
+          challengeId: 'ch_vault',
+          code: '482913'
+        });
+        return new Response(JSON.stringify({
+          ok: true,
+          message: 'Place session ready',
+          placeSession: 'sess-vault'
+        }), { status: 200 });
+      }
+      if (url.includes('/house/session/redeem/issue')) {
+        expect(init?.credentials).toBe('include');
+        expect(init?.headers).toMatchObject({ authorization: 'Bearer sess-vault' });
+        expect(body).toEqual({});
+        return new Response(JSON.stringify({ ok: true, houseRedeem: redeem }), { status: 200 });
+      }
+      throw new TypeError('Failed to fetch');
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const assign = vi.fn();
+    const location = window.location;
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { ...location, assign }
+    });
+
+    const { container, unmount } = render(
+      <UserProfileProvider>
+        <SubscribedAppsView pane="apps" />
+      </UserProfileProvider>
+    );
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 30));
+    });
+
+    const vaultOpen = container.querySelector('[data-testid="open-app-vault"]') as HTMLAnchorElement | null;
+    expect(vaultOpen?.textContent).toBe('Open.');
+    await act(async () => {
+      vaultOpen?.click();
+    });
+    expect(container.querySelector('[data-testid="house-otp-mock"]')).toBeNull();
+
+    await act(async () => {
+      (container.querySelector('[data-testid="house-otp-form"]') as HTMLFormElement).requestSubmit();
+    });
+
+    const popup = container.querySelector('[data-testid="house-otp-mock"]');
+    expect(popup).toBeTruthy();
+    expect(popup?.textContent).toContain('482913');
+    expect(hasBannedDoorCopy(popup?.textContent || '')).toBe(false);
+    expect((container.querySelector('[data-testid="house-code"]') as HTMLInputElement).value).toBe('');
+
+    await act(async () => {
+      (container.querySelector('[data-testid="house-otp-mock-fill"]') as HTMLButtonElement).click();
+    });
+    expect(container.querySelector('[data-testid="house-otp-mock"]')).toBeNull();
+    expect((container.querySelector('[data-testid="house-code"]') as HTMLInputElement).value).toBe('482913');
+
+    await act(async () => {
+      (container.querySelector('[data-testid="house-otp-form"]') as HTMLFormElement).requestSubmit();
+    });
+
+    expect(assign).toHaveBeenCalled();
+    const href = String(assign.mock.calls.at(-1)?.[0] || '');
+    const parsed = new URL(href);
+    expect(parsed.origin).toBe('https://vault.daup.co.za');
+    expect(parsed.searchParams.get('houseRedeem')).toBe(redeem);
+    expect(parsed.searchParams.has('token')).toBe(false);
+    expect(href).not.toContain('sess-vault');
 
     unmount();
     Object.defineProperty(window, 'location', { configurable: true, value: location });
