@@ -21,8 +21,7 @@ import { HubYouView } from './components/HubYouView';
 import { MODULE_METADATA } from './components/withLicenseCheck';
 import { deriveSeedNode, deployAppInstance } from './stores/identityStore';
 import { navigateToEatOutHome } from './hub/eatoutUrls';
-import { navigateToTheHouse } from './hub/ownerArrival';
-import { listOwnerPlaceRecords, listRegisteredPlaces } from './stores/identityStore';
+import { listOwnerPlaceRecords } from './stores/identityStore';
 import { HUB_HOME_FALLBACK } from './hub/copy';
 import { houseRedeemAppForModule } from './hub/house-session/openUrl';
 import { CHAT_MODULE_KEY, navigateToChatHome, ownerPlaceKey } from './hub/places';
@@ -138,19 +137,6 @@ const DashboardContent: React.FC = () => {
   };
 
   const handleLaunchApp = (moduleName: string) => {
-    if (moduleName === 'daup-eatery') {
-      const house = activeWallet?.legalName || instanceName || '';
-      const email = ownerSession?.email || '';
-      if (!email.trim() || !house.trim()) return;
-      navigateToTheHouse({
-        email,
-        house,
-        placeIds: listRegisteredPlaces()
-          .map(place => (place.placeId || '').trim())
-          .filter(Boolean)
-      });
-      return;
-    }
     if (moduleName === 'daup-eatout') {
       navigateToEatOutHome();
       return;

@@ -401,7 +401,8 @@ describe('House code door on Get apps', () => {
       expect(parsed.searchParams.get('houseRedeem')).toBe(redeem);
       expect(parsed.searchParams.has('token')).toBe(false);
       expect(href).not.toMatch(/sess-/);
-      if (id === 'project') expect(parsed.pathname).toBe('/d/hub');
+      if (id === 'project' || id === 'eatery') expect(parsed.pathname).toBe('/d/hub');
+      else expect(parsed.pathname).toBe('/');
     };
 
     await openApp('vault', 'Vault', 'https://vault.daup.co.za', true);
@@ -410,7 +411,8 @@ describe('House code door on Get apps', () => {
     await openApp('trade', 'Trade', 'https://trade.daup.co.za');
     await openApp('property', 'Property', 'https://property.daup.co.za');
     await openApp('vault', 'Vault', 'https://vault.daup.co.za');
-    expect(n).toBe(6);
+    await openApp('eatery', 'Eatery', 'https://eatery.daup.co.za');
+    expect(n).toBe(7);
 
     unmount();
     Object.defineProperty(window, 'location', { configurable: true, value: location });
@@ -515,7 +517,8 @@ describe('House code door on Get apps', () => {
       expect(parsed.searchParams.get('houseRedeem')).toBe(redeem);
       expect(href).not.toContain('sess-already');
       expect(href).not.toMatch(/sess-ch_/);
-      if (id === 'project') expect(parsed.pathname).toBe('/d/hub');
+      if (id === 'project' || id === 'eatery') expect(parsed.pathname).toBe('/d/hub');
+      else expect(parsed.pathname).toBe('/');
     };
 
     await openApp('finance', 'Finance', 'https://finance.daup.co.za');
@@ -523,7 +526,8 @@ describe('House code door on Get apps', () => {
     await openApp('project', 'Project', 'https://project.daup.co.za');
     await openApp('property', 'Property', 'https://property.daup.co.za');
     await openApp('vault', 'Vault', 'https://vault.daup.co.za');
-    expect(n).toBe(5);
+    await openApp('eatery', 'Eatery', 'https://eatery.daup.co.za');
+    expect(n).toBe(6);
 
     unmount();
     Object.defineProperty(window, 'location', { configurable: true, value: location });

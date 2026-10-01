@@ -114,7 +114,7 @@ describe('Get apps. shop catalog', () => {
     const eatery = SHOP_APPS.find(app => app.id === 'eatery')!;
     expect(shopAppIsHeld(eatery, { hasHouse: true, installed: {} })).toBe(true);
     expect(shopAppIsHeld(eatery, { hasHouse: false, installed: { 'daup-eatery': true } })).toBe(false);
-    expect(shopAppOpenHref(eatery)).toBeUndefined();
+    expect(shopAppOpenHref(eatery)).toBe('https://eatery.daup.co.za');
   });
 
   it('holds Chat and Vault from enabled_apps or their module', () => {
@@ -246,5 +246,29 @@ describe('Get apps. shop catalog', () => {
     expect(parsed.searchParams.get(HANDOFF_HOUSE_HINT)).toBe('The Olive');
     expect(handoffPresentsCredential(withHub || '')).toBe(false);
     expect(withHub).not.toMatch(/[?&](did|walletName|instance|mcp|email|house|place|token)=/i);
+  });
+
+  it('Open. for Eatery is eatery.daup.co.za/d/hub with hints, never /owner or houseRedeem', () => {
+    const eatery = SHOP_APPS.find(app => app.id === 'eatery')!;
+    expect(shopAppOpenHref(eatery)).toBe('https://eatery.daup.co.za');
+    const withHub = shopAppOpenHref(eatery, projectOpenHandshakeFromHub({
+      email: 'owner@theolive.co.za',
+      house: 'The Olive',
+      placeIds: ['place-olive']
+    }));
+    const parsed = new URL(withHub || '');
+    expect(parsed.origin).toBe('https://eatery.daup.co.za');
+    expect(parsed.pathname).toBe('/d/hub');
+    expect([...parsed.searchParams.keys()]).toEqual([
+      HANDOFF_EMAIL_HINT,
+      HANDOFF_HOUSE_HINT,
+      HANDOFF_PLACE_ID_HINT
+    ]);
+    expect(parsed.searchParams.get(HANDOFF_EMAIL_HINT)).toBe('owner@theolive.co.za');
+    expect(parsed.searchParams.get(HANDOFF_HOUSE_HINT)).toBe('The Olive');
+    expect(parsed.searchParams.get(HANDOFF_PLACE_ID_HINT)).toBe('place-olive');
+    expect(parsed.searchParams.has('houseRedeem')).toBe(false);
+    expect(handoffPresentsCredential(withHub || '')).toBe(false);
+    expect(withHub).not.toMatch(/\/owner/);
   });
 });
