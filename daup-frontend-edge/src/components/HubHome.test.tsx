@@ -356,7 +356,7 @@ describe('hub home after email', () => {
     second.unmount();
   });
 
-  it('shows the eatery row as the place name and Open the house to /owner', async () => {
+  it('shows the eatery row as the place name and Open the house to /d/hub', async () => {
     const { container, unmount } = render(
       <UserProfileProvider>
         <SubscribedAppsView />
@@ -399,9 +399,11 @@ describe('hub home after email', () => {
     const eateryOpen = container.querySelector('[data-testid="open-place-app-eatery"]') as HTMLAnchorElement | null;
     const href = eateryOpen?.getAttribute('href') || '';
     const hints = new URL(href, 'https://eatery.daup.co.za');
-    expect(hints.pathname).toBe('/owner');
+    expect(hints.origin).toBe('https://eatery.daup.co.za');
+    expect(hints.pathname).toBe('/d/hub');
     expect(hints.searchParams.get(HANDOFF_EMAIL_HINT)).toBe('owner@theolive.co.za');
     expect(hints.searchParams.get(HANDOFF_HOUSE_HINT)).toBe('The Olive');
+    expect(hints.searchParams.has('houseRedeem')).toBe(false);
     expect(hints.searchParams.has('token')).toBe(false);
     expect(handoffPresentsCredential(href)).toBe(false);
     expect(container.textContent).not.toMatch(/\b(peer|node|DID|DHT|wallet|MCP|npm|hydrate|neon)\b/i);
@@ -1431,8 +1433,11 @@ describe('delete and register a house from hub home', () => {
     const eateryOpen = container.querySelector('[data-testid="open-place-app-eatery"]') as HTMLAnchorElement;
     const href = eateryOpen?.getAttribute('href') || '';
     const hints = new URL(href, 'https://eatery.daup.co.za');
+    expect(hints.origin).toBe('https://eatery.daup.co.za');
+    expect(hints.pathname).toBe('/d/hub');
     expect(hints.searchParams.get(HANDOFF_EMAIL_HINT)).toBe('owner@theolive.co.za');
     expect(hints.searchParams.get(HANDOFF_HOUSE_HINT)).toBe('The Olive');
+    expect(hints.searchParams.has('houseRedeem')).toBe(false);
     expect(hints.searchParams.has('token')).toBe(false);
     expect(handoffPresentsCredential(href)).toBe(false);
     expect(buildOpenTheHouseUrl({

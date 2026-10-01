@@ -13,6 +13,7 @@ export {
 } from './hold';
 export {
   CHAT_HOME,
+  EATERY_HOME,
   FINANCE_HOME,
   HOUSE_REDEEM_APP_IDS,
   PROJECT_HOME,

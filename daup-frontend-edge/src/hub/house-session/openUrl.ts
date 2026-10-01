@@ -1,9 +1,9 @@
 /**
  * Hub Open URLs for house apps.
  *
- * Project keeps /d/hub. Finance, Trade, Vault, and Property stay on the
- * app home and carry the same hint query plus houseRedeem — those apps
- * do not have a /d/hub arrival yet (cutover is a later PR).
+ * Project and Eatery keep /d/hub. Finance, Trade, Vault, and Property stay
+ * on the app home and carry the same hint query plus houseRedeem — those
+ * apps do not have a /d/hub arrival yet (cutover is a later PR).
  *
  * Chat is not a house app. buildChatOpenUrl never accepts a redeem.
  * Hints stay non-authoritative. houseRedeem is the one-time proof from
@@ -16,7 +16,7 @@ import {
 } from '../ownerArrival';
 import { HOUSE_REDEEM_QUERY } from './seed';
 
-export const HOUSE_REDEEM_APP_IDS = ['finance', 'trade', 'vault', 'project', 'property'] as const;
+export const HOUSE_REDEEM_APP_IDS = ['finance', 'trade', 'vault', 'project', 'property', 'eatery'] as const;
 export type HouseRedeemAppId = (typeof HOUSE_REDEEM_APP_IDS)[number];
 
 export const FINANCE_HOME = 'https://finance.daup.co.za';
@@ -24,6 +24,7 @@ export const TRADE_HOME = 'https://trade.daup.co.za';
 export const VAULT_HOME = 'https://vault.daup.co.za';
 export const PROJECT_HOME = 'https://project.daup.co.za';
 export const PROPERTY_HOME = 'https://property.daup.co.za';
+export const EATERY_HOME = 'https://eatery.daup.co.za';
 export const CHAT_HOME = 'https://chat.daup.co.za';
 
 export const PROJECT_HUB_PATH = '/d/hub';
@@ -33,7 +34,8 @@ const HOMES: Record<HouseRedeemAppId, string> = {
   trade: TRADE_HOME,
   vault: VAULT_HOME,
   project: PROJECT_HOME,
-  property: PROPERTY_HOME
+  property: PROPERTY_HOME,
+  eatery: EATERY_HOME
 };
 
 const MODULE_TO_APP: Record<string, HouseRedeemAppId> = {
@@ -41,8 +43,13 @@ const MODULE_TO_APP: Record<string, HouseRedeemAppId> = {
   'daup-trade': 'trade',
   'daup-vault': 'vault',
   'daup-project': 'project',
-  'daup-property': 'property'
+  'daup-property': 'property',
+  'daup-eatery': 'eatery'
 };
+
+function opensHubDoor(app: HouseRedeemAppId): boolean {
+  return app === 'project' || app === 'eatery';
+}
 
 const CREDENTIAL_KEYS = new Set([
   'token',
@@ -85,12 +92,12 @@ export function buildHouseAppOpenUrl(app: HouseRedeemAppId, input: HouseAppOpenI
   const house = (input.house || '').trim();
   const redeem = (input.houseRedeem || '').trim();
   const hasHints = Boolean(email && house);
-  // Project already opens /d/hub for hints. The other house apps stay on
-  // the bare home until a redeem is issued, then hints ride along with it.
-  if (app !== 'project' && !redeem) return home;
+  // Project and Eatery already open /d/hub for hints. The other house apps
+  // stay on the bare home until a redeem is issued, then hints ride along.
+  if (!opensHubDoor(app) && !redeem) return home;
   if (!redeem && !hasHints) return home;
 
-  const url = app === 'project'
+  const url = opensHubDoor(app)
     ? new URL(`${home}${PROJECT_HUB_PATH}`)
     : new URL(`${home}/`);
   if (hasHints) {

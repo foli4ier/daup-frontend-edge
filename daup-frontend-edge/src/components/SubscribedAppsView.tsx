@@ -240,11 +240,6 @@ export const SubscribedAppsView: React.FC<{
       navigateToChatHome();
       return;
     }
-    if (app.id === 'eatery') {
-      if (!email.trim() || !house.trim()) return;
-      navigateToTheHouse({ email, house, placeIds });
-      return;
-    }
     if (app.id === 'eatout') {
       navigateToEatOutHome();
       return;

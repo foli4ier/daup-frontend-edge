@@ -207,9 +207,8 @@ export function shopAppIsHeld(app: ShopApp, held: {
 
 /**
  * EatOut Open. is search home. Chat Open. is the chat host with no redeem.
- * Finance, Trade, Vault, Project, and Property use house Open URLs
+ * Finance, Trade, Vault, Project, Property, and Eatery use house Open URLs
  * (hints, and houseRedeem once the seed has issued one).
- * Eatery Open. stays a house button — never this href.
  */
 export function shopAppOpenHref(app: ShopApp, handshake?: ProjectOpenHandshake): string | undefined {
   if (!app.live) return undefined;
@@ -226,7 +225,7 @@ export function shopAppOpenHref(app: ShopApp, handshake?: ProjectOpenHandshake):
   return undefined;
 }
 
-/** Door click for a house app. Chat, EatOut, and Eatery keep their own hrefs. */
+/** Door click for a house app. Chat and EatOut keep their own hrefs. */
 export function interceptHouseRedeemClick(
   app: ShopApp,
   event: { preventDefault(): void },
@@ -263,8 +262,8 @@ export function navigateToPropertyHome(): string {
 
 /**
  * Bare same-tab host for Chat, Vault, or Property.
- * Door Open. for Finance, Trade, Vault, Project, and Property issues a
- * houseRedeem instead of calling this. Chat stays on this path.
+ * Door Open. for Finance, Trade, Vault, Project, Property, and Eatery issues
+ * a houseRedeem instead of calling this. Chat stays on this path.
  */
 export function launchHeldModule(moduleName: string): string | undefined {
   if (moduleName === CHAT_MODULE_KEY) return navigateToChatHome();

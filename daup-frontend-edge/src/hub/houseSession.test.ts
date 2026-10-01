@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { hasBannedDoorCopy } from './copy';
 import {
   CHAT_HOME,
+  EATERY_HOME,
   FINANCE_HOME,
   HOUSE_REDEEM_QUERY,
   HouseSeedError,
@@ -66,6 +67,27 @@ describe('house seed origin and redeem urls', () => {
     expect(handoffPresentsCredential(href)).toBe(false);
     expect(ownerArrivalExposesBannedQuery(href)).toBe(false);
     expect(href).not.toMatch(/[?&](token|email|places|hubPlaces|role|daup1|pepper)=/i);
+  });
+
+  it('keeps Eatery on /d/hub and puts houseRedeem beside hints', () => {
+    const href = buildHouseAppOpenUrl('eatery', {
+      email: 'Owner@TheOlive.co.za',
+      house: 'The Olive',
+      placeIds: ['place-olive'],
+      houseRedeem: REDEEM,
+      origin: EATERY_HOME
+    });
+    const parsed = new URL(href);
+    expect(parsed.origin).toBe('https://eatery.daup.co.za');
+    expect(parsed.pathname).toBe('/d/hub');
+    expect(parsed.searchParams.get('emailHint')).toBe('owner@theolive.co.za');
+    expect(parsed.searchParams.get('houseHint')).toBe('The Olive');
+    expect(parsed.searchParams.get('placeIdHint')).toBe('place-olive');
+    expect(parsed.searchParams.get(HOUSE_REDEEM_QUERY)).toBe(REDEEM);
+    expect(handoffPresentsCredential(href)).toBe(false);
+    expect(ownerArrivalExposesBannedQuery(href)).toBe(false);
+    expect(href).not.toMatch(/[?&](token|email|places|hubPlaces|role|daup1|pepper)=/i);
+    expect(href).not.toMatch(/\/owner/);
   });
 
   it('opens Finance, Trade, Vault, and Property on the home with houseRedeem', () => {
@@ -518,6 +540,16 @@ describe('otp challenge then redeem', () => {
       if (opened.status !== 'navigate') return;
       expect(opened.url).not.toContain('sess-');
       expect(new URL(opened.url).searchParams.get(HOUSE_REDEEM_QUERY)).toBe(REDEEM);
+      if (appId === 'project' || appId === 'eatery') {
+        expect(new URL(opened.url).pathname).toBe('/d/hub');
+      }
+      if (appId === 'eatery') {
+        const parsed = new URL(opened.url);
+        expect(parsed.origin).toBe('https://eatery.daup.co.za');
+        expect(parsed.searchParams.get('emailHint')).toBe('owner@theolive.co.za');
+        expect(parsed.searchParams.get('houseHint')).toBe('The Olive');
+        expect(parsed.searchParams.get('placeIdHint')).toBe(placeId);
+      }
     };
 
     await mint('vault');
@@ -539,10 +571,10 @@ describe('otp challenge then redeem', () => {
     expect(afterClick.some(url => url.endsWith('/house/otp/challenge'))).toBe(true);
     expect(afterClick.some(url => url.endsWith('/house/session/redeem/issue'))).toBe(false);
 
-    for (const appId of ['project', 'finance', 'trade', 'property', 'vault']) {
+    for (const appId of ['project', 'finance', 'trade', 'property', 'vault', 'eatery']) {
       await mint(appId);
     }
-    expect(n).toBe(7);
+    expect(n).toBe(8);
     expect(houseOtpMockActive(placeId)).toBe(true);
   });
 

@@ -10,7 +10,7 @@ Visual tokens live in [`daup-theme`](https://github.com/foli4ier/daup-theme) (`i
 
 ## House place session
 
-Hub sign-in stays the email door. Opening **Finance, Trade, Vault, Project, or Property** asks for a WhatsApp code, then the Kortrijk seed mints a place session and a one-time `houseRedeem`. **Chat** stays off that path.
+Hub sign-in stays the email door. Opening **Finance, Trade, Vault, Project, Property, or Eatery** asks for a WhatsApp code, then the Kortrijk seed mints a place session and a one-time `houseRedeem`. **Chat** stays off that path. Project and Eatery open `https://…/d/hub?emailHint&houseHint&placeIdHint&houseRedeem`.
 
 | Env | Where | Value |
 | --- | --- | --- |

@@ -1,6 +1,6 @@
 # House place session (Hub PR3)
 
-Kortrijk (`https://mcp.daup.co.za`) mints the place session. The Hub runs the code door and opens Finance, Trade, Vault, Project, and Property with a one-time `houseRedeem`. Chat is not on this path.
+Kortrijk (`https://mcp.daup.co.za`) mints the place session. The Hub runs the code door and opens Finance, Trade, Vault, Project, Property, and Eatery with a one-time `houseRedeem`. Chat is not on this path.
 
 `HOUSE_SESSION_SECRET` is already set on Kortrijk. The Hub bundle does not contain it, and it must not be copied into `VITE_` env. This Hub does not mint an app cookie, so it does not use `SESSION_SECRET`. A later app cutover may use a per-app `SESSION_SECRET` as a Worker secret after redeem.
 
@@ -17,7 +17,7 @@ Local dev (`.env.development`) points the seed at `http://localhost:8080`.
 ## What Open does
 
 1. Email door is unchanged (`localStorage` owner session).
-2. **Open.** on Finance, Trade, Vault, Project, or Property calls `POST /house/otp/challenge` with `placeId` and the WhatsApp number, then `POST /house/session` with `challengeId`, `code`, `placeId`, and `phone`.
+2. **Open.** on Finance, Trade, Vault, Project, Property, or Eatery calls `POST /house/otp/challenge` with `placeId` and the WhatsApp number, then `POST /house/session` with `challengeId`, `code`, `placeId`, and `phone`.
 3. Fetches use `credentials: 'include'` so the seed can set host-only `daup_house_session` when the browser will store it. If the JSON body carries a bearer, the Hub sends it back as `Authorization` on `POST /house/session/redeem/issue`. That bearer is not put on the app URL.
 4. The app opens with `houseRedeem` plus the existing hint params when email and house are known.
 
@@ -30,13 +30,14 @@ Hints stay `emailHint`, `houseHint`, `placeIdHint`. Proof is `houseRedeem` from 
 | App | URL |
 | --- | --- |
 | Project | `https://project.daup.co.za/d/hub?emailHint&houseHint&placeIdHint&houseRedeem` |
+| Eatery | `https://eatery.daup.co.za/d/hub?emailHint&houseHint&placeIdHint&houseRedeem` |
 | Finance | `https://finance.daup.co.za/?emailHint&houseHint&placeIdHint&houseRedeem` |
 | Trade | `https://trade.daup.co.za/?…` |
 | Vault | `https://vault.daup.co.za/?…` |
 | Property | `https://property.daup.co.za/?…` |
 | Chat | `https://chat.daup.co.za` with no query and no redeem |
 
-Project keeps `/d/hub`. The other four stay on the app home so a pre-cutover app still loads. Static **Open.** hrefs do not contain `houseRedeem`; the id is issued on the click (about 60 seconds, single use).
+Project and Eatery keep `/d/hub`. Finance, Trade, Vault, and Property stay on the app home so a pre-cutover app still loads. Static **Open.** hrefs do not contain `houseRedeem`; the id is issued on the click (about 60 seconds, single use).
 
 ## Reading the mock code
 

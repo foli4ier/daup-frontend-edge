@@ -50,7 +50,6 @@ import {
 import { ENABLEABLE_SHOP_APPS, SHOP_APPS, interceptHouseRedeemClick, shopAppOpenHref, type ShopApp } from '../hub/places';
 import { remainingPeriodCopy } from '../hub/placeSubscription';
 import { formatTrialEndsOn } from '../hub/zaFormat';
-import { buildOpenTheHouseUrl } from '../hub/ownerArrival';
 import type { ProjectOpenHandshake } from '../hub/projectUrls';
 import type { PlatformPlaceRecord } from '../stores/identityStore';
 
@@ -121,13 +120,6 @@ export function PlaceDetailView({
   );
   const apps = SHOP_APPS.filter(app => app.id !== 'eatout' && enabledApps.includes(app.id));
   const heldApps = new Set(enabledApps);
-  const eateryHref = email
-    ? buildOpenTheHouseUrl({
-        email,
-        house: place.placeName,
-        placeId: openedPlaceId
-      })
-    : undefined;
 
   const chooseMode = (next: SeednodeMode) => {
     const mapKey = licensedId || openedPlaceId;
@@ -202,9 +194,7 @@ export function PlaceDetailView({
         </div>
         <div className="place-apps-list">
           {apps.map(app => {
-            const openHref = app.id === 'eatery'
-              ? eateryHref
-              : shopAppOpenHref(app, openHandshake);
+            const openHref = shopAppOpenHref(app, openHandshake);
             return (
               <article
                 className="place-card"
