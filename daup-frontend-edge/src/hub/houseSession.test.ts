@@ -524,19 +524,95 @@ describe('otp challenge then redeem', () => {
     const held = readPlaceSession(placeId);
     expect(held?.bearer).toBe('sess-ch_1');
 
-    const skipped = await openHouse({
+    const callsAfterVault = fetchImpl.mock.calls.length;
+    const again = await openHouse({
       appId: 'finance',
       placeId,
       hints: { email: 'owner@theolive.co.za', house: 'The Olive' },
       fetchImpl
     });
-    expect(skipped).toEqual({ status: 'phone', message: '' });
+    expect(again.status).toBe('code');
+    if (again.status !== 'code') return;
+    expect(again.mockCode).toMatch(/^10000/);
+    expect(again.phone).toBe('+27820000000');
+    const afterClick = fetchImpl.mock.calls.slice(callsAfterVault).map(call => String(call[0]));
+    expect(afterClick.some(url => url.endsWith('/house/otp/challenge'))).toBe(true);
+    expect(afterClick.some(url => url.endsWith('/house/session/redeem/issue'))).toBe(false);
 
     for (const appId of ['project', 'finance', 'trade', 'property', 'vault']) {
       await mint(appId);
     }
-    expect(n).toBe(6);
+    expect(n).toBe(7);
     expect(houseOtpMockActive(placeId)).toBe(true);
+  });
+
+  it('re-challenges after a refresh when mock mode was already recorded', async () => {
+    let n = 0;
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.endsWith('/house/otp/challenge')) {
+        n += 1;
+        return jsonResponse({
+          ok: true,
+          challengeId: `ch_${n}`,
+          expiresAt: 1,
+          mockCode: `20000${n}`
+        });
+      }
+      if (url.endsWith('/house/session')) {
+        return jsonResponse({ ok: true, placeSession: `sess-${n}`, expiresAt: Date.now() + 60_000 });
+      }
+      if (url.endsWith('/house/session/redeem/issue')) {
+        return jsonResponse({ ok: true, houseRedeem: REDEEM });
+      }
+      return jsonResponse({ error: 'Not found' }, 404);
+    });
+    const placeId = 'co_olive';
+    const door = await openHouse({
+      appId: 'vault',
+      placeId,
+      phone: '+27820000000',
+      fetchImpl
+    });
+    expect(door.status).toBe('code');
+    const saved = sessionStorage.getItem(PLACE_SESSION_STORAGE_KEY);
+    expect(saved).toContain('+27820000000');
+    clearPlaceSessionHold();
+    expect(houseOtpMockActive(placeId)).toBe(false);
+    sessionStorage.setItem(PLACE_SESSION_STORAGE_KEY, saved || '');
+    const refreshed = await openHouse({
+      appId: 'project',
+      placeId,
+      hints: { email: 'owner@theolive.co.za', house: 'The Olive' },
+      fetchImpl
+    });
+    expect(refreshed.status).toBe('code');
+    if (refreshed.status !== 'code') return;
+    expect(refreshed.mockCode).toBe('200002');
+    expect(n).toBe(2);
+  });
+
+  it('does not redeem from a mock-mode hold when no phone is known', async () => {
+    sessionStorage.setItem(PLACE_SESSION_STORAGE_KEY, JSON.stringify({
+      v: 2,
+      holds: {
+        co_olive: {
+          placeId: 'co_olive',
+          bearer: 'sess-old',
+          expiresAt: Date.now() + 60_000
+        }
+      },
+      otpMock: { co_olive: true }
+    }));
+    const fetchImpl = vi.fn();
+    const result = await openHouse({
+      appId: 'trade',
+      placeId: 'co_olive',
+      fetchImpl
+    });
+    expect(result).toEqual({ status: 'phone', message: '' });
+    expect(fetchImpl).not.toHaveBeenCalled();
+    expect(readPlaceSession('co_olive')?.bearer).toBe('sess-old');
   });
 
   it('drops a legacy tab hold that would skip the mock door', async () => {
