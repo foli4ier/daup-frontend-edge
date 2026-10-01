@@ -10,6 +10,7 @@ import {
 import { loadPlaceEntitlement } from '../hub/entitlements';
 import { DEFAULT_HUB_PANE, type HubPane } from '../hub/hubPane';
 import { continueHouseOpen, pickHousePlaceId } from '../hub/houseOpen';
+import { houseOtpMockActive, rememberedHouseOtpPhone } from '../hub/house-session';
 import { appUsesHouseRedeem } from '../hub/house-session/openUrl';
 import { ShopApp, listOwnerPlaces, navigateSameTab, navigateToChatHome, ownerPlaceKey } from '../hub/places';
 import { placeSubscriptionDisplay } from '../hub/placeSubscription';
@@ -249,7 +250,15 @@ export const SubscribedAppsView: React.FC<{
       return;
     }
     if (appUsesHouseRedeem(app.id)) {
-      void runHouseOpen(app, house, placeIds);
+      const ids = (placeIds || []).map(id => id.trim()).filter(Boolean);
+      const placeId = placeIdFor(ids);
+      // Mock mode already proved this place returns a code. Challenge again
+      // with the number we have so the popup can show on this click. A live
+      // hold (no mockCode) still skips the door — do not send a phone then.
+      const phone = houseOtpMockActive(placeId)
+        ? (rememberedHouseOtpPhone(placeId) || preferredPhone)
+        : '';
+      void runHouseOpen(app, house, placeIds, phone ? { phone } : undefined);
       return;
     }
     if (app.moduleKey) onLaunchApp?.(app.moduleKey);

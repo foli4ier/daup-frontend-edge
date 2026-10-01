@@ -1,8 +1,11 @@
 /**
  * OTP → seed place session → one-time houseRedeem → Open URL.
  * Chat never enters this path. The Hub does not sign the session.
- * While the seed returns mockCode, every Open challenges again.
- * Without mockCode, a live tab hold still opens the next app.
+ * While the seed returns mockCode, every Open challenges again and the
+ * door can show that code. A tab hold must not skip the door in that mode,
+ * and a missing phone on the click must not stop at the WhatsApp step when
+ * we already challenged this place. Without mockCode, a live tab hold still
+ * opens the next app.
  */
 
 import {
@@ -21,6 +24,7 @@ import {
   issueHouseRedeem,
   phoneHasEnoughDigits,
   readPlaceSession,
+  rememberedHouseOtpPhone,
   rememberHouseOtpMock,
   rememberPlaceSession,
   requestOtpChallenge,
@@ -71,12 +75,16 @@ export async function continueHouseOpen(args: {
 
   const hints = args.hints || {};
   const stored = readPlaceSession(placeId, args.now);
+  const mockActive = houseOtpMockActive(placeId);
   // A hold skips a second WhatsApp OTP. It must not skip the door while the
   // seed is returning mockCode — that is the only signal the popup can show.
-  let hold = stored && !houseOtpMockActive(placeId) ? stored : null;
+  let hold = stored && !mockActive ? stored : null;
 
   if (!hold) {
-    const phone = (args.phone || '').trim();
+    // Open clicks do not carry the number. After a mock challenge we already
+    // know it, so ask for a new code instead of bouncing back to the phone step
+    // (that step has no mockCode, so the popup never appears).
+    const phone = (args.phone || '').trim() || (mockActive ? rememberedHouseOtpPhone(placeId) : '');
     if (!phone) return { status: 'phone', message: '' };
     if (!phoneHasEnoughDigits(phone)) return { status: 'phone', message: HOUSE_OTP_BAD_PHONE };
     let challengeId = (args.challengeId || '').trim();
@@ -92,7 +100,7 @@ export async function continueHouseOpen(args: {
         });
         challengeId = challenge.challengeId;
         mockCode = challenge.mockCode;
-        rememberHouseOtpMock(placeId, Boolean(mockCode));
+        rememberHouseOtpMock(placeId, Boolean(mockCode), phone);
       } catch (error) {
         return { status: 'phone', message: kitchenMessage(error) };
       }

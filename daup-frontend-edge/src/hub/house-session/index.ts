@@ -6,6 +6,7 @@ export {
   forgetPlaceSession,
   houseOtpMockActive,
   readPlaceSession,
+  rememberedHouseOtpPhone,
   rememberHouseOtpMock,
   rememberPlaceSession,
   type PlaceSessionHold
