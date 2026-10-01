@@ -1,9 +1,12 @@
 export { sha256Base64Url } from './crypto';
 export { claimsIncludeRole } from './claims';
 export {
+  PLACE_SESSION_STORAGE_KEY,
   clearPlaceSessionHold,
   forgetPlaceSession,
+  houseOtpMockActive,
   readPlaceSession,
+  rememberHouseOtpMock,
   rememberPlaceSession,
   type PlaceSessionHold
 } from './hold';

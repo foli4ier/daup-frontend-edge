@@ -14,8 +14,10 @@ import {
   bearerFromSessionBody,
   buildChatOpenUrl,
   buildHouseAppOpenUrl,
+  PLACE_SESSION_STORAGE_KEY,
   clearPlaceSessionHold,
   createPlaceSession,
+  houseOtpMockActive,
   phoneHasEnoughDigits,
   readHouseRedeem,
   readPlaceSession,
@@ -377,5 +379,182 @@ describe('otp challenge then redeem', () => {
       expiresAt: Math.floor(Date.now() / 1000) + 120
     });
     expect(readPlaceSession(placeId)?.bearer).toBe('sess-seconds');
+  });
+
+  it('reuses a place-session hold when the challenge has no mock code', async () => {
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      const body = JSON.parse(String(init?.body || '{}')) as Record<string, unknown>;
+      if (url.endsWith('/house/otp/challenge')) {
+        return jsonResponse({ ok: true, challengeId: 'ch_real', expiresAt: 1 });
+      }
+      if (url.endsWith('/house/session')) {
+        expect(body.code).toBe('424242');
+        return jsonResponse({
+          ok: true,
+          placeSession: 'sess-real',
+          expiresAt: Date.now() + 60_000
+        });
+      }
+      if (url.endsWith('/house/session/redeem/issue')) {
+        expect(init?.headers).toMatchObject({ authorization: 'Bearer sess-real' });
+        return jsonResponse({ ok: true, houseRedeem: REDEEM });
+      }
+      return jsonResponse({ error: 'Not found' }, 404);
+    });
+
+    const needCode = await openHouse({
+      appId: 'finance',
+      placeId: 'co_olive',
+      phone: '+27820000000',
+      fetchImpl
+    });
+    expect(needCode).toMatchObject({ status: 'code', challengeId: 'ch_real', mockCode: '' });
+    expect(houseOtpMockActive('co_olive')).toBe(false);
+
+    const first = await openHouse({
+      appId: 'finance',
+      placeId: 'co_olive',
+      phone: '+27820000000',
+      challengeId: 'ch_real',
+      code: '424242',
+      hints: { email: 'owner@theolive.co.za', house: 'The Olive' },
+      fetchImpl
+    });
+    expect(first.status).toBe('navigate');
+
+    const callsAfterMint = fetchImpl.mock.calls.length;
+    const second = await openHouse({
+      appId: 'trade',
+      placeId: 'co_olive',
+      hints: { email: 'owner@theolive.co.za', house: 'The Olive' },
+      fetchImpl
+    });
+    expect(second.status).toBe('navigate');
+    if (second.status !== 'navigate') return;
+    expect(new URL(second.url).origin).toBe(TRADE_HOME);
+    expect(new URL(second.url).searchParams.get(HOUSE_REDEEM_QUERY)).toBe(REDEEM);
+    const later = fetchImpl.mock.calls.slice(callsAfterMint).map(call => String(call[0]));
+    expect(later.some(url => url.endsWith('/house/otp/challenge'))).toBe(false);
+    expect(later.some(url => url.endsWith('/house/session'))).toBe(false);
+    expect(later.some(url => url.endsWith('/house/session/redeem/issue'))).toBe(true);
+  });
+
+  it('still skips OTP for a hold remembered while mock mode is off', async () => {
+    rememberPlaceSession({
+      placeId: 'co_olive',
+      bearer: 'sess-held',
+      expiresAt: Date.now() + 60_000
+    });
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.endsWith('/house/session/redeem/issue')) {
+        return jsonResponse({ ok: true, houseRedeem: REDEEM });
+      }
+      return jsonResponse({ error: 'Not found' }, 404);
+    });
+    const opened = await openHouse({
+      appId: 'property',
+      placeId: 'co_olive',
+      hints: { email: 'owner@theolive.co.za', house: 'The Olive' },
+      fetchImpl
+    });
+    expect(opened.status).toBe('navigate');
+    if (opened.status !== 'navigate') return;
+    expect(new URL(opened.url).origin).toBe('https://property.daup.co.za');
+    expect(fetchImpl.mock.calls.map(call => String(call[0])).some(url => url.includes('/house/otp/'))).toBe(false);
+  });
+
+  it('challenges again for every house app when the seed returns mockCode', async () => {
+    let n = 0;
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      const body = JSON.parse(String(init?.body || '{}')) as Record<string, unknown>;
+      if (url.endsWith('/house/otp/challenge')) {
+        n += 1;
+        return jsonResponse({
+          ok: true,
+          challengeId: `ch_${n}`,
+          expiresAt: 1,
+          mockCode: `10000${n}`
+        });
+      }
+      if (url.endsWith('/house/session')) {
+        return jsonResponse({
+          ok: true,
+          placeSession: `sess-${body.challengeId}`,
+          expiresAt: Date.now() + 60_000
+        });
+      }
+      if (url.endsWith('/house/session/redeem/issue')) {
+        return jsonResponse({ ok: true, houseRedeem: REDEEM });
+      }
+      return jsonResponse({ error: 'Not found' }, 404);
+    });
+
+    const placeId = 'co_olive';
+    const mint = async (appId: string) => {
+      const door = await openHouse({
+        appId,
+        placeId,
+        phone: '+27820000000',
+        hints: { email: 'owner@theolive.co.za', house: 'The Olive', placeIds: [placeId] },
+        fetchImpl
+      });
+      expect(door.status).toBe('code');
+      if (door.status !== 'code') return;
+      expect(door.mockCode).toMatch(/^10000/);
+      expect(houseOtpMockActive(placeId)).toBe(true);
+      const opened = await openHouse({
+        appId,
+        placeId,
+        phone: '+27820000000',
+        challengeId: door.challengeId,
+        code: door.mockCode,
+        hints: { email: 'owner@theolive.co.za', house: 'The Olive', placeIds: [placeId] },
+        fetchImpl
+      });
+      expect(opened.status).toBe('navigate');
+      if (opened.status !== 'navigate') return;
+      expect(opened.url).not.toContain('sess-');
+      expect(new URL(opened.url).searchParams.get(HOUSE_REDEEM_QUERY)).toBe(REDEEM);
+    };
+
+    await mint('vault');
+    const held = readPlaceSession(placeId);
+    expect(held?.bearer).toBe('sess-ch_1');
+
+    const skipped = await openHouse({
+      appId: 'finance',
+      placeId,
+      hints: { email: 'owner@theolive.co.za', house: 'The Olive' },
+      fetchImpl
+    });
+    expect(skipped).toEqual({ status: 'phone', message: '' });
+
+    for (const appId of ['project', 'finance', 'trade', 'property', 'vault']) {
+      await mint(appId);
+    }
+    expect(n).toBe(6);
+    expect(houseOtpMockActive(placeId)).toBe(true);
+  });
+
+  it('drops a legacy tab hold that would skip the mock door', async () => {
+    sessionStorage.setItem(PLACE_SESSION_STORAGE_KEY, JSON.stringify({
+      co_olive: {
+        placeId: 'co_olive',
+        bearer: 'legacy-bearer',
+        expiresAt: Date.now() + 60_000
+      }
+    }));
+    const fetchImpl = vi.fn();
+    const result = await openHouse({
+      appId: 'project',
+      placeId: 'co_olive',
+      fetchImpl
+    });
+    expect(result).toEqual({ status: 'phone', message: '' });
+    expect(fetchImpl).not.toHaveBeenCalled();
+    expect(readPlaceSession('co_olive')).toBeNull();
   });
 });
