@@ -302,7 +302,7 @@ describe('otp challenge then redeem', () => {
       const url = String(input);
       const body = JSON.parse(String(init?.body || '{}')) as Record<string, unknown>;
       if (url.endsWith('/house/otp/challenge')) {
-        expect(body).toEqual({ placeId, phone: '0829261373' });
+        expect(body).toEqual({ placeId, phone: '+27829261373' });
         return jsonResponse({
           ok: true,
           challengeId: 'ch_vault',
@@ -313,7 +313,7 @@ describe('otp challenge then redeem', () => {
       if (url.endsWith('/house/session')) {
         expect(body).toEqual({
           placeId,
-          phone: '0829261373',
+          phone: '+27829261373',
           challengeId: 'ch_vault',
           code: '482913'
         });
@@ -339,7 +339,12 @@ describe('otp challenge then redeem', () => {
       hints: { email: 'owner@theolive.co.za', house: 'The Olive', placeIds: [placeId] },
       fetchImpl
     });
-    expect(needCode).toMatchObject({ status: 'code', challengeId: 'ch_vault', mockCode: '482913' });
+    expect(needCode).toMatchObject({
+      status: 'code',
+      challengeId: 'ch_vault',
+      mockCode: '482913',
+      phone: '+27829261373'
+    });
 
     const opened = await openHouse({
       appId: 'vault',

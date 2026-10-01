@@ -103,6 +103,9 @@ export const CHAIN_APP_FINANCE = 'Finance';
 export const CHAIN_APP_TRADE = 'Trade';
 export const CHAIN_APP_PROPERTY = 'Property';
 export const YOUR_WHATSAPP_LABEL = 'Your WhatsApp number.';
+export const SAVE_WHATSAPP_LABEL = 'Save.';
+export const CHANGE_WHATSAPP_LABEL = 'Change.';
+export const WHATSAPP_ONE_CODE_HINT = 'A code to this number opens the house apps.';
 export const SEND_CODE_LABEL = 'Send a code.';
 export const CODE_LABEL = 'Code.';
 export const HOUSE_OTP_TITLE = 'Open with a code.';
@@ -240,6 +243,9 @@ export const HUB_HOME_COPY = [
   CHAIN_APP_TRADE,
   CHAIN_APP_PROPERTY,
   YOUR_WHATSAPP_LABEL,
+  SAVE_WHATSAPP_LABEL,
+  CHANGE_WHATSAPP_LABEL,
+  WHATSAPP_ONE_CODE_HINT,
   SEND_CODE_LABEL,
   CODE_LABEL,
   HOUSE_OTP_TITLE,

@@ -5,7 +5,8 @@
  * door can show that code. A tab hold must not skip the door in that mode,
  * and a missing phone on the click must not stop at the WhatsApp step when
  * we already challenged this place. Without mockCode, a live tab hold still
- * opens the next app.
+ * opens the next app. The phone is the profile WhatsApp in E.164, so one
+ * place session is the key for every house app on that number.
  */
 
 import {
@@ -22,7 +23,6 @@ import {
   forgetPlaceSession,
   houseOtpMockActive,
   issueHouseRedeem,
-  phoneHasEnoughDigits,
   readPlaceSession,
   rememberedHouseOtpPhone,
   rememberHouseOtpMock,
@@ -32,6 +32,7 @@ import {
   type HouseRedeemAppId
 } from './house-session';
 import type { AppHandoffHints } from './ownerArrival';
+import { toWhatsappE164 } from './whatsappE164';
 
 const PLACE_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -84,9 +85,10 @@ export async function continueHouseOpen(args: {
     // Open clicks do not carry the number. After a mock challenge we already
     // know it, so ask for a new code instead of bouncing back to the phone step
     // (that step has no mockCode, so the popup never appears).
-    const phone = (args.phone || '').trim() || (mockActive ? rememberedHouseOtpPhone(placeId) : '');
-    if (!phone) return { status: 'phone', message: '' };
-    if (!phoneHasEnoughDigits(phone)) return { status: 'phone', message: HOUSE_OTP_BAD_PHONE };
+    const rawPhone = (args.phone || '').trim() || (mockActive ? rememberedHouseOtpPhone(placeId) : '');
+    if (!rawPhone) return { status: 'phone', message: '' };
+    const phone = toWhatsappE164(rawPhone);
+    if (!phone) return { status: 'phone', message: HOUSE_OTP_BAD_PHONE };
     let challengeId = (args.challengeId || '').trim();
     const code = (args.code || '').replace(/\s+/g, '').trim();
     let mockCode = '';

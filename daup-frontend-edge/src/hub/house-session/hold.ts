@@ -8,7 +8,8 @@
  * mock code. The code itself is not stored. While that flag is set, Open
  * must not reuse the hold to skip the door. `otpPhone` is the number that
  * challenge used, so the next Open can ask for a fresh mock code without
- * stopping on the WhatsApp step.
+ * stopping on the WhatsApp step. The durable copy of that number is the
+ * profile WhatsApp in E.164, not a second phone.
  */
 
 import { expiryToMs } from './seed';
