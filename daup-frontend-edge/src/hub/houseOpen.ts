@@ -1,6 +1,8 @@
 /**
  * OTP → seed place session → one-time houseRedeem → Open URL.
  * Chat never enters this path. The Hub does not sign the session.
+ * While the seed returns mockCode, every Open challenges again.
+ * Without mockCode, a live tab hold still opens the next app.
  */
 
 import {
@@ -15,9 +17,11 @@ import {
   buildHouseAppOpenUrl,
   createPlaceSession,
   forgetPlaceSession,
+  houseOtpMockActive,
   issueHouseRedeem,
   phoneHasEnoughDigits,
   readPlaceSession,
+  rememberHouseOtpMock,
   rememberPlaceSession,
   requestOtpChallenge,
   type HouseFetchOptions,
@@ -66,7 +70,10 @@ export async function continueHouseOpen(args: {
   if (!placeId) return { status: 'error', message: HOUSE_OTP_NEED_PLACE };
 
   const hints = args.hints || {};
-  let hold = readPlaceSession(placeId, args.now);
+  const stored = readPlaceSession(placeId, args.now);
+  // A hold skips a second WhatsApp OTP. It must not skip the door while the
+  // seed is returning mockCode — that is the only signal the popup can show.
+  let hold = stored && !houseOtpMockActive(placeId) ? stored : null;
 
   if (!hold) {
     const phone = (args.phone || '').trim();
@@ -85,6 +92,7 @@ export async function continueHouseOpen(args: {
         });
         challengeId = challenge.challengeId;
         mockCode = challenge.mockCode;
+        rememberHouseOtpMock(placeId, Boolean(mockCode));
       } catch (error) {
         return { status: 'phone', message: kitchenMessage(error) };
       }
