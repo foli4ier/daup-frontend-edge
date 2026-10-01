@@ -109,7 +109,9 @@ export const HubYouView: React.FC<{
             </p>
           ) : null}
         </div>
-        <p className="caption" data-testid="hub-you-whatsapp-hint">{WHATSAPP_ONE_CODE_HINT}</p>
+        {whatsapp && !showWhatsappEditor ? (
+          <p className="caption" data-testid="hub-you-whatsapp-hint">{WHATSAPP_ONE_CODE_HINT}</p>
+        ) : null}
         {showWhatsappEditor ? (
           <form className="hub-you-whatsapp-form" data-testid="hub-you-whatsapp-form" onSubmit={saveWhatsapp}>
             <div className="owner-field">
@@ -127,6 +129,7 @@ export const HubYouView: React.FC<{
                 }}
               />
             </div>
+            <p className="caption" data-testid="hub-you-whatsapp-hint">{WHATSAPP_ONE_CODE_HINT}</p>
             {whatsappError ? (
               <p className="wizard-error" role="alert" data-testid="hub-you-whatsapp-error">{whatsappError}</p>
             ) : null}
@@ -137,7 +140,7 @@ export const HubYouView: React.FC<{
               {whatsapp ? (
                 <button
                   type="button"
-                  className="owner-quiet"
+                  className="owner-quiet hub-you-whatsapp-back"
                   data-testid="hub-you-whatsapp-back"
                   onClick={() => {
                     setWhatsappError('');

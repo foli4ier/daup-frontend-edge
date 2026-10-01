@@ -369,10 +369,14 @@ describe('hub home after email', () => {
     const email = container.querySelector('[data-testid="hub-you-email"]');
     expect(email?.textContent).toBe('owner@theolive.co.za');
     expect(container.querySelector('[data-testid="hub-you-whatsapp"]')).toBeNull();
-    expect(container.querySelector('[data-testid="hub-you-whatsapp-hint"]')?.textContent).toBe(WHATSAPP_ONE_CODE_HINT);
+    const hint = container.querySelector('[data-testid="hub-you-whatsapp-hint"]');
     const input = container.querySelector('[data-testid="hub-you-whatsapp-input"]') as HTMLInputElement;
+    const save = container.querySelector('[data-testid="hub-you-whatsapp-save"]');
+    expect(hint?.textContent).toBe(WHATSAPP_ONE_CODE_HINT);
     expect(input.value).toBe('+27820000000');
     expect(email && input && (email.compareDocumentPosition(input) & Node.DOCUMENT_POSITION_FOLLOWING)).toBeTruthy();
+    expect(input && hint && (input.compareDocumentPosition(hint) & Node.DOCUMENT_POSITION_FOLLOWING)).toBeTruthy();
+    expect(hint && save && (hint.compareDocumentPosition(save) & Node.DOCUMENT_POSITION_FOLLOWING)).toBeTruthy();
 
     typeInto(input, '123');
     await act(async () => {
@@ -394,7 +398,10 @@ describe('hub home after email', () => {
 
     clickTestId(container, 'hub-you-whatsapp-change');
     const edit = container.querySelector('[data-testid="hub-you-whatsapp-input"]') as HTMLInputElement;
+    const editHint = container.querySelector('[data-testid="hub-you-whatsapp-hint"]');
     expect(edit.value).toBe('+27829261373');
+    expect(edit && editHint && (edit.compareDocumentPosition(editHint) & Node.DOCUMENT_POSITION_FOLLOWING)).toBeTruthy();
+    expect(container.querySelector('[data-testid="hub-you-whatsapp-back"]')).toBeTruthy();
     typeInto(edit, '+27820000000');
     await act(async () => {
       (container.querySelector('[data-testid="hub-you-whatsapp-form"]') as HTMLFormElement).requestSubmit();

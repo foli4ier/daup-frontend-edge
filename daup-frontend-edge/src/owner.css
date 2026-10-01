@@ -1186,9 +1186,9 @@ body {
 .hub-you-identity {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
+  align-items: center;
   column-gap: 16px;
-  row-gap: 2px;
+  row-gap: 8px;
 }
 
 .hub-you-email,
@@ -1203,30 +1203,33 @@ body {
   gap: 2px;
 }
 
-.hub-you-whatsapp-change {
-  min-height: 32px;
-  padding: 0 6px;
-  font-size: 0.85rem;
+.hub-you-whatsapp-change,
+.hub-you-whatsapp-back {
+  min-height: var(--tap);
 }
 
 .hub-you-whatsapp-form {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding-top: 6px;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.hub-you-whatsapp-form .owner-field {
+  gap: 16px;
 }
 
 .hub-you-whatsapp-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 4px 8px;
+  gap: 8px 12px;
 }
 
 .hub-you-whatsapp-actions .btn {
   width: auto;
   min-height: var(--tap);
-  padding: 0 18px;
+  padding: 0 24px;
 }
 
 .hub-you-house {
