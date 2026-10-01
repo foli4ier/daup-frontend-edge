@@ -23,6 +23,16 @@ Local dev (`.env.development`) points the seed at `http://localhost:8080`.
 
 No `Domain=.daup.co.za` cookie. The Hub does not write the seed cookie itself.
 
+## Profile WhatsApp is the one number
+
+**You.** shows the email and, beside it, the WhatsApp number. That number is stored on the Hub profile as E.164 (`profile.demographics.whatsappNumber`, for example `+27829261373`). A local `082…` form is the same key. It is not a second phone: it is the `phone` already sent on `POST /house/otp/challenge` and `POST /house/session`, and the `otpPhone` remembered for a mock challenge.
+
+One code to that number mints one place session. While that session is still held and the seed is not returning `mockCode`, **Open.** on Finance, Trade, Vault, Project, Property, and Eatery redeems `houseRedeem` without a second code. Every challenge uses the profile number, so the house apps are tied to it. Chat stays off this path.
+
+Changing the number on **You.** drops the held session. The next **Open.** texts the new number. Clearing the house keeps the email and the WhatsApp number.
+
+Soft-test place: Kortrijk (`https://mcp.daup.co.za`), Frans `+27829261373`, place id `80a48803-e2fb-492c-8fe3-431e22a1e2cb`. While WhatsApp delivery is off, each **Open.** still asks for the mock code, always for this same number.
+
 ## Open URL shapes
 
 Hints stay `emailHint`, `houseHint`, `placeIdHint`. Proof is `houseRedeem` from the seed (`hr_…`). These are not query keys: `token`, `email`, `places`, `hubPlaces`, `role`, `daup1`.

@@ -19,6 +19,7 @@ import { navigateToEatOutHome } from '../hub/eatoutUrls';
 import { navigateToTheHouse } from '../hub/ownerArrival';
 import { projectOpenHandshakeFromHub } from '../hub/projectUrls';
 import { listOwnerPlaceRecords, listRegisteredPlaces, placeIdFromHubWallet } from '../stores/identityStore';
+import { toWhatsappE164 } from '../hub/whatsappE164';
 import { GetAppsSection } from './GetApps';
 import { HouseOtpDoor } from './HouseOtpDoor';
 import { OtherPlacesView } from './OtherPlaces';
@@ -70,7 +71,8 @@ export const SubscribedAppsView: React.FC<{
     enableAppsOnPlace,
     companyId,
     trialState,
-    vault
+    vault,
+    updateDemographics
   } = useUserProfile();
   const houseName = (activeWallet?.legalName || '').trim();
   const email = ownerSession?.email || '';
@@ -140,9 +142,16 @@ export const SubscribedAppsView: React.FC<{
     }
   };
 
-  const preferredPhone = (
+  const preferredPhone = toWhatsappE164(
     profile.demographics.whatsappNumber || profile.demographics.contactNumber || ''
-  ).trim();
+  );
+
+  const linkWhatsapp = (phone: string) => {
+    const e164 = toWhatsappE164(phone);
+    if (!e164) return;
+    if (toWhatsappE164(profile.demographics.whatsappNumber) === e164) return;
+    updateDemographics({ whatsappNumber: e164 });
+  };
 
   const placeIdFor = (explicit?: string[]) => {
     const primary = ownerRecords.find(record => record.placeName.trim() === houseName);
@@ -180,6 +189,7 @@ export const SubscribedAppsView: React.FC<{
         challengeId: extra?.challengeId
       });
       if (result.status === 'navigate') {
+        linkWhatsapp(extra?.phone || '');
         setHouseDoor(null);
         navigateSameTab(result.url);
         return;
@@ -200,6 +210,7 @@ export const SubscribedAppsView: React.FC<{
         return;
       }
       if (result.status === 'code') {
+        linkWhatsapp(result.phone);
         setHouseDoor(current => ({
           app,
           house,

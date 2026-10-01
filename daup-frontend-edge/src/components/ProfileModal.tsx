@@ -9,6 +9,8 @@ import { useDIDWallet } from './DIDWalletProvider';
 import { BankWalletConfig, CryptoWalletConfig, SexType, WalletEntry, UserDemographics, UserLocation, SocialLinks } from '../types/profile';
 import { getCurrencyForCountry } from '../utils/currency';
 import { formatDayFirstDate } from '../hub/zaFormat';
+import { HOUSE_OTP_BAD_PHONE } from '../hub/copy';
+import { toWhatsappE164 } from '../hub/whatsappE164';
 
 const SUPPORTED_LANGUAGES = [
   { code: 'en', label: 'English (US)' },
@@ -55,6 +57,7 @@ export const ProfileModal: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<'wallets' | 'demographics' | 'location' | 'subscription'>('wallets');
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
+  const [demoError, setDemoError] = useState<string | null>(null);
 
   // Demographics form
   const [demographics, setDemographics] = useState<UserDemographics>({ ...profile.demographics });
@@ -93,7 +96,14 @@ export const ProfileModal: React.FC = () => {
 
   const handleSaveDemographics = (e: React.FormEvent) => {
     e.preventDefault();
-    updateDemographics(demographics);
+    const raw = demographics.whatsappNumber.trim();
+    const whatsappNumber = raw ? toWhatsappE164(raw) : '';
+    if (raw && !whatsappNumber) {
+      setDemoError(HOUSE_OTP_BAD_PHONE);
+      return;
+    }
+    setDemoError(null);
+    updateDemographics({ ...demographics, whatsappNumber });
     showSaveSuccess('Demographics and contact credentials saved successfully.');
   };
 
@@ -501,8 +511,16 @@ export const ProfileModal: React.FC = () => {
                     type="tel" 
                     className="glass-input" 
                     value={demographics.whatsappNumber}
-                    onChange={(e) => setDemographics({ ...demographics, whatsappNumber: e.target.value })}
+                    onChange={(e) => {
+                      setDemoError(null);
+                      setDemographics({ ...demographics, whatsappNumber: e.target.value });
+                    }}
+                    placeholder="+27829261373"
                   />
+                  <p className="caption" style={{ margin: 0 }}>
+                    Stored as +27…. A code to this number opens the house apps.
+                  </p>
+                  {demoError ? <p className="wizard-error" role="alert">{demoError}</p> : null}
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>

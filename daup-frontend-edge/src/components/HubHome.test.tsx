@@ -45,6 +45,8 @@ import {
   WHERE_IS_THE_EATERY,
   PLACE_PAYMENT_DUE,
   PLACE_PAUSED,
+  HOUSE_OTP_BAD_PHONE,
+  WHATSAPP_ONE_CODE_HINT,
   COMING_DOT_LABEL,
   SAMPLE_SOURCE_LABEL,
   subscribedCountLabel
@@ -52,6 +54,7 @@ import {
 import { App } from '../App';
 import { HANDOFF_EMAIL_HINT, HANDOFF_HOUSE_HINT, buildOpenTheHouseUrl, cookieSetsParentDomain, expireOwnerCookie, handoffPresentsCredential } from '../hub/ownerArrival';
 import { loadSeednodeForPlace, ON_PREM_SEED_ENDPOINT } from '../hub/seednode';
+import { readPlaceSession, rememberPlaceSession } from '../hub/house-session';
 
 const houseVault: UserIdentityVault = {
   version: 1,
@@ -354,6 +357,53 @@ describe('hub home after email', () => {
     expect(second.container.textContent).not.toMatch(/\b(peer|node|DID|DHT|wallet|MCP|npm|hydrate|neon)\b/i);
     expect(second.container.textContent).not.toContain('co_');
     second.unmount();
+  });
+
+  it('shows WhatsApp beside email and saves it as E.164', async () => {
+    const { container, unmount } = render(<App />);
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 80));
+    });
+    openYou(container);
+
+    const email = container.querySelector('[data-testid="hub-you-email"]');
+    expect(email?.textContent).toBe('owner@theolive.co.za');
+    expect(container.querySelector('[data-testid="hub-you-whatsapp"]')).toBeNull();
+    expect(container.querySelector('[data-testid="hub-you-whatsapp-hint"]')?.textContent).toBe(WHATSAPP_ONE_CODE_HINT);
+    const input = container.querySelector('[data-testid="hub-you-whatsapp-input"]') as HTMLInputElement;
+    expect(input.value).toBe('+27820000000');
+    expect(email && input && (email.compareDocumentPosition(input) & Node.DOCUMENT_POSITION_FOLLOWING)).toBeTruthy();
+
+    typeInto(input, '123');
+    await act(async () => {
+      (container.querySelector('[data-testid="hub-you-whatsapp-form"]') as HTMLFormElement).requestSubmit();
+    });
+    expect(container.querySelector('[data-testid="hub-you-whatsapp-error"]')?.textContent).toBe(HOUSE_OTP_BAD_PHONE);
+    expect(loadIdentityVault().profile.demographics.whatsappNumber).toBe('');
+
+    rememberPlaceSession({ placeId: 'co_olive', bearer: 'sess-you', expiresAt: null });
+    typeInto(container.querySelector('[data-testid="hub-you-whatsapp-input"]') as HTMLInputElement, '0829261373');
+    await act(async () => {
+      (container.querySelector('[data-testid="hub-you-whatsapp-form"]') as HTMLFormElement).requestSubmit();
+    });
+    const shown = container.querySelector('[data-testid="hub-you-whatsapp"]');
+    expect(shown?.textContent).toBe('+27829261373');
+    expect(email && shown && (email.compareDocumentPosition(shown) & Node.DOCUMENT_POSITION_FOLLOWING)).toBeTruthy();
+    expect(loadIdentityVault().profile.demographics.whatsappNumber).toBe('+27829261373');
+    expect(readPlaceSession('co_olive')?.bearer).toBe('sess-you');
+
+    clickTestId(container, 'hub-you-whatsapp-change');
+    const edit = container.querySelector('[data-testid="hub-you-whatsapp-input"]') as HTMLInputElement;
+    expect(edit.value).toBe('+27829261373');
+    typeInto(edit, '+27820000000');
+    await act(async () => {
+      (container.querySelector('[data-testid="hub-you-whatsapp-form"]') as HTMLFormElement).requestSubmit();
+    });
+    expect(container.querySelector('[data-testid="hub-you-whatsapp"]')?.textContent).toBe('+27820000000');
+    expect(loadIdentityVault().profile.demographics.whatsappNumber).toBe('+27820000000');
+    expect(readPlaceSession('co_olive')).toBeNull();
+    expect(container.textContent).not.toMatch(/\b(peer|node|DID|DHT|wallet|MCP|npm|hydrate|neon)\b/i);
+    unmount();
   });
 
   it('shows the eatery row as the place name and Open the house to /d/hub', async () => {

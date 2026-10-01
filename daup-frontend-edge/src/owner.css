@@ -1183,9 +1183,50 @@ body {
   margin: 0;
 }
 
+.hub-you-identity {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 16px;
+  row-gap: 2px;
+}
+
 .hub-you-email,
+.hub-you-whatsapp,
 .hub-you-house {
   font-weight: 650;
+}
+
+.hub-you-whatsapp {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.hub-you-whatsapp-change {
+  min-height: 32px;
+  padding: 0 6px;
+  font-size: 0.85rem;
+}
+
+.hub-you-whatsapp-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 6px;
+}
+
+.hub-you-whatsapp-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+
+.hub-you-whatsapp-actions .btn {
+  width: auto;
+  min-height: var(--tap);
+  padding: 0 18px;
 }
 
 .hub-you-house {

@@ -18,6 +18,7 @@ import {
   asSeednodeConfig,
   type SeednodeConfig
 } from '../hub/seednode';
+import { canonicalWhatsappField } from '../hub/whatsappE164';
 
 export const VAULT_STORAGE_KEY = 'daup_user_vault_v1';
 export const LEGACY_PROFILE_KEY = 'daup_user_profile';
@@ -643,7 +644,7 @@ export function loadIdentityVault(): UserIdentityVault {
         registerLegalNameOnPlatform(active.legalName);
       }
 
-      return {
+      const loadedVault: UserIdentityVault = {
         version: 1,
         hasCompletedOnboarding: hasOnboarded,
         registeredAt: parsed.registeredAt || (hasOnboarded ? (parsed.profile?.createdAt || Date.now()) : null),
@@ -668,6 +669,9 @@ export function loadIdentityVault(): UserIdentityVault {
         companyNode: asCompanyNodeRecord(parsed.companyNode) || null,
         seednode: asSeednodeConfig(parsed.seednode) || null
       };
+      const stamped = withCanonicalWhatsapp(loadedVault);
+      if (stamped !== loadedVault) saveIdentityVault(stamped);
+      return stamped;
     }
 
     // 2. Legacy Migration Check: load from legacy profile & trial keys
@@ -719,8 +723,7 @@ export function loadIdentityVault(): UserIdentityVault {
       }
 
       // Persist migrated vault to unified key
-      saveIdentityVault(migratedVault);
-      return migratedVault;
+      return saveIdentityVault(migratedVault);
     }
   } catch (err) {
     console.error('[identityStore] Failed to load/hydrate identity vault:', err);
@@ -729,26 +732,46 @@ export function loadIdentityVault(): UserIdentityVault {
   return DEFAULT_VAULT;
 }
 
+/** Keep profile WhatsApp as E.164. Same reference when nothing changes. */
+export function withCanonicalWhatsapp(vault: UserIdentityVault): UserIdentityVault {
+  const current = vault.profile?.demographics;
+  if (!current) return vault;
+  const whatsappNumber = canonicalWhatsappField(current.whatsappNumber);
+  if (whatsappNumber === current.whatsappNumber) return vault;
+  return {
+    ...vault,
+    profile: {
+      ...vault.profile,
+      demographics: {
+        ...current,
+        whatsappNumber
+      }
+    }
+  };
+}
+
 /**
  * Save user identity vault to persistent storage
  */
-export function saveIdentityVault(vault: UserIdentityVault): void {
-  if (typeof window === 'undefined') return;
+export function saveIdentityVault(vault: UserIdentityVault): UserIdentityVault {
+  const stamped = withCanonicalWhatsapp(vault);
+  if (typeof window === 'undefined') return stamped;
 
   try {
-    const raw = JSON.stringify(vault);
+    const raw = JSON.stringify(stamped);
     localStorage.setItem(VAULT_STORAGE_KEY, raw);
 
     // Keep backwards compatibility keys synchronized
-    localStorage.setItem(LEGACY_PROFILE_KEY, JSON.stringify(vault.profile));
-    localStorage.setItem(LEGACY_TRIAL_KEY, JSON.stringify(vault.trialState));
-    if (vault.activeWallet?.legalName) {
-      registerLegalNameOnPlatform(vault.activeWallet.legalName);
-      localStorage.setItem('daup_active_did', `did:daup:${deriveSeedNode(vault.activeWallet.legalName)}-pub`);
+    localStorage.setItem(LEGACY_PROFILE_KEY, JSON.stringify(stamped.profile));
+    localStorage.setItem(LEGACY_TRIAL_KEY, JSON.stringify(stamped.trialState));
+    if (stamped.activeWallet?.legalName) {
+      registerLegalNameOnPlatform(stamped.activeWallet.legalName);
+      localStorage.setItem('daup_active_did', `did:daup:${deriveSeedNode(stamped.activeWallet.legalName)}-pub`);
     }
   } catch (err) {
     console.error('[identityStore] Failed to save identity vault:', err);
   }
+  return stamped;
 }
 
 /**
@@ -768,11 +791,12 @@ export function resetIdentityVault(): void {
 
 /**
  * Clear the named house so they can register again.
- * Keeps the owner's email. Does not touch the hub email session.
+ * Keeps the owner's email and WhatsApp. Does not touch the hub email session.
  */
-export function clearHouseFromVault(keepEmail = ''): UserIdentityVault {
+export function clearHouseFromVault(keepEmail = '', keepWhatsapp = ''): UserIdentityVault {
   const now = Date.now();
   const email = (keepEmail || '').trim().toLowerCase();
+  const whatsappNumber = canonicalWhatsappField(keepWhatsapp);
   const next: UserIdentityVault = {
     version: 1,
     hasCompletedOnboarding: false,
@@ -782,7 +806,8 @@ export function clearHouseFromVault(keepEmail = ''): UserIdentityVault {
       ...DEFAULT_PROFILE,
       demographics: {
         ...DEFAULT_DEMOGRAPHICS,
-        email
+        email,
+        whatsappNumber
       },
       createdAt: now,
       updatedAt: now
@@ -795,7 +820,7 @@ export function clearHouseFromVault(keepEmail = ''): UserIdentityVault {
     seednode: null
   };
 
-  saveIdentityVault(next);
+  const saved = saveIdentityVault(next);
 
   if (typeof window !== 'undefined') {
     try {
@@ -806,5 +831,5 @@ export function clearHouseFromVault(keepEmail = ''): UserIdentityVault {
     }
   }
 
-  return next;
+  return saved;
 }

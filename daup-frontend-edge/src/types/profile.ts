@@ -45,6 +45,7 @@ export interface SocialLinks {
 export interface UserDemographics {
   email: string;
   contactNumber: string;
+  /** WhatsApp in E.164 (`+27829261373`). House OTP uses this number for every app. */
   whatsappNumber: string;
   language: string;
   sex: SexType;

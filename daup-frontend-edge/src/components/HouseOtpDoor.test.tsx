@@ -5,7 +5,7 @@ import { act } from 'react';
 import { Simulate } from 'react-dom/test-utils';
 import { SubscribedAppsView } from './SubscribedAppsView';
 import { UserProfileProvider } from '../context/UserProfileContext';
-import { saveIdentityVault, resetIdentityVault, type UserIdentityVault } from '../stores/identityStore';
+import { loadIdentityVault, saveIdentityVault, resetIdentityVault, type UserIdentityVault } from '../stores/identityStore';
 import { OWNER_SESSION_STORAGE_KEY } from '../hub/ownerSession';
 import { PLACE_SESSION_STORAGE_KEY, clearPlaceSessionHold } from '../hub/house-session/hold';
 import { hasBannedDoorCopy } from '../hub/copy';
@@ -179,6 +179,7 @@ describe('House code door on Get apps', () => {
     expect(parsed.searchParams.has('token')).toBe(false);
     expect(href).not.toContain('sess-ui');
     expect(chat?.getAttribute('href')).toBe('https://chat.daup.co.za');
+    expect(loadIdentityVault().profile.demographics.whatsappNumber).toBe('+27820000000');
 
     unmount();
     Object.defineProperty(window, 'location', { configurable: true, value: location });
@@ -210,7 +211,7 @@ describe('House code door on Get apps', () => {
       const url = String(input);
       const body = JSON.parse(String(init?.body || '{}')) as Record<string, unknown>;
       if (url.includes('/house/otp/challenge')) {
-        expect(body).toEqual({ placeId, phone: '0829261373' });
+        expect(body).toEqual({ placeId, phone: '+27829261373' });
         return new Response(JSON.stringify({
           ok: true,
           challengeId: 'ch_vault',
@@ -221,7 +222,7 @@ describe('House code door on Get apps', () => {
       if (url.endsWith('/house/session')) {
         expect(body).toEqual({
           placeId,
-          phone: '0829261373',
+          phone: '+27829261373',
           challengeId: 'ch_vault',
           code: '482913'
         });

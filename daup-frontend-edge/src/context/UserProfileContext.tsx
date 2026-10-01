@@ -29,6 +29,7 @@ import {
   applyHousePlacesToVault,
   heldPlaceIdForHouse,
   DEFAULT_VAULT,
+  withCanonicalWhatsapp,
   type PlatformPlaceRecord
 } from '../stores/identityStore';
 import {
@@ -48,6 +49,8 @@ import {
   saveOwnerSession
 } from '../hub/ownerSession';
 import { bindCompanyId, normalizeEnabledApps, primaryChainApp, type EnableableAppId } from '../hub/companyNode';
+import { clearPlaceSessionHold } from '../hub/house-session';
+import { toWhatsappE164, whatsappIdentityChanged } from '../hub/whatsappE164';
 import {
   attachHostedSeednodeStub,
   isSeednodeAttached,
@@ -183,7 +186,7 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
   // Sync state mutation helper to keep persistent vault in sync
   const commitVault = useCallback((mutator: (prev: UserIdentityVault) => UserIdentityVault) => {
     setVault(prev => {
-      const next = mutator(prev);
+      const next = withCanonicalWhatsapp(mutator(prev));
       saveIdentityVault(next);
       return next;
     });
@@ -284,11 +287,11 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
     names.forEach(name => unregisterLegalNameOnPlatform(name));
 
-    const next = clearHouseFromVault(email);
+    const next = clearHouseFromVault(email, vault.profile.demographics.whatsappNumber);
     setVault(next);
     setIsNamingPlace(false);
     clearHouseCompanionCookie();
-  }, [ownerSession?.email, vault.activeWallet, vault.profile.demographics.email, vault.registeredWallets]);
+  }, [ownerSession?.email, vault.activeWallet, vault.profile.demographics.email, vault.profile.demographics.whatsappNumber, vault.registeredWallets]);
 
   const primaryWallet = vault.activeWallet;
   const identityKeySeedNode = vault.identityKeySeedNode;
@@ -328,10 +331,20 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   // Update demographics
   const updateDemographics = useCallback((demographics: Partial<UserDemographics>) => {
+    const patch: Partial<UserDemographics> = { ...demographics };
+    if (patch.whatsappNumber !== undefined) {
+      const trimmed = patch.whatsappNumber.trim();
+      const nextNumber = trimmed ? toWhatsappE164(trimmed) : '';
+      if (trimmed && !nextNumber) return;
+      if (whatsappIdentityChanged(vault.profile.demographics.whatsappNumber, nextNumber)) {
+        clearPlaceSessionHold();
+      }
+      patch.whatsappNumber = nextNumber;
+    }
     commitVault(prev => {
       const updatedProfile: UserProfile = {
         ...prev.profile,
-        demographics: { ...prev.profile.demographics, ...demographics },
+        demographics: { ...prev.profile.demographics, ...patch },
         updatedAt: Date.now()
       };
       return {
@@ -340,7 +353,7 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
         updatedAt: Date.now()
       };
     });
-  }, [commitVault]);
+  }, [commitVault, vault.profile.demographics.whatsappNumber]);
 
   // Update location
   const updateLocation = useCallback((location: Partial<UserLocation>) => {
