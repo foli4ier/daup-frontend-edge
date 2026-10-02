@@ -46,9 +46,9 @@ const ENABLEABLE_SHOP = ENABLEABLE_SHOP_APPS;
 const STEP_COPY = [
   { title: CREATE_YOUR_PLACE_TITLE, sub: CREATE_YOUR_PLACE_SUB },
   { title: ENABLE_APPS_TITLE, sub: ENABLE_APPS_SUB },
-  { title: 'Who should we reach?', sub: 'A phone for the house. WhatsApp is how staff join.' },
+  { title: 'Who should we reach?', sub: 'A phone for the place. WhatsApp is how staff join.' },
   { title: 'Invite tonight’s floor', sub: 'You send a WhatsApp. They never join as a new business.' },
-  { title: 'You’re ready', sub: 'See your apps. Then open the house from the hub.' }
+  { title: 'You’re ready', sub: 'See your apps. Then open the place from the hub.' }
 ];
 
 export const OnboardingWizard: React.FC = () => {
@@ -102,7 +102,7 @@ export const OnboardingWizard: React.FC = () => {
   const [chainId, setChainId] = useState<string>('1');
   const [cryptoAddress, setCryptoAddress] = useState<string>('');
 
-  const houseLabel = placeName.trim() || 'the house';
+  const houseLabel = placeName.trim() || 'the place';
 
   const inviteText = `You're on tonight's floor at ${houseLabel}. Open the eatery: ${EATERY}`;
   const inviteHref = `https://wa.me/?text=${encodeURIComponent(inviteText)}`;
@@ -240,7 +240,7 @@ export const OnboardingWizard: React.FC = () => {
         <div className="wrap owner-nav">
           <div>
             <div className="logo">DAUP</div>
-            <p className="owner-house">{placeName.trim() || 'Set up the house'}</p>
+            <p className="owner-house">{placeName.trim() || 'Set up the place'}</p>
           </div>
           <div className="owner-nav-actions">
             <button
@@ -567,7 +567,7 @@ export const OnboardingWizard: React.FC = () => {
                 </dd>
               </dl>
               <p className="caption" style={{ margin: 0 }}>
-                After this, open the house from your hub. Invite tonight’s floor when you are ready.
+                After this, open the place from your hub. Invite tonight’s floor when you are ready.
               </p>
               {showAdvanced && (
                 <p className="caption">

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   DAUP_HOME_HREF,
   HUB_DOOR_BODY,
+  HUB_DOOR_GLOSSARY,
   HUB_DOOR_TITLE,
   INVALID_EMAIL_MESSAGE,
   OPEN_YOUR_HUB_LABEL,
@@ -45,7 +46,8 @@ export const HubEmailDoor: React.FC<HubEmailDoorProps> = ({ onOpenHub }) => {
       <main className="hub-door-main">
         <div className="hub-door-island" data-testid="hub-door-island">
           <h1 className="hub-door-title">{HUB_DOOR_TITLE}</h1>
-          <p className="hub-door-body">{HUB_DOOR_BODY}</p>
+          <p className="hub-door-body" data-testid="hub-door-body">{HUB_DOOR_BODY}</p>
+          <p className="hub-door-glossary" data-testid="hub-door-glossary">{HUB_DOOR_GLOSSARY}</p>
 
           <form className="hub-door-card" onSubmit={submit} data-testid="hub-email-form">
             <div className="owner-field">

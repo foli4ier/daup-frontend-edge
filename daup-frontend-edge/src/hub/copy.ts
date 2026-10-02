@@ -18,8 +18,11 @@ export const BANNED_DOOR_NAMES = ['Marketplace'] as const;
 export const YOUR_EMAIL_LABEL = 'Your email.';
 export const OPEN_YOUR_HUB_LABEL = 'Open your hub.';
 export const HUB_DOOR_TITLE = 'Your hub.';
-export const HUB_DOOR_BODY = 'Social and business apps. Your places live here.';
-export const OPEN_THE_HOUSE_LABEL = 'Open the house';
+/** Same plain what+who as www: SA food-business owners; staff join on WhatsApp. */
+export const HUB_DOOR_BODY = 'For South African food-business owners. You run the business. Staff join on WhatsApp.';
+/** One line wherever hub / place are introduced. House is not the owner word. */
+export const HUB_DOOR_GLOSSARY = 'Place = the business. Hub = where owners start and invite staff.';
+export const OPEN_THE_HOUSE_LABEL = 'Open the place';
 export const PLUS_REGISTER_LABEL = '+ Register';
 export const LIVE_STATUS_LABEL = 'LIVE';
 export const NAV_PLACES_LABEL = 'My places';
@@ -30,7 +33,7 @@ export const YOU_KICKER = 'You.';
 export const SETTINGS_KICKER = 'Settings.';
 export const MONEY_IN_R_LABEL = 'Prices in R.';
 export const SEE_YOUR_APPS_LABEL = 'See your apps';
-export const STAFF_INVITE_LABEL = 'I have a staff invite';
+export const STAFF_INVITE_LABEL = 'I have a staff invite.';
 export const STAFF_INVITE_HREF = 'https://www.daup.co.za/invite';
 export const DAUP_HOME_HREF = 'https://www.daup.co.za';
 export const INVALID_EMAIL_MESSAGE = 'Add the email we can reach.';
@@ -85,7 +88,7 @@ export const DOWNLOAD_SEED_SETUP_LABEL = 'Download seed setup.';
 export const ON_PREM_SEED_NEXT = 'Next: download the setup and run it on this premises.';
 export const ON_PREM_SEED_DOOR_LABEL = 'This premises.';
 export const YOUR_PLACES_KICKER = 'Your places.';
-export const YOUR_PLACES_EMPTY = 'No house on this hub yet.';
+export const YOUR_PLACES_EMPTY = 'No place on this hub yet.';
 export const YOUR_APPS_KICKER = YOUR_PLACES_KICKER;
 export const GET_APPS_KICKER = 'Get apps.';
 export const OTHER_APPS_KICKER = GET_APPS_KICKER;
@@ -105,7 +108,7 @@ export const CHAIN_APP_PROPERTY = 'Property';
 export const YOUR_WHATSAPP_LABEL = 'Your WhatsApp number.';
 export const SAVE_WHATSAPP_LABEL = 'Save.';
 export const CHANGE_WHATSAPP_LABEL = 'Change.';
-export const WHATSAPP_ONE_CODE_HINT = 'A code to this number opens the house apps.';
+export const WHATSAPP_ONE_CODE_HINT = 'A code to this number opens the apps for this place.';
 export const SEND_CODE_LABEL = 'Send a code.';
 export const CODE_LABEL = 'Code.';
 export const HOUSE_OTP_TITLE = 'Open with a code.';
@@ -124,14 +127,14 @@ export const CHAIN_APP_PROJECT = 'Project';
 export const EATERY_ROW_BODY = 'Tables, tickets, kitchen, stock.';
 export const HUB_HOME_FALLBACK = 'Your hub';
 export const LOG_OFF_LABEL = 'Log off.';
-export const DELETE_THE_HOUSE_LABEL = 'Delete the house.';
-export const REGISTER_A_NEW_HOUSE_LABEL = 'Register a new house.';
-export const DELETE_HOUSE_TITLE = 'Delete the house.';
+export const DELETE_THE_HOUSE_LABEL = 'Delete the place.';
+export const REGISTER_A_NEW_HOUSE_LABEL = 'Register a new place.';
+export const DELETE_HOUSE_TITLE = 'Delete the place.';
 export const DELETE_HOUSE_BODY = 'This takes the place off your hub. Type the exact place name to confirm.';
 export const DELETE_HOUSE_CONFIRM_LABEL = 'Delete';
 export const DELETE_HOUSE_CANCEL_LABEL = 'Cancel';
 export const TYPE_THE_PLACE_NAME = 'Type the place name.';
-export const STAY_WITH_THE_HOUSE_LABEL = 'Stay with this house.';
+export const STAY_WITH_THE_HOUSE_LABEL = 'Stay with this place.';
 export const ON_THE_CHAIN_KICKER = 'On the chain.';
 export const ON_THE_CHAIN_EMPTY = 'No other places on the chain yet.';
 export const OTHER_PLACES_KICKER = 'Other places.';
@@ -203,6 +206,7 @@ export function hasBannedDoorName(text: string): boolean {
 export const HUB_EMAIL_DOOR_COPY = [
   HUB_DOOR_TITLE,
   HUB_DOOR_BODY,
+  HUB_DOOR_GLOSSARY,
   YOUR_EMAIL_LABEL,
   OPEN_YOUR_HUB_LABEL,
   STAFF_INVITE_LABEL

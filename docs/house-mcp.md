@@ -19,9 +19,9 @@ Local Kortrijk / `daup-mcp-servers`: `VITE_APP_MCP_URL=http://localhost:8080` (H
 | Hub action | Tool | Arguments | Result (`content[0].text` JSON) |
 | --- | --- | --- | --- |
 | Sign-in restore Your places. | `places_list_by_email` | `{ ownerEmail }` | `{ email, places: [...] }` |
-| Register a new house. | `places_register` | `{ ownerEmail, placeName, app, country, region, city }` | place record with `placeId` |
-| Delete the house. | `places_unregister` | `{ ownerEmail, placeId }` (or `{ ownerEmail, placeName }` if Hub has no id) | removed |
-| Delete the house. | `house_state_delete` | `{ ownerEmail, placeId }` (required) | house state gone |
+| Register a new place. | `places_register` | `{ ownerEmail, placeName, app, country, region, city }` | place record with `placeId` |
+| Delete the place. | `places_unregister` | `{ ownerEmail, placeId }` (or `{ ownerEmail, placeName }` if Hub has no id) | removed |
+| Delete the place. | `house_state_delete` | `{ ownerEmail, placeId }` (required) | house state gone |
 
 Both delete calls use the **placeId Hub currently holds** for that place (directory / vault). Live Kortrijk ids change across re-seeds — never hardcode. Order either way. Soft-fail either miss; local still clears.
 
@@ -38,10 +38,10 @@ Client: `daup-frontend-edge/src/hub/houseMcp.ts`.
 If the house node is down, slow (>6s), or CORS-blocked:
 
 - Sign-in still opens the hub on what’s already on this device
-- Empty Places stays exactly **No house on this hub yet.**
+- Empty Places stays exactly **No place on this hub yet.**
 - Register / Delete still update local places. Other browsers catch up when the node is back
 - **Log off.** still returns to the email door if the node is down
-- **Delete the house.** still clears local Hub place records if unregister / house_state_delete fail
+- **Delete the place.** still clears local Hub place records if unregister / house_state_delete fail
 
 No new door copy. No protocol words on Your places.
 
@@ -51,7 +51,7 @@ Place-session OTP and `houseRedeem` Open URLs are separate from `/mcp`. See [`do
 
 ## UX lock
 
-1. `places_register` only on **Register a new house.**
+1. `places_register` only on **Register a new place.**
 2. `places_list_by_email` only on email sign-in
 3. Empty card copy is unchanged
 4. Screenshots skipped when copy is unchanged
