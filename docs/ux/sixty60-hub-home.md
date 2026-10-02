@@ -11,11 +11,11 @@ Home was removed: it duplicated Places (**Open.** / **+ Register**) and Apps (**
 3. **Get apps.** — LIVE: Eatery, EatOut, Project. Held app: **Open.** only (terracotta). Not held: one **Get.** as primary. Never Get.+Open. together. Project **Open.** is `https://project.daup.co.za` — or `/d/hub?emailHint=&houseHint=&placeIdHint=` when Hub already has email + house (prefill hints only, not a credential; see `src/hub/projectUrls.ts`).
 4. **Thumb nav** — Places / Apps / You
 
-Protocol stays off this surface. **You.** holds visible **Log off.**, then **Settings.** (**Register a new house.** / **Delete the house.** / **Ask for an enhancement.**), then Advanced.
+Protocol stays off this surface. **You.** holds visible **Log off.**, then **Settings.** (**Register a new place.** / **Delete the place.** / **Ask for an enhancement.**), then Advanced.
 
 ## Empty
 
-No house: *No house on this hub yet.* plus **+ Register**. Register stays as that empty CTA only — not a loose **Register a new house.** link on a populated Places pane.
+No place yet: *No place on this hub yet.* plus **+ Register**. Register stays as that empty CTA only — not a loose **Register a new place.** link on a populated Places pane.
 
 ## Money and dates
 
@@ -23,7 +23,9 @@ Where money or dates show: **R** and day-first (`14 Dec 2023`). Empty country de
 
 ## Gate (logged out)
 
-Full-viewport cream. Desktop island 640px. **Open your hub.** is a 48px primary. **I have a staff invite** is a 48px outline secondary.
+Change set 1 replaces this gate copy. See [change-set-1-signed-out-gate.md](change-set-1-signed-out-gate.md). Stills below are the previous gate.
+
+Full-viewport cream. Desktop island 640px. **Open your hub.** is a 48px primary. **I have a staff invite.** is a 48px outline secondary.
 
 ![Signed-in home desktop](sixty60-home-desktop.png)
 ![Signed-in home mobile](sixty60-home-mobile.png)

@@ -265,7 +265,7 @@ export const ProfileModal: React.FC = () => {
                 <div>
                   <h3>Settlement wallets</h3>
                   <p className="caption" style={{ marginTop: '4px' }}>
-                    Active wallet sets the house name &bull; Currency: <strong>{currency.code} ({currency.symbol})</strong>
+                    Active wallet sets the place name &bull; Currency: <strong>{currency.code} ({currency.symbol})</strong>
                   </p>
                 </div>
 
@@ -480,7 +480,7 @@ export const ProfileModal: React.FC = () => {
               <div>
                 <h3>Contact details</h3>
                 <p className="caption" style={{ marginTop: '4px' }}>
-                  Phone, email, and language for the house.
+                  Phone, email, and language for the place.
                 </p>
               </div>
 
@@ -518,7 +518,7 @@ export const ProfileModal: React.FC = () => {
                     placeholder="+27829261373"
                   />
                   <p className="caption" style={{ margin: 0 }}>
-                    Stored as +27…. A code to this number opens the house apps.
+                    Stored as +27…. A code to this number opens the apps for this place.
                   </p>
                   {demoError ? <p className="wizard-error" role="alert">{demoError}</p> : null}
                 </div>
@@ -577,7 +577,7 @@ export const ProfileModal: React.FC = () => {
                 <div>
                   <h3>Location & socials</h3>
                   <p className="caption" style={{ marginTop: '4px' }}>
-                    Where the house is and how people find you online.
+                    Where the place is and how people find you online.
                   </p>
                 </div>
 

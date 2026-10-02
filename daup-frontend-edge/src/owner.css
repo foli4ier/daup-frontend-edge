@@ -1124,7 +1124,14 @@ body {
 .hub-door-body {
   margin: 0;
   font-size: 1.05rem;
-  line-height: 1.5;
+  line-height: 1.45;
+}
+
+.hub-door-glossary {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.4;
 }
 
 .hub-door-card {
@@ -1148,9 +1155,38 @@ body {
   min-height: var(--tap);
 }
 
+.hub-door .owner-field input,
 .hub-door .btn-primary,
 .hub-door .btn-outline {
   min-height: var(--tap);
+}
+
+/* Phone: start at the top so Open your hub. stays above the fold. */
+@media (max-width: 720px) {
+  .hub-door-nav {
+    width: min(640px, calc(100% - 32px));
+    min-height: 56px;
+    padding: 8px 0;
+  }
+
+  .hub-door-main {
+    justify-content: flex-start;
+    padding: 0 0 28px;
+  }
+
+  .hub-door-island {
+    width: min(640px, calc(100% - 32px));
+    gap: 10px;
+  }
+
+  .hub-door-title {
+    font-size: 1.85rem;
+  }
+
+  .hub-door-card {
+    padding: 16px;
+    gap: 12px;
+  }
 }
 
 .place-row-action {

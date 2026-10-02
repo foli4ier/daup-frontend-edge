@@ -3,7 +3,14 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { act } from 'react';
 import { HubEmailDoor } from '../components/HubEmailDoor';
-import { BANNED_DOOR_WORDS, OPEN_YOUR_HUB_LABEL, YOUR_EMAIL_LABEL } from '../hub/copy';
+import {
+  BANNED_DOOR_WORDS,
+  HUB_DOOR_BODY,
+  HUB_DOOR_GLOSSARY,
+  OPEN_YOUR_HUB_LABEL,
+  STAFF_INVITE_LABEL,
+  YOUR_EMAIL_LABEL
+} from '../hub/copy';
 
 function render(ui: React.ReactElement) {
   const container = document.createElement('div');
@@ -28,9 +35,13 @@ describe('HubEmailDoor', () => {
     const button = container.querySelector('[data-testid="open-your-hub"]') as HTMLButtonElement | null;
     const invite = container.querySelector('[data-testid="hub-staff-invite"]');
     expect(label?.textContent).toBe(YOUR_EMAIL_LABEL);
+    expect(container.querySelector('[data-testid="hub-door-body"]')?.textContent).toBe(HUB_DOOR_BODY);
+    expect(container.querySelector('[data-testid="hub-door-glossary"]')?.textContent).toBe(HUB_DOOR_GLOSSARY);
+    expect(container.querySelectorAll('input[type="email"]')).toHaveLength(1);
     expect(button?.textContent).toContain(OPEN_YOUR_HUB_LABEL);
     expect(button?.className).toContain('btn-primary');
-    expect(invite?.textContent).toContain('I have a staff invite');
+    expect(invite?.textContent).toBe(STAFF_INVITE_LABEL);
+    expect(STAFF_INVITE_LABEL.endsWith('.')).toBe(true);
     expect(invite?.className).toContain('btn-outline');
     expect(invite?.className).toContain('btn-wide');
     expect(container.querySelector('[data-testid="hub-door-island"]')).toBeTruthy();

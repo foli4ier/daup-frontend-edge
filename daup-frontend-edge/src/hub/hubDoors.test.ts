@@ -67,7 +67,11 @@ describe('hub email door copy', () => {
     expect(hasBannedDoorName(door)).toBe(false);
     expect(door).not.toContain('Marketplace');
     expect(door).not.toContain('Set up the house, invite the floor.');
-    expect(HUB_EMAIL_DOOR_COPY).toContain('Social and business apps. Your places live here.');
+    expect(door).not.toContain('Social and business apps. Your places live here.');
+    expect(door).not.toMatch(/\bhouse\b/i);
+    expect(HUB_EMAIL_DOOR_COPY).toContain('For South African food-business owners. You run the business. Staff join on WhatsApp.');
+    expect(HUB_EMAIL_DOOR_COPY).toContain('Place = the business. Hub = where owners start and invite staff.');
+    expect(HUB_EMAIL_DOOR_COPY).toContain('I have a staff invite.');
   });
 
   it('keeps banned protocol words off hub home place rows', () => {
@@ -77,13 +81,14 @@ describe('hub email door copy', () => {
     }
     expect(LOG_OFF_LABEL).toBe('Log off.');
     expect(SAME_CHAIN_CAPTION).toBe('Same chain. Not live yet.');
-    expect(DELETE_THE_HOUSE_LABEL).toBe('Delete the house.');
-    expect(REGISTER_A_NEW_HOUSE_LABEL).toBe('Register a new house.');
+    expect(DELETE_THE_HOUSE_LABEL).toBe('Delete the place.');
+    expect(REGISTER_A_NEW_HOUSE_LABEL).toBe('Register a new place.');
     expect(PLUS_REGISTER_LABEL).toBe('+ Register');
     expect(YOUR_PLACES_KICKER).toBe('Your places.');
     expect(SETTINGS_KICKER).toBe('Settings.');
     expect(HUB_HOME_COPY).toContain('Settings.');
-    expect(HUB_HOME_COPY).toContain('No house on this hub yet.');
+    expect(HUB_HOME_COPY).toContain('No place on this hub yet.');
+    expect(HUB_HOME_COPY.join('\n')).not.toMatch(/\bhouse\b/i);
     expect(HUB_HOME_COPY).toContain('+ Register');
     expect(HUB_HOME_COPY).not.toContain('Home');
     expect(HUB_HOME_COPY).toContain('My places');

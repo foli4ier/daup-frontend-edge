@@ -239,7 +239,7 @@ describe('hub home after email', () => {
     const settings = container.querySelector('[data-testid="hub-settings"]');
     expect(settings?.querySelector('.kicker')?.textContent).toBe(SETTINGS_KICKER);
     expect(settings?.querySelector('[data-testid="register-new-house"]')?.textContent).toBe(REGISTER_A_NEW_HOUSE_LABEL);
-    expect(settings?.querySelector('[data-testid="delete-the-house"]')?.textContent).toBe('Delete the house.');
+    expect(settings?.querySelector('[data-testid="delete-the-house"]')?.textContent).toBe(DELETE_THE_HOUSE_LABEL);
     expect(settings?.querySelector('[data-testid="ask-for-enhancement"]')?.textContent).toBe('Ask for an enhancement.');
     expect(container.querySelector('[data-testid="hub-log-off"]')?.textContent).toBe('Log off.');
     expect(container.querySelector('[data-testid="hub-you-profile"]')).toBeNull();
@@ -1249,7 +1249,7 @@ describe('signed-in hub does not assume eatery', () => {
     expect(container.textContent).not.toContain(WHERE_IS_THE_EATERY);
     expect(container.textContent).not.toMatch(/\b(peer|node|DID|DHT|wallet|MCP|npm|hydrate|neon)\b/i);
     expect(container.textContent).not.toContain('Marketplace');
-    expect(HUB_DOOR_BODY).toBe('Social and business apps. Your places live here.');
+    expect(HUB_DOOR_BODY).toBe('For South African food-business owners. You run the business. Staff join on WhatsApp.');
     unmount();
   });
 
@@ -1306,7 +1306,7 @@ describe('signed-in hub does not assume eatery', () => {
     openYou(container);
     expect(container.querySelector('[data-testid="hub-settings"]')?.textContent).toContain(SETTINGS_KICKER);
     expect(container.querySelector('[data-testid="register-new-house"]')?.textContent).toBe(REGISTER_A_NEW_HOUSE_LABEL);
-    expect(container.querySelector('[data-testid="delete-the-house"]')?.textContent).toBe('Delete the house.');
+    expect(container.querySelector('[data-testid="delete-the-house"]')?.textContent).toBe(DELETE_THE_HOUSE_LABEL);
     expect(container.textContent).not.toContain(WHERE_IS_THE_EATERY);
     expect(container.textContent).not.toMatch(/\b(peer|node|DID|DHT|wallet|MCP|npm|hydrate|neon)\b/i);
     unmount();

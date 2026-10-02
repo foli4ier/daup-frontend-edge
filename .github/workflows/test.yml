@@ -1,0 +1,23 @@
+name: Test
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: daup-frontend-edge
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: daup-frontend-edge/.node-version
+          cache: npm
+          cache-dependency-path: daup-frontend-edge/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run build

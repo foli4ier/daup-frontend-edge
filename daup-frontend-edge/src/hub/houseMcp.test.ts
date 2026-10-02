@@ -235,7 +235,7 @@ describe('house MCP JSON-RPC client', () => {
     const rpc = await callHouseMcpTool('places_list_by_email', { ownerEmail: 'you@gmail.com' }, { fetch: fetchMock });
     expect(rpc.ok).toBe(false);
 
-    expect(YOUR_PLACES_EMPTY).toBe('No house on this hub yet.');
+    expect(YOUR_PLACES_EMPTY).toBe('No place on this hub yet.');
     expect(hasBannedDoorCopy(YOUR_PLACES_EMPTY)).toBe(false);
   });
 

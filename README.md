@@ -1,6 +1,6 @@
 # daup-frontend-edge
 
-Owner hub for **app.daup.co.za** — set up the house, invite the floor.
+Owner hub for **app.daup.co.za** — set up the place, invite the floor.
 
 This GitHub repository is the source for **Cloudflare Workers Builds**. The worker serves the Vite `dist/` folder as static assets (`daup-frontend-edge/wrangler.json`). Builds run on Cloudflare; do not commit `node_modules`.
 
