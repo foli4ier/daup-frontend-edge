@@ -37,6 +37,7 @@ async function post(title, body) {
         method: 'POST',
         headers: { 'content-type': 'text/plain' },
         body: text,
+        signal: AbortSignal.timeout(8000),
       }).catch(() => {})
     )
   );
