@@ -13,8 +13,7 @@
     "dev:reseller": "npm run dev --prefix ../../daup-reseller",
     "dev:manufacturing": "npm run dev --prefix ../../daup-manufacturing",
     "dev:manufacturer": "npm run dev --prefix ../../daup-manufacturing",
-    "postinstall": "node scripts/capture-workers-log.mjs --ping",
-    "build": "vite build && node scripts/capture-workers-log.mjs",
+    "build": "vite build",
     "deploy": "npm run build && wrangler deploy",
     "preview": "vite preview",
     "test": "vitest run",
@@ -38,6 +37,6 @@
     "vite": "^5.1.6",
     "vitest": "^1.6.0",
     "jsdom": "^24.0.0",
-    "wrangler": "^4.147.0"
+    "wrangler": "^4.28.0"
   }
 }
