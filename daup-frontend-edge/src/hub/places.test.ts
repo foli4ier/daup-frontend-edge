@@ -19,7 +19,6 @@ import {
   PROPERTY_HOME,
   PROPERTY_MODULE_KEY,
   SHOP_APPS,
-  SHELF_SHOP_APPS,
   SOCIAL_SHOP_APPS,
   VAULT_HOME,
   VAULT_MODULE_KEY,
@@ -41,7 +40,7 @@ describe('Get apps. shop catalog', () => {
     ]);
     const eatout = LIVE_SHOP_APPS.find(app => app.id === 'eatout');
     expect(eatout?.title).toBe(CHAIN_APP_EATOUT);
-    expect(eatout?.title).toBe('Eat Out');
+    expect(eatout?.title).toBe('EatOut');
     expect(eatout?.live).toBe(true);
     expect(eatout?.moduleKey).toBe(EATOUT_MODULE_KEY);
     const project = LIVE_SHOP_APPS.find(app => app.id === 'project');
@@ -65,9 +64,7 @@ describe('Get apps. shop catalog', () => {
     expect(property?.title).not.toMatch(/rental/i);
     expect(property?.live).toBe(true);
     expect(property?.moduleKey).toBe(PROPERTY_MODULE_KEY);
-    expect(COMING_SHOP_APPS.map(app => app.id)).toEqual(['eatin', 'farm', 'reseller', 'maker']);
-    expect(COMING_SHOP_APPS.find(app => app.id === 'eatin')?.title).toBe('Eat In');
-    expect(COMING_SHOP_APPS.find(app => app.id === 'eatin')?.live).toBe(false);
+    expect(COMING_SHOP_APPS.map(app => app.id)).toEqual(['farm', 'reseller', 'maker']);
     expect(SOCIAL_SHOP_APPS.map(app => app.id)).toEqual(['eatout', 'chat']);
     expect(PAID_SHOP_APPS.map(app => app.id)).toEqual([
       'eatery', 'project', 'finance', 'trade', 'vault', 'property', 'farm', 'reseller', 'maker'
@@ -80,12 +77,6 @@ describe('Get apps. shop catalog', () => {
       'eatery', 'project', 'finance', 'trade', 'vault', 'property', 'farm', 'reseller', 'maker', 'chat'
     ]);
     expect(ENABLEABLE_SHOP_APPS.some(app => app.id === 'eatout')).toBe(false);
-    expect(ENABLEABLE_SHOP_APPS.some(app => app.id === 'eatin')).toBe(false);
-    expect(SHELF_SHOP_APPS.map(app => app.id)).toEqual([
-      'eatery', 'eatin', 'eatout', 'project', 'finance', 'trade', 'vault', 'chat', 'property', 'farm', 'reseller', 'maker'
-    ]);
-    expect(SHELF_SHOP_APPS.slice(0, 3).map(app => app.title)).toEqual(['Eatery', 'Eat In', 'Eat Out']);
-    expect(shopAppOpenHref(SHOP_APPS.find(app => app.id === 'eatin')!)).toBeUndefined();
     expect(COMING_SHOP_APPS.some(app => (
       app.id === 'eatout' || app.id === 'project' || app.id === 'chat' || app.id === 'vault' || app.id === 'property'
     ))).toBe(false);

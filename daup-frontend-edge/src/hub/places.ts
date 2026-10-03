@@ -2,7 +2,6 @@ import { ENABLEABLE_APP_IDS } from './companyNode';
 import {
   CHAIN_APP_CHAT,
   CHAIN_APP_EATERY,
-  CHAIN_APP_EATIN,
   CHAIN_APP_EATOUT,
   CHAIN_APP_FARM,
   CHAIN_APP_FINANCE,
@@ -62,7 +61,7 @@ export function ownerPlaceKey(place: {
   );
 }
 
-export type ShopAppId = 'eatery' | 'eatin' | 'eatout' | 'project' | 'finance' | 'trade' | 'farm' | 'reseller' | 'maker' | 'chat' | 'vault' | 'property';
+export type ShopAppId = 'eatery' | 'eatout' | 'project' | 'finance' | 'trade' | 'farm' | 'reseller' | 'maker' | 'chat' | 'vault' | 'property';
 
 export const EATOUT_MODULE_KEY = 'daup-eatout';
 export const CHAT_MODULE_KEY = 'daup-chat';
@@ -141,13 +140,9 @@ export const COMING_APPS: HubPlaceRow[] = [
   { id: 'maker', title: CHAIN_APP_MAKER, city: '', body: '', live: false, status: '' }
 ];
 
-/**
- * Shop catalog. Eat In is dinner and the fridge. It has no live destination
- * here, so it stays Soon and never opens the Eatery URL.
- */
+/** Shop catalog for Get apps. Live first. Coming never Get. or Open. */
 export const SHOP_APPS: ShopApp[] = [
   { id: 'eatery', title: CHAIN_APP_EATERY, live: true, moduleKey: 'daup-eatery' },
-  { id: 'eatin', title: CHAIN_APP_EATIN, live: false },
   { id: 'eatout', title: CHAIN_APP_EATOUT, live: true, moduleKey: EATOUT_MODULE_KEY },
   { id: 'project', title: CHAIN_APP_PROJECT, live: true, moduleKey: PROJECT_MODULE_KEY },
   { id: 'finance', title: CHAIN_APP_FINANCE, live: true, moduleKey: FINANCE_MODULE_KEY },
@@ -163,30 +158,7 @@ export const SHOP_APPS: ShopApp[] = [
 export const LIVE_SHOP_APPS = SHOP_APPS.filter(app => app.live);
 export const COMING_SHOP_APPS = SHOP_APPS.filter(app => !app.live);
 
-/**
- * Apps shelf order. Eatery, Eat In, and Eat Out are three tiles.
- * Chat is not one of those three. No Social or Paid groups.
- */
-export const SHELF_APP_IDS: ShopAppId[] = [
-  'eatery',
-  'eatin',
-  'eatout',
-  'project',
-  'finance',
-  'trade',
-  'vault',
-  'chat',
-  'property',
-  'farm',
-  'reseller',
-  'maker'
-];
-
-export const SHELF_SHOP_APPS = SHELF_APP_IDS
-  .map(id => SHOP_APPS.find(app => app.id === id))
-  .filter((app): app is ShopApp => Boolean(app));
-
-/** Kept for older catalog checks. The shelf does not render these labels. */
+/** Apps pane IA: Social (top) then Paid. Coming apps stay Coming. */
 export const SOCIAL_SHOP_APP_IDS: ShopAppId[] = ['eatout', 'chat'];
 export const PAID_SHOP_APP_IDS: ShopAppId[] = ['eatery', 'project', 'finance', 'trade', 'vault', 'property', 'farm', 'reseller', 'maker'];
 
@@ -240,8 +212,6 @@ export function shopAppIsHeld(app: ShopApp, held: {
  */
 export function shopAppOpenHref(app: ShopApp, handshake?: ProjectOpenHandshake): string | undefined {
   if (!app.live) return undefined;
-  // Eat In has no destination. Do not send it to Eatery.
-  if (app.id === 'eatin') return undefined;
   if (app.id === 'eatout') return EATOUT_SEARCH_HOME;
   if (app.id === 'chat') return buildChatOpenUrl();
   if (appUsesHouseRedeem(app.id)) {

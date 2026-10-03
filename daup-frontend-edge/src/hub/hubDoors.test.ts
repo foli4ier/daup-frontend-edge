@@ -108,11 +108,7 @@ describe('hub email door copy', () => {
     expect(HUB_HOME_COPY).toContain('Chat');
     expect(HUB_HOME_COPY).toContain('Property');
     expect(HUB_HOME_COPY.join('\n')).not.toMatch(/rental/i);
-    expect(HUB_HOME_COPY).toContain('Eat Out');
-    expect(HUB_HOME_COPY).toContain('Eat In');
-    expect(HUB_HOME_COPY).toContain('Apps.');
-    expect(HUB_HOME_COPY).toContain('Soon.');
-    expect(HUB_HOME_COPY).not.toContain('EatOut');
+    expect(HUB_HOME_COPY).toContain('EatOut');
     expect(HUB_HOME_COPY).toContain('Project');
     expect(HUB_HOME_COPY).toContain('Seed.');
     expect(HUB_HOME_COPY).toContain('Manage seed.');

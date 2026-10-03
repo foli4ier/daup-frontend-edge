@@ -318,104 +318,8 @@ body {
   }
 }
 
-.apps-shelf-section {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
-.apps-shelf-head {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.apps-shelf-title {
-  margin: 0;
-  font-family: var(--serif);
-  font-weight: 700;
-  font-size: clamp(2.6rem, 7vw, 3.5rem);
-  letter-spacing: -0.04em;
-  line-height: 0.95;
-}
-
-.apps-shelf-line {
-  margin: 0;
-  font-size: 1.05rem;
-  color: var(--ink);
-}
-
-.apps-shelf {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  width: 100%;
-  overflow: visible;
-}
-
-.shelf-tile {
-  appearance: none;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 8px;
-  width: 100%;
-  min-width: 48px;
-  min-height: var(--tap);
-  margin: 0;
-  padding: 16px 8px 14px;
-  border: 0;
-  border-radius: 20px;
-  background: var(--white);
-  box-shadow: var(--shadow);
-  color: var(--ink);
-  text-align: center;
-  text-decoration: none;
-  cursor: pointer;
-}
-
-.shelf-tile:focus-visible {
-  outline: 2px solid var(--forest);
-  outline-offset: 3px;
-}
-
-.shelf-tile-name {
-  font-weight: 700;
-  font-size: 0.95rem;
-  line-height: 1.15;
-  letter-spacing: -0.01em;
-}
-
-.shelf-tile-state {
-  color: var(--muted);
-  font-size: 0.82rem;
-  font-weight: 500;
-  line-height: 1.15;
-}
-
-.shelf-tile.is-soon {
-  background: var(--white);
-  box-shadow: none;
-  color: var(--muted);
-  cursor: default;
-}
-
-.shelf-tile.is-soon .ico-sq {
-  background: var(--chip);
-  color: var(--muted);
-}
-
-@media (min-width: 720px) {
-  .apps-shelf {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-}
-
-@media (min-width: 960px) {
-  .apps-shelf {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-  }
+.get-apps .card {
+  padding: 14px 16px;
 }
 
 @media (max-width: 640px) {
@@ -514,6 +418,18 @@ body {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.get-apps-live {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.shop-apps-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .seed-mode-choice {
@@ -889,6 +805,7 @@ body {
     grid-row: auto;
   }
 
+  .get-apps-live,
   .other-apps {
     grid-template-columns: 1fr 1fr;
   }
@@ -904,6 +821,10 @@ body {
 }
 
 @media (max-width: 760px) {
+  .get-apps-live {
+    grid-template-columns: 1fr;
+  }
+
   .wrap,
   .wizard-wrap {
     width: min(var(--max), calc(100% - 28px));

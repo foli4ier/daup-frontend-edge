@@ -92,15 +92,10 @@ export const YOUR_PLACES_EMPTY = 'No place on this hub yet.';
 export const YOUR_APPS_KICKER = YOUR_PLACES_KICKER;
 export const GET_APPS_KICKER = 'Get apps.';
 export const OTHER_APPS_KICKER = GET_APPS_KICKER;
-/** Apps shelf heading. The tile is the tap. */
-export const APPS_SHELF_TITLE = 'Apps.';
-export const APPS_SHELF_LINE = "Tap a tile. That's the whole shelf.";
 export const GET_LABEL = 'Get.';
 export const OPEN_LABEL = 'Open.';
 export const SUBSCRIBE_LABEL = 'Subscribe';
 export const COMING_KICKER = 'Coming';
-/** Not live yet. Mutes the shelf tile. */
-export const SOON_LABEL = 'Soon.';
 export const SAME_CHAIN_CAPTION = 'Same chain. Not live yet.';
 export const SEE_THE_MENU_LABEL = 'See the menu.';
 export const RESERVE_A_TABLE_LABEL = 'Reserve a table.';
@@ -127,8 +122,7 @@ export const HOUSE_OTP_MOCK_TITLE = 'Code for this try.';
 export const HOUSE_OTP_MOCK_BODY = 'The text is not going out yet. Use this code, then open.';
 export const HOUSE_OTP_MOCK_FILL = 'Use this code.';
 export const HOUSE_OTP_MOCK_TYPE = 'I will type it.';
-export const CHAIN_APP_EATIN = 'Eat In';
-export const CHAIN_APP_EATOUT = 'Eat Out';
+export const CHAIN_APP_EATOUT = 'EatOut';
 export const CHAIN_APP_PROJECT = 'Project';
 export const EATERY_ROW_BODY = 'Tables, tickets, kitchen, stock.';
 export const HUB_HOME_FALLBACK = 'Your hub';
@@ -168,7 +162,6 @@ export const CHAIN_APP_RESELLER = 'Reseller';
 export const CHAIN_APP_MAKER = 'Maker';
 export const CHAIN_APP_LABELS = {
   eatery: CHAIN_APP_EATERY,
-  eatin: CHAIN_APP_EATIN,
   eatout: CHAIN_APP_EATOUT,
   project: CHAIN_APP_PROJECT,
   finance: CHAIN_APP_FINANCE,
@@ -225,11 +218,8 @@ export const HUB_HOME_COPY = [
   PLUS_REGISTER_LABEL,
   OPEN_LABEL,
   GET_APPS_KICKER,
-  APPS_SHELF_TITLE,
-  APPS_SHELF_LINE,
   GET_LABEL,
   COMING_KICKER,
-  SOON_LABEL,
   SAME_CHAIN_CAPTION,
   SEE_THE_MENU_LABEL,
   RESERVE_A_TABLE_LABEL,
@@ -246,7 +236,6 @@ export const HUB_HOME_COPY = [
   SAMPLE_SOURCE_LABEL,
   ON_THIS_HUB_SOURCE_LABEL,
   CHAIN_APP_EATERY,
-  CHAIN_APP_EATIN,
   CHAIN_APP_EATOUT,
   CHAIN_APP_PROJECT,
   CHAIN_APP_FARM,

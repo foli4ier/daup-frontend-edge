@@ -25,8 +25,6 @@ import {
   ADD_APPS_LABEL,
   ALREADY_ON_PLACE_LABEL,
   ASK_FOR_ENHANCEMENT_LABEL,
-  APPS_SHELF_LINE,
-  APPS_SHELF_TITLE,
   DELETE_THE_HOUSE_LABEL,
   GET_APPS_KICKER,
   GET_LABEL,
@@ -41,7 +39,6 @@ import {
   SAME_CHAIN_CAPTION,
   SEE_THE_MENU_LABEL,
   SEED_HOSTED_LINE,
-  SOON_LABEL,
   YOUR_PLACES_EMPTY,
   YOUR_PLACES_KICKER,
   SETTINGS_KICKER,
@@ -230,11 +227,8 @@ describe('hub home after email', () => {
     openApps(container);
     const apps = container.querySelector('[data-testid="hub-home"]');
     expect(apps?.getAttribute('data-pane')).toBe('apps');
-    expect(apps?.textContent).toContain(APPS_SHELF_TITLE);
-    expect(apps?.textContent).toContain(APPS_SHELF_LINE);
-    expect(apps?.querySelector('[data-testid="open-app-eatery"]')?.className).toContain('shelf-tile');
-    expect(apps?.querySelector('[data-testid="apps-social"]')).toBeNull();
-    expect(apps?.querySelector('[data-testid="apps-paid"]')).toBeNull();
+    expect(apps?.textContent).toContain(GET_APPS_KICKER);
+    expect(apps?.querySelector('[data-testid="open-app-eatery"]')?.className).toContain('btn-primary');
     expect(apps?.querySelector('[data-testid="eatery-place-row"]')).toBeNull();
     expect(apps?.querySelector('[data-testid="on-the-chain"]')).toBeNull();
     expect(apps?.querySelector('[data-testid="other-places"]')).toBeNull();
@@ -487,81 +481,77 @@ describe('hub home after email', () => {
       await new Promise(resolve => setTimeout(resolve, 80));
     });
     const shop = appsContainer.querySelector('[data-testid="get-apps"]');
-    expect(shop?.textContent).toContain(APPS_SHELF_TITLE);
-    expect(shop?.textContent).toContain(APPS_SHELF_LINE);
-    expect(shop?.textContent).not.toContain(OPEN_LABEL);
-    expect(shop?.querySelector('[data-testid="apps-shelf"]')).toBeTruthy();
-    expect(shop?.querySelector('[data-testid="apps-social"]')).toBeNull();
-    expect(shop?.querySelector('[data-testid="apps-paid"]')).toBeNull();
-    expect(shop?.querySelector('.kicker')).toBeNull();
-    expect(shop?.textContent).not.toContain('Social.');
-    expect(shop?.textContent).not.toContain('Paid.');
-    expect(shop?.textContent).not.toContain('LIVE');
-    expect(shop?.querySelector('.btn-wide')).toBeNull();
-    expect(shop?.querySelector('[data-testid="get-app-chat"]')?.textContent).toContain('Chat');
-    expect(shop?.querySelector('[data-testid="get-app-chat"]')?.textContent).toContain(GET_LABEL);
-    expect(shop?.querySelector('[data-testid="coming-app-chat"]')).toBeNull();
-    const shelfEatery = shop?.querySelector('[data-testid="open-app-eatery"]') as HTMLAnchorElement | null;
-    expect(shelfEatery?.textContent).toContain('Eatery');
-    expect(shelfEatery?.textContent).not.toContain(GET_LABEL);
-    expect(shelfEatery?.textContent).not.toContain(OPEN_LABEL);
-    expect(shelfEatery?.tagName).toBe('A');
-    expect(shelfEatery?.className).toContain('shelf-tile');
-    expect(shelfEatery?.className).not.toContain('btn-primary');
+    expect(shop?.textContent).toContain(GET_APPS_KICKER);
+    expect(shop?.textContent).toContain(OPEN_LABEL);
+    const social = shop?.querySelector('[data-testid="apps-social"]');
+    const paid = shop?.querySelector('[data-testid="apps-paid"]');
+    expect(social?.textContent).toContain('Social.');
+    expect(social?.textContent).toContain('EatOut');
+    expect(social?.querySelector('[data-testid="shop-app-eatout"]')?.textContent).toContain('LIVE');
+    expect(social?.querySelector('[data-testid="shop-app-chat"]')?.textContent).toContain('Chat');
+    expect(social?.querySelector('[data-testid="shop-app-chat"]')?.textContent).toContain('LIVE');
+    expect(social?.querySelector('[data-testid="get-app-chat"]')?.textContent).toBe(GET_LABEL);
+    expect(social?.querySelector('[data-testid="coming-app-chat"]')).toBeNull();
+    expect(social?.textContent).not.toContain('Eatery');
+    expect(social?.textContent).not.toContain('Project');
+    expect(paid?.textContent).toContain('Paid.');
+    expect(shop?.querySelector('[data-testid="shop-app-eatery"]')?.textContent).toContain('Eatery');
     expect(shop?.querySelector('[data-testid="get-app-eatery"]')).toBeNull();
+    expect(shop?.querySelector('[data-testid="open-app-eatery"]')?.textContent).toBe(OPEN_LABEL);
+    expect(shop?.querySelector('[data-testid="open-app-eatery"]')?.className).toContain('btn-primary');
     expect(shop?.querySelector('[data-testid="subscribe-app-eatery"]')).toBeNull();
-    const eatIn = shop?.querySelector('[data-testid="coming-app-eatin"]');
-    expect(eatIn?.textContent).toContain('Eat In');
-    expect(eatIn?.textContent).toContain(SOON_LABEL);
-    expect(eatIn?.tagName).not.toBe('A');
-    expect(eatIn?.getAttribute('href')).toBeNull();
-    const eatout = shop?.querySelector('[data-testid="get-app-eatout"]');
-    expect(eatout?.textContent).toContain('Eat Out');
-    expect(eatout?.textContent).not.toContain('EatOut');
-    expect(eatout?.textContent).toContain(GET_LABEL);
-    expect(eatout?.tagName).toBe('BUTTON');
-    expect(eatout?.className).not.toContain('btn-primary');
-    expect(shop?.querySelector('[data-testid="open-app-eatout"]')).toBeNull();
-    expect(shop?.querySelector('[data-testid="subscribe-app-eatout"]')).toBeNull();
-    const project = shop?.querySelector('[data-testid="get-app-project"]');
+    const eatout = shop?.querySelector('[data-testid="shop-app-eatout"]');
+    expect(eatout?.textContent).toContain('EatOut');
+    expect(eatout?.textContent).toContain('LIVE');
+    const eatoutGet = eatout?.querySelector('[data-testid="get-app-eatout"]');
+    expect(eatoutGet?.textContent).toBe(GET_LABEL);
+    expect(eatoutGet?.className).toContain('btn-primary');
+    expect(eatout?.querySelector('[data-testid="open-app-eatout"]')).toBeNull();
+    expect(eatout?.querySelector('[data-testid="subscribe-app-eatout"]')).toBeNull();
+    const project = shop?.querySelector('[data-testid="shop-app-project"]');
     expect(project?.textContent).toContain('Project');
-    expect(project?.textContent).toContain(GET_LABEL);
-    expect(project?.tagName).toBe('BUTTON');
-    expect(project?.className).not.toContain('btn-primary');
-    expect(shop?.querySelector('[data-testid="open-app-project"]')).toBeNull();
-    expect(shop?.querySelector('[data-testid="subscribe-app-project"]')).toBeNull();
+    expect(project?.textContent).toContain('LIVE');
+    const projectGet = project?.querySelector('[data-testid="get-app-project"]');
+    expect(projectGet?.textContent).toBe(GET_LABEL);
+    expect(projectGet?.className).toContain('btn-primary');
+    expect(project?.querySelector('[data-testid="open-app-project"]')).toBeNull();
+    expect(project?.querySelector('[data-testid="subscribe-app-project"]')).toBeNull();
     expect(shop?.textContent).not.toMatch(/Subscribe/i);
     expect(shop?.textContent).not.toMatch(/Subscribed/i);
     expect(shop?.textContent).not.toContain('Marketplace');
-    expect(shop?.textContent).toContain('Farm');
-    expect(shop?.textContent).toContain('Reseller');
-    expect(shop?.textContent).toContain('Maker');
-    expect(shop?.querySelector('[data-testid="coming-app-farm"]')?.textContent).toContain(SOON_LABEL);
-    expect(shop?.querySelector('[data-testid="get-app-vault"]')?.textContent).toContain('Vault');
-    expect(shop?.querySelector('[data-testid="get-app-vault"]')?.textContent).toContain(GET_LABEL);
-    expect(shop?.querySelector('[data-testid="coming-app-vault"]')).toBeNull();
-    expect(shop?.querySelector('[data-testid="get-app-property"]')?.textContent).toContain('Property');
-    expect(shop?.querySelector('[data-testid="get-app-property"]')?.textContent).toContain(GET_LABEL);
-    expect(shop?.querySelector('[data-testid="coming-app-property"]')).toBeNull();
-    expect(shop?.textContent).not.toMatch(/rental/i);
-    expect(Array.from(shop?.querySelectorAll('[data-testid^="open-app-"], [data-testid^="get-app-"], [data-testid^="coming-app-"]') || [])
+    expect(paid?.textContent).toContain('Farm');
+    expect(paid?.textContent).toContain('Reseller');
+    expect(paid?.textContent).toContain('Maker');
+    expect(paid?.querySelector('[data-testid="coming-app-farm"]')?.textContent).toContain('Coming');
+    expect(paid?.querySelector('[data-testid="shop-app-vault"]')?.textContent).toContain('Vault');
+    expect(paid?.querySelector('[data-testid="shop-app-vault"]')?.textContent).toContain('LIVE');
+    expect(paid?.querySelector('[data-testid="get-app-vault"]')?.textContent).toBe(GET_LABEL);
+    expect(paid?.querySelector('[data-testid="coming-app-vault"]')).toBeNull();
+    expect(paid?.querySelector('[data-testid="shop-app-property"]')?.textContent).toContain('Property');
+    expect(paid?.querySelector('[data-testid="shop-app-property"]')?.textContent).toContain('LIVE');
+    expect(paid?.querySelector('[data-testid="get-app-property"]')?.textContent).toBe(GET_LABEL);
+    expect(paid?.querySelector('[data-testid="coming-app-property"]')).toBeNull();
+    expect(paid?.textContent).not.toMatch(/rental/i);
+    expect(Array.from(paid?.querySelectorAll('[data-testid^="shop-app-"], [data-testid^="coming-app-"]') || [])
       .map(el => el.getAttribute('data-testid'))).toEqual([
-      'open-app-eatery',
-      'coming-app-eatin',
-      'get-app-eatout',
-      'get-app-project',
-      'get-app-finance',
-      'get-app-trade',
-      'get-app-vault',
-      'get-app-chat',
-      'get-app-property',
+      'shop-app-eatery',
+      'shop-app-project',
+      'shop-app-finance',
+      'shop-app-trade',
+      'shop-app-vault',
+      'shop-app-property',
       'coming-app-farm',
       'coming-app-reseller',
       'coming-app-maker'
     ]);
+    expect(social?.textContent).not.toContain('Property');
+    expect(paid?.textContent).not.toContain('EatOut');
+    expect(paid?.textContent).not.toContain('Chat');
     expect(shop?.querySelector('[data-testid="coming-app-eatout"]')).toBeNull();
     expect(shop?.querySelector('[data-testid="coming-app-project"]')).toBeNull();
-    expect(appsContainer.querySelector('[data-testid="same-chain-caption"]')).toBeNull();
+    expect(shop?.textContent).not.toMatch(/Subscribe/i);
+    expect(shop?.textContent).not.toMatch(/Subscribed/i);
+    expect(appsContainer.querySelector('[data-testid="same-chain-caption"]')?.textContent).toBe(SAME_CHAIN_CAPTION);
     expect(appsContainer.textContent).not.toContain('Decentralized Edge App Registry');
     expect(appsContainer.textContent).not.toContain('Marketplace');
     expect(container.querySelector('[data-testid="delete-the-house"]')).toBeNull();
@@ -719,45 +709,49 @@ describe('hub home after email', () => {
     });
 
     openApps(container);
-    const shelf = container.querySelector('[data-testid="get-apps"]');
-    expect(shelf?.textContent).toContain('Farm');
-    expect(shelf?.textContent).toContain('Chat');
-    expect(shelf?.textContent).not.toContain('Social.');
-    expect(shelf?.textContent).not.toContain('Paid.');
-    expect(shelf?.textContent).not.toContain('LIVE');
-    expect(shelf?.querySelector('[data-testid="get-app-chat"]')?.textContent).toContain(GET_LABEL);
-    expect(shelf?.querySelector('[data-testid="coming-app-chat"]')).toBeNull();
-    expect(shelf?.querySelector('[data-testid="get-app-vault"]')?.textContent).toContain('Vault');
-    expect(shelf?.querySelector('[data-testid="get-app-vault"]')?.textContent).toContain(GET_LABEL);
-    expect(shelf?.querySelector('[data-testid="get-app-property"]')?.textContent).toContain('Property');
-    expect(shelf?.querySelector('[data-testid="get-app-property"]')?.textContent).toContain(GET_LABEL);
-    expect(shelf?.textContent).not.toMatch(/rental/i);
-    expect(shelf?.querySelector('[data-testid="coming-app-farm"]')?.textContent).toContain(SOON_LABEL);
-    expect(shelf?.textContent).not.toMatch(/Subscribe/i);
-    expect(shelf?.textContent).not.toMatch(/Subscribed/i);
+    const social = container.querySelector('[data-testid="apps-social"]');
+    const paid = container.querySelector('[data-testid="apps-paid"]');
+    expect(paid?.textContent).toContain('Farm');
+    expect(social?.textContent).toContain('Chat');
+    expect(social?.querySelector('[data-testid="shop-app-chat"]')?.textContent).toContain('LIVE');
+    expect(social?.querySelector('[data-testid="get-app-chat"]')?.textContent).toBe(GET_LABEL);
+    expect(social?.querySelector('[data-testid="coming-app-chat"]')).toBeNull();
+    expect(paid?.querySelector('[data-testid="shop-app-vault"]')?.textContent).toContain('Vault');
+    expect(paid?.querySelector('[data-testid="get-app-vault"]')?.textContent).toBe(GET_LABEL);
+    expect(paid?.querySelector('[data-testid="shop-app-property"]')?.textContent).toContain('Property');
+    expect(paid?.querySelector('[data-testid="shop-app-property"]')?.textContent).toContain('LIVE');
+    expect(paid?.querySelector('[data-testid="get-app-property"]')?.textContent).toBe(GET_LABEL);
+    expect(paid?.textContent).not.toMatch(/rental/i);
+    expect(paid?.textContent).toContain('Coming');
+    expect(paid?.textContent).not.toMatch(/Subscribe/i);
+    expect(paid?.textContent).not.toMatch(/Subscribed/i);
     expect(container.querySelector('[data-testid="coming-app-farm"]')?.textContent).not.toMatch(/Subscribe/i);
     expect(container.querySelector('[data-testid="coming-app-farm"]')?.textContent).not.toContain(SAME_CHAIN_CAPTION);
-    expect(container.querySelector('[data-testid="open-app-eatery"]')?.textContent).toContain('Eatery');
-    expect(container.querySelector('[data-testid="open-app-eatery"]')?.textContent).not.toContain(GET_LABEL);
-    expect(container.querySelector('[data-testid="open-app-eatery"]')?.textContent).not.toContain(OPEN_LABEL);
+    expect(container.querySelector('[data-testid="shop-app-eatery"]')?.textContent).toContain(OPEN_LABEL);
+    expect(container.querySelector('[data-testid="shop-app-eatery"]')?.textContent).not.toContain(GET_LABEL);
     expect(container.querySelector('[data-testid="get-app-eatery"]')).toBeNull();
     expect(container.querySelector('[data-testid="subscribe-app-eatery"]')).toBeNull();
     expect(container.querySelector('[data-testid="coming-app-eatout"]')).toBeNull();
     expect(container.querySelector('[data-testid="coming-app-project"]')).toBeNull();
-    expect(container.querySelector('[data-testid="get-app-eatout"]')?.textContent).toContain('Eat Out');
-    expect(container.querySelector('[data-testid="get-app-eatout"]')?.textContent).toContain(GET_LABEL);
-    expect(container.querySelector('[data-testid="get-app-eatout"]')?.className).not.toContain('btn-wide');
+    expect(container.querySelector('[data-testid="shop-app-eatout"]')?.textContent).toContain('EatOut');
+    expect(container.querySelector('[data-testid="get-app-eatout"]')?.textContent).toBe(GET_LABEL);
+    expect(container.querySelector('[data-testid="get-app-eatout"]')?.className).toContain('btn-primary');
     expect(container.querySelector('[data-testid="open-app-eatout"]')).toBeNull();
     expect(container.querySelector('[data-testid="subscribe-app-eatout"]')).toBeNull();
-    expect(container.querySelector('[data-testid="get-app-project"]')?.textContent).toContain('Project');
-    expect(container.querySelector('[data-testid="get-app-project"]')?.textContent).toContain(GET_LABEL);
-    expect(container.querySelector('[data-testid="get-app-project"]')?.className).not.toContain('btn-wide');
+    expect(container.querySelector('[data-testid="shop-app-project"]')?.textContent).toContain('Project');
+    expect(container.querySelector('[data-testid="shop-app-project"]')?.textContent).toContain('LIVE');
+    expect(container.querySelector('[data-testid="get-app-project"]')?.textContent).toBe(GET_LABEL);
+    expect(container.querySelector('[data-testid="get-app-project"]')?.className).toContain('btn-primary');
     expect(container.querySelector('[data-testid="open-app-project"]')).toBeNull();
     expect(container.querySelector('[data-testid="subscribe-app-project"]')).toBeNull();
     expect(container.querySelector('[data-testid="get-apps"]')?.textContent).not.toMatch(/Subscribe/i);
     expect(container.textContent).not.toMatch(/Subscribed/i);
     expect(container.textContent).not.toContain('Marketplace');
-    expect(container.querySelectorAll('[data-testid="same-chain-caption"]').length).toBe(0);
+    const captions = Array.from(container.querySelectorAll('[data-testid="get-apps"] .caption, [data-testid="coming-app-farm"] .caption'))
+      .map(node => node.textContent)
+      .filter(text => text === SAME_CHAIN_CAPTION);
+    expect(container.querySelectorAll('[data-testid="same-chain-caption"]').length).toBe(1);
+    expect(captions.length).toBeLessThanOrEqual(1);
     unmount();
   });
 
@@ -771,43 +765,38 @@ describe('hub home after email', () => {
       />
     );
     const eateryGet = container.querySelector('[data-testid="get-app-eatery"]');
-    expect(eateryGet?.textContent).toContain('Eatery');
-    expect(eateryGet?.textContent).toContain(GET_LABEL);
-    expect(eateryGet?.className).toContain('shelf-tile');
-    expect(eateryGet?.className).not.toContain('btn-wide');
+    expect(eateryGet?.textContent).toBe(GET_LABEL);
+    expect(eateryGet?.className).toContain('btn-primary');
     expect(container.querySelector('[data-testid="open-app-eatery"]')).toBeNull();
     expect(container.querySelector('[data-testid="subscribe-app-eatery"]')).toBeNull();
     const eatoutGet = container.querySelector('[data-testid="get-app-eatout"]');
-    expect(eatoutGet?.textContent).toContain('Eat Out');
-    expect(eatoutGet?.textContent).not.toContain('EatOut');
-    expect(eatoutGet?.textContent).toContain(GET_LABEL);
-    expect(eatoutGet?.className).not.toContain('btn-wide');
+    expect(container.querySelector('[data-testid="shop-app-eatout"]')?.textContent).toContain('EatOut');
+    expect(eatoutGet?.textContent).toBe(GET_LABEL);
+    expect(eatoutGet?.className).toContain('btn-primary');
     expect(container.querySelector('[data-testid="open-app-eatout"]')).toBeNull();
     expect(container.querySelector('[data-testid="subscribe-app-eatout"]')).toBeNull();
     const projectGet = container.querySelector('[data-testid="get-app-project"]');
-    expect(projectGet?.textContent).toContain('Project');
-    expect(projectGet?.textContent).toContain(GET_LABEL);
-    expect(projectGet?.textContent).not.toContain('LIVE');
-    expect(projectGet?.className).not.toContain('btn-wide');
+    expect(container.querySelector('[data-testid="shop-app-project"]')?.textContent).toContain('Project');
+    expect(container.querySelector('[data-testid="shop-app-project"]')?.textContent).toContain('LIVE');
+    expect(projectGet?.textContent).toBe(GET_LABEL);
+    expect(projectGet?.className).toContain('btn-primary');
     expect(container.querySelector('[data-testid="open-app-project"]')).toBeNull();
     expect(container.querySelector('[data-testid="subscribe-app-project"]')).toBeNull();
     expect(container.querySelector('[data-testid="get-apps"]')?.textContent).not.toMatch(/Subscribe/i);
     expect(container.querySelector('[data-testid="get-apps"]')?.textContent).not.toContain('Marketplace');
-    expect(container.querySelector('[data-testid="get-apps"]')?.textContent).not.toContain('Social.');
-    expect(container.querySelector('[data-testid="get-apps"]')?.textContent).not.toContain('Paid.');
-    expect(container.querySelector('[data-testid="coming-app-eatin"]')?.textContent).toContain(SOON_LABEL);
     expect(container.querySelector('[data-testid="coming-app-eatout"]')).toBeNull();
     expect(container.querySelector('[data-testid="coming-app-project"]')).toBeNull();
     expect(container.querySelector('[data-testid="coming-app-chat"]')).toBeNull();
     expect(container.querySelector('[data-testid="coming-app-vault"]')).toBeNull();
     expect(container.querySelector('[data-testid="coming-app-property"]')).toBeNull();
-    expect(container.querySelector('[data-testid="get-app-chat"]')?.textContent).toContain(GET_LABEL);
-    expect(container.querySelector('[data-testid="get-app-vault"]')?.textContent).toContain(GET_LABEL);
-    expect(container.querySelector('[data-testid="get-app-property"]')?.textContent).toContain(GET_LABEL);
+    expect(container.querySelector('[data-testid="get-app-chat"]')?.textContent).toBe(GET_LABEL);
+    expect(container.querySelector('[data-testid="get-app-vault"]')?.textContent).toBe(GET_LABEL);
+    expect(container.querySelector('[data-testid="get-app-property"]')?.textContent).toBe(GET_LABEL);
     expect(container.querySelector('[data-testid="open-app-chat"]')).toBeNull();
     expect(container.querySelector('[data-testid="open-app-vault"]')).toBeNull();
     expect(container.querySelector('[data-testid="open-app-property"]')).toBeNull();
-    expect(container.querySelector('[data-testid="same-chain-caption"]')).toBeNull();
+    expect(container.querySelector('[data-testid="same-chain-caption"]')?.textContent).toBe(SAME_CHAIN_CAPTION);
+    expect(container.querySelectorAll('[data-testid="same-chain-caption"]').length).toBe(1);
     unmount();
   });
 
@@ -820,24 +809,21 @@ describe('hub home after email', () => {
         onOpen={() => undefined}
       />
     );
-    const open = container.querySelector('[data-testid="open-app-eatout"]') as HTMLAnchorElement | null;
-    expect(open?.textContent).toContain('Eat Out');
-    expect(open?.textContent).not.toContain(OPEN_LABEL);
-    expect(open?.textContent).not.toContain(GET_LABEL);
-    expect(open?.textContent).not.toContain('LIVE');
+    const eatout = container.querySelector('[data-testid="shop-app-eatout"]');
+    const open = eatout?.querySelector('[data-testid="open-app-eatout"]') as HTMLAnchorElement | null;
+    expect(eatout?.textContent).toContain('LIVE');
+    expect(open?.textContent).toBe(OPEN_LABEL);
     expect(open?.tagName).toBe('A');
     expect(open?.getAttribute('href')).toBe('https://eatout.daup.co.za/');
     expect(open?.getAttribute('target')).toBe('_self');
     expect(open?.getAttribute('href') || '').not.toMatch(/\/place\/|#menu|#book|eatery\.daup\.co\.za|\/owner|\/floor/i);
-    expect(container.querySelector('[data-testid="get-app-eatout"]')).toBeNull();
-    expect(container.querySelector('[data-testid="subscribe-app-eatout"]')).toBeNull();
-    expect(open?.className).toContain('shelf-tile');
-    expect(container.querySelector('[data-testid="open-app-eatery"]')?.textContent).toContain('Eatery');
-    expect(container.querySelector('[data-testid="open-app-eatery"]')?.textContent).not.toContain(OPEN_LABEL);
-    expect(container.querySelector('[data-testid="open-app-eatery"]')?.className).toContain('shelf-tile');
+    expect(eatout?.querySelector('[data-testid="get-app-eatout"]')).toBeNull();
+    expect(eatout?.querySelector('[data-testid="subscribe-app-eatout"]')).toBeNull();
+    expect(open?.className).toContain('btn-primary');
+    expect(container.querySelector('[data-testid="open-app-eatery"]')?.textContent).toBe(OPEN_LABEL);
+    expect(container.querySelector('[data-testid="open-app-eatery"]')?.className).toContain('btn-primary');
     expect(container.querySelector('[data-testid="get-app-eatery"]')).toBeNull();
     expect(container.querySelector('[data-testid="coming-app-eatout"]')).toBeNull();
-    expect(container.querySelector('[data-testid="coming-app-eatin"]')?.getAttribute('href')).toBeNull();
     unmount();
   });
 
@@ -853,12 +839,9 @@ describe('hub home after email', () => {
     const chatOpen = container.querySelector('[data-testid="open-app-chat"]') as HTMLAnchorElement | null;
     const vaultOpen = container.querySelector('[data-testid="open-app-vault"]') as HTMLAnchorElement | null;
     const propertyOpen = container.querySelector('[data-testid="open-app-property"]') as HTMLAnchorElement | null;
-    expect(chatOpen?.textContent).toContain('Chat');
-    expect(chatOpen?.textContent).not.toContain(OPEN_LABEL);
-    expect(vaultOpen?.textContent).toContain('Vault');
-    expect(vaultOpen?.textContent).not.toContain(OPEN_LABEL);
-    expect(propertyOpen?.textContent).toContain('Property');
-    expect(propertyOpen?.textContent).not.toContain(OPEN_LABEL);
+    expect(chatOpen?.textContent).toBe(OPEN_LABEL);
+    expect(vaultOpen?.textContent).toBe(OPEN_LABEL);
+    expect(propertyOpen?.textContent).toBe(OPEN_LABEL);
     expect(chatOpen?.tagName).toBe('A');
     expect(vaultOpen?.tagName).toBe('A');
     expect(propertyOpen?.tagName).toBe('A');
@@ -874,9 +857,8 @@ describe('hub home after email', () => {
     expect(container.querySelector('[data-testid="get-app-chat"]')).toBeNull();
     expect(container.querySelector('[data-testid="get-app-vault"]')).toBeNull();
     expect(container.querySelector('[data-testid="get-app-property"]')).toBeNull();
-    expect(container.querySelector('[data-testid="apps-paid"]')).toBeNull();
-    expect(container.querySelector('[data-testid="apps-social"]')).toBeNull();
-    expect(container.querySelector('[data-testid="get-apps"]')?.textContent).toContain('Property');
+    expect(container.querySelector('[data-testid="apps-paid"]')?.textContent).toContain('Property');
+    expect(container.querySelector('[data-testid="apps-social"]')?.textContent).not.toContain('Property');
     unmount();
   });
 
@@ -889,17 +871,17 @@ describe('hub home after email', () => {
         onOpen={() => undefined}
       />
     );
-    const open = container.querySelector('[data-testid="open-app-project"]') as HTMLAnchorElement | null;
-    expect(open?.textContent).toContain('Project');
-    expect(open?.textContent).not.toContain('LIVE');
-    expect(open?.textContent).not.toContain(OPEN_LABEL);
+    const project = container.querySelector('[data-testid="shop-app-project"]');
+    const open = project?.querySelector('[data-testid="open-app-project"]') as HTMLAnchorElement | null;
+    expect(project?.textContent).toContain('LIVE');
+    expect(open?.textContent).toBe(OPEN_LABEL);
     expect(open?.tagName).toBe('A');
     expect(open?.getAttribute('href')).toBe('https://project.daup.co.za');
     expect(open?.getAttribute('target')).toBe('_self');
     expect(open?.getAttribute('href') || '').not.toMatch(/eatery\.daup\.co\.za|\/owner|\/floor|app\.daup\.co\.za/i);
-    expect(container.querySelector('[data-testid="get-app-project"]')).toBeNull();
-    expect(container.querySelector('[data-testid="subscribe-app-project"]')).toBeNull();
-    expect(open?.className).toContain('shelf-tile');
+    expect(project?.querySelector('[data-testid="get-app-project"]')).toBeNull();
+    expect(project?.querySelector('[data-testid="subscribe-app-project"]')).toBeNull();
+    expect(open?.className).toContain('btn-primary');
     expect(container.querySelector('[data-testid="coming-app-project"]')).toBeNull();
     unmount();
   });
@@ -911,9 +893,8 @@ describe('hub home after email', () => {
     });
     openApps(container);
     const beforeGet = container.querySelector('[data-testid="get-app-eatout"]');
-    expect(beforeGet?.textContent).toContain('Eat Out');
-    expect(beforeGet?.textContent).toContain(GET_LABEL);
-    expect(beforeGet?.className).toContain('shelf-tile');
+    expect(beforeGet?.textContent).toBe(GET_LABEL);
+    expect(beforeGet?.className).toContain('btn-primary');
     expect(container.querySelector('[data-testid="open-app-eatout"]')).toBeNull();
     expect(container.querySelector('[data-testid="subscribe-app-eatout"]')).toBeNull();
     act(() => {
@@ -925,18 +906,16 @@ describe('hub home after email', () => {
     expect(container.querySelector('[data-testid="get-app-eatout"]')).toBeNull();
     expect(container.querySelector('[data-testid="subscribe-app-eatout"]')).toBeNull();
     const open = container.querySelector('[data-testid="open-app-eatout"]') as HTMLAnchorElement | null;
-    expect(open?.textContent).toContain('Eat Out');
-    expect(open?.textContent).not.toContain(OPEN_LABEL);
-    expect(open?.textContent).not.toContain(GET_LABEL);
+    expect(open?.textContent).toBe(OPEN_LABEL);
     expect(open?.tagName).toBe('A');
     expect(open?.getAttribute('href')).toBe('https://eatout.daup.co.za/');
     expect(open?.getAttribute('target')).toBe('_self');
     expect(open?.getAttribute('href') || '').not.toMatch(/\/place\/|#menu|#book|eatery\.daup\.co\.za|\/owner/i);
-    expect(open?.className).toContain('shelf-tile');
+    expect(open?.className).toContain('btn-primary');
     expect(container.querySelector('[data-testid="hub-home-open"]')).toBeNull();
     expect(JSON.parse(localStorage.getItem('daup_installed_apps') || '{}')['daup-eatout']).toBe(true);
-    expect(container.querySelector('[data-testid="open-app-eatery"]')?.textContent).toContain('Eatery');
-    expect(container.querySelector('[data-testid="open-app-eatery"]')?.className).toContain('shelf-tile');
+    expect(container.querySelector('[data-testid="open-app-eatery"]')?.textContent).toBe(OPEN_LABEL);
+    expect(container.querySelector('[data-testid="open-app-eatery"]')?.className).toContain('btn-primary');
     expect(container.querySelector('[data-testid="coming-app-eatout"]')).toBeNull();
     unmount();
   });
@@ -948,9 +927,8 @@ describe('hub home after email', () => {
     });
     openApps(container);
     const beforeGet = container.querySelector('[data-testid="get-app-project"]');
-    expect(beforeGet?.textContent).toContain('Project');
-    expect(beforeGet?.textContent).toContain(GET_LABEL);
-    expect(beforeGet?.className).toContain('shelf-tile');
+    expect(beforeGet?.textContent).toBe(GET_LABEL);
+    expect(beforeGet?.className).toContain('btn-primary');
     expect(container.querySelector('[data-testid="open-app-project"]')).toBeNull();
     expect(container.querySelector('[data-testid="subscribe-app-project"]')).toBeNull();
     act(() => {
@@ -962,8 +940,7 @@ describe('hub home after email', () => {
     expect(container.querySelector('[data-testid="get-app-project"]')).toBeNull();
     expect(container.querySelector('[data-testid="subscribe-app-project"]')).toBeNull();
     const open = container.querySelector('[data-testid="open-app-project"]') as HTMLAnchorElement | null;
-    expect(open?.textContent).toContain('Project');
-    expect(open?.textContent).not.toContain(OPEN_LABEL);
+    expect(open?.textContent).toBe(OPEN_LABEL);
     expect(open?.tagName).toBe('A');
     const href = open?.getAttribute('href') || '';
     const parsed = new URL(href);
@@ -976,7 +953,7 @@ describe('hub home after email', () => {
     expect(href).not.toMatch(/[?&](did|walletName|instance|mcp|email|house|token)=/i);
     expect(href).not.toMatch(/eatery\.daup\.co\.za|\/owner|app\.daup\.co\.za/i);
     expect(open?.getAttribute('target')).toBe('_self');
-    expect(open?.className).toContain('shelf-tile');
+    expect(open?.className).toContain('btn-primary');
     expect(container.querySelector('[data-testid="hub-home-open"]')).toBeNull();
     expect(JSON.parse(localStorage.getItem('daup_installed_apps') || '{}')['daup-project']).toBe(true);
     expect(container.querySelector('[data-testid="coming-app-project"]')).toBeNull();
@@ -1018,13 +995,12 @@ describe('hub home after email', () => {
       await new Promise(resolve => setTimeout(resolve, 80));
     });
     openApps(container);
-    expect(container.querySelector('[data-testid="apps-social"]')).toBeNull();
-    expect(container.querySelector('[data-testid="apps-paid"]')).toBeNull();
-    expect(container.querySelector('[data-testid="get-app-chat"]')?.textContent).toContain('Chat');
-    expect(container.querySelector('[data-testid="get-app-chat"]')?.textContent).toContain(GET_LABEL);
-    expect(container.querySelector('[data-testid="get-app-vault"]')?.textContent).toContain('Vault');
-    expect(container.querySelector('[data-testid="get-app-vault"]')?.textContent).toContain(GET_LABEL);
-    expect(container.querySelector('[data-testid="get-apps"]')?.textContent).not.toContain('LIVE');
+    const social = container.querySelector('[data-testid="apps-social"]');
+    const paid = container.querySelector('[data-testid="apps-paid"]');
+    expect(social?.querySelector('[data-testid="shop-app-chat"]')?.textContent).toContain('LIVE');
+    expect(paid?.querySelector('[data-testid="shop-app-vault"]')?.textContent).toContain('LIVE');
+    expect(container.querySelector('[data-testid="get-app-chat"]')?.textContent).toBe(GET_LABEL);
+    expect(container.querySelector('[data-testid="get-app-vault"]')?.textContent).toBe(GET_LABEL);
     expect(container.querySelector('[data-testid="coming-app-chat"]')).toBeNull();
     expect(container.querySelector('[data-testid="coming-app-vault"]')).toBeNull();
 
@@ -1043,11 +1019,8 @@ describe('hub home after email', () => {
 
     const chatOpen = container.querySelector('[data-testid="open-app-chat"]') as HTMLAnchorElement | null;
     const vaultOpen = container.querySelector('[data-testid="open-app-vault"]') as HTMLAnchorElement | null;
-    expect(chatOpen?.textContent).toContain('Chat');
-    expect(chatOpen?.textContent).not.toContain(GET_LABEL);
-    expect(chatOpen?.textContent).not.toContain(OPEN_LABEL);
-    expect(vaultOpen?.textContent).toContain('Vault');
-    expect(vaultOpen?.textContent).not.toContain(OPEN_LABEL);
+    expect(chatOpen?.textContent).toBe(OPEN_LABEL);
+    expect(vaultOpen?.textContent).toBe(OPEN_LABEL);
     expect(chatOpen?.tagName).toBe('A');
     expect(vaultOpen?.tagName).toBe('A');
     expect(chatOpen?.getAttribute('href')).toBe('https://chat.daup.co.za');
@@ -1101,10 +1074,11 @@ describe('hub home after email', () => {
       await new Promise(resolve => setTimeout(resolve, 80));
     });
     openApps(container);
-    expect(container.querySelector('[data-testid="get-app-property"]')?.textContent).toContain('Property');
-    expect(container.querySelector('[data-testid="get-app-property"]')?.textContent).toContain(GET_LABEL);
-    expect(container.querySelector('[data-testid="get-apps"]')?.textContent).not.toMatch(/rental/i);
-    expect(container.querySelector('[data-testid="get-apps"]')?.textContent).not.toContain('LIVE');
+    const paid = container.querySelector('[data-testid="apps-paid"]');
+    expect(paid?.querySelector('[data-testid="shop-app-property"]')?.textContent).toContain('Property');
+    expect(paid?.querySelector('[data-testid="shop-app-property"]')?.textContent).toContain('LIVE');
+    expect(paid?.textContent).not.toMatch(/rental/i);
+    expect(container.querySelector('[data-testid="get-app-property"]')?.textContent).toBe(GET_LABEL);
     expect(container.querySelector('[data-testid="coming-app-property"]')).toBeNull();
     expect(container.querySelector('[data-testid="open-app-property"]')).toBeNull();
 
@@ -1116,9 +1090,7 @@ describe('hub home after email', () => {
     });
 
     const propertyOpen = container.querySelector('[data-testid="open-app-property"]') as HTMLAnchorElement | null;
-    expect(propertyOpen?.textContent).toContain('Property');
-    expect(propertyOpen?.textContent).not.toContain(OPEN_LABEL);
-    expect(propertyOpen?.textContent).not.toContain(GET_LABEL);
+    expect(propertyOpen?.textContent).toBe(OPEN_LABEL);
     expect(propertyOpen?.tagName).toBe('A');
     expect(propertyOpen?.getAttribute('href')).toBe('https://property.daup.co.za');
     expect(propertyOpen?.getAttribute('target')).toBe('_self');
@@ -1254,23 +1226,19 @@ describe('signed-in hub does not assume eatery', () => {
     expect(container.textContent).not.toContain('On the chain.');
     openApps(container);
     expect(container.querySelector('[data-testid="hub-home"]')?.getAttribute('data-pane')).toBe('apps');
-    expect(container.querySelector('[data-testid="get-apps"]')?.textContent).toContain(APPS_SHELF_TITLE);
-    expect(container.querySelector('[data-testid="get-app-eatery"]')?.textContent).toContain('Eatery');
-    expect(container.querySelector('[data-testid="get-app-eatery"]')?.textContent).toContain(GET_LABEL);
-    expect(container.querySelector('[data-testid="get-app-eatout"]')?.textContent).toContain('Eat Out');
-    expect(container.querySelector('[data-testid="get-app-eatout"]')?.textContent).toContain(GET_LABEL);
-    expect(container.querySelector('[data-testid="coming-app-eatin"]')?.textContent).toContain(SOON_LABEL);
-    expect(container.querySelector('[data-testid="get-app-project"]')?.textContent).toContain('Project');
-    expect(container.querySelector('[data-testid="get-app-project"]')?.textContent).toContain(GET_LABEL);
-    expect(container.querySelector('[data-testid="get-app-chat"]')?.textContent).toContain('Chat');
-    expect(container.querySelector('[data-testid="get-app-chat"]')?.textContent).toContain(GET_LABEL);
-    expect(container.querySelector('[data-testid="get-app-vault"]')?.textContent).toContain('Vault');
-    expect(container.querySelector('[data-testid="get-app-vault"]')?.textContent).toContain(GET_LABEL);
-    expect(container.querySelector('[data-testid="get-app-property"]')?.textContent).toContain('Property');
-    expect(container.querySelector('[data-testid="get-app-property"]')?.textContent).toContain(GET_LABEL);
-    expect(container.querySelector('[data-testid="get-apps"]')?.textContent).not.toContain('LIVE');
-    expect(container.querySelector('[data-testid="get-apps"]')?.textContent).not.toContain('Social.');
-    expect(container.querySelector('[data-testid="get-apps"]')?.textContent).not.toContain('Paid.');
+    expect(container.querySelector('[data-testid="get-apps"]')?.textContent).toContain(GET_APPS_KICKER);
+    expect(container.querySelector('[data-testid="shop-app-eatery"]')?.textContent).toContain('Eatery');
+    expect(container.querySelector('[data-testid="shop-app-eatout"]')?.textContent).toContain('EatOut');
+    expect(container.querySelector('[data-testid="shop-app-eatout"]')?.textContent).toContain('LIVE');
+    expect(container.querySelector('[data-testid="shop-app-project"]')?.textContent).toContain('Project');
+    expect(container.querySelector('[data-testid="shop-app-project"]')?.textContent).toContain('LIVE');
+    expect(container.querySelector('[data-testid="shop-app-chat"]')?.textContent).toContain('Chat');
+    expect(container.querySelector('[data-testid="shop-app-chat"]')?.textContent).toContain('LIVE');
+    expect(container.querySelector('[data-testid="shop-app-vault"]')?.textContent).toContain('Vault');
+    expect(container.querySelector('[data-testid="shop-app-vault"]')?.textContent).toContain('LIVE');
+    expect(container.querySelector('[data-testid="shop-app-property"]')?.textContent).toContain('Property');
+    expect(container.querySelector('[data-testid="shop-app-property"]')?.textContent).toContain('LIVE');
+    expect(container.querySelector('[data-testid="get-app-property"]')?.textContent).toBe(GET_LABEL);
     expect(container.textContent).not.toMatch(/rental/i);
     expect(container.querySelector('[data-testid="on-the-chain"]')).toBeNull();
     expect(container.querySelector('[data-testid="ask-for-enhancement"]')).toBeNull();
@@ -1690,8 +1658,7 @@ describe('My places stays owned-only after register and delete', () => {
     expect(container.querySelector('[data-testid="on-the-chain"]')).toBeNull();
     expect(container.querySelector('[data-testid="hub-home-open"]')).toBeNull();
     openApps(container);
-    expect(container.querySelector('[data-testid="get-app-eatery"]')?.textContent).toContain('Eatery');
-    expect(container.querySelector('[data-testid="get-app-eatery"]')?.textContent).toContain(GET_LABEL);
+    expect(container.querySelector('[data-testid="get-app-eatery"]')?.textContent).toBe(GET_LABEL);
     expect(container.querySelector('[data-testid="open-app-eatery"]')).toBeNull();
     expect(loadIdentityVault().companyNode?.enabledApps).toEqual(['farm']);
     expect(container.textContent).not.toMatch(/\b(peer|node|DID|DHT|wallet|MCP|npm|hydrate|neon)\b/i);

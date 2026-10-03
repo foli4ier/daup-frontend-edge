@@ -138,9 +138,7 @@ describe('House code door on Get apps', () => {
     const finance = container.querySelector('[data-testid="open-app-finance"]') as HTMLAnchorElement | null;
     const chat = container.querySelector('[data-testid="open-app-chat"]') as HTMLAnchorElement | null;
     const trade = container.querySelector('[data-testid="open-app-trade"]') as HTMLAnchorElement | null;
-    expect(finance?.textContent).toContain('Finance');
-    expect(finance?.textContent).not.toContain('Open.');
-    expect(finance?.textContent).not.toContain('Get.');
+    expect(finance?.textContent).toBe('Open.');
     expect(finance?.getAttribute('href')).toBe('https://finance.daup.co.za');
     expect(trade?.getAttribute('href')).toBe('https://trade.daup.co.za');
     expect(chat?.getAttribute('href')).toBe('https://chat.daup.co.za');
@@ -261,8 +259,7 @@ describe('House code door on Get apps', () => {
     });
 
     const vaultOpen = container.querySelector('[data-testid="open-app-vault"]') as HTMLAnchorElement | null;
-    expect(vaultOpen?.textContent).toContain('Vault');
-    expect(vaultOpen?.textContent).not.toContain('Open.');
+    expect(vaultOpen?.textContent).toBe('Open.');
     await act(async () => {
       vaultOpen?.click();
     });
@@ -368,8 +365,7 @@ describe('House code door on Get apps', () => {
 
     const openApp = async (id: string, title: string, origin: string, phoneFirst = false) => {
       const control = container.querySelector(`[data-testid="open-app-${id}"]`) as HTMLAnchorElement | null;
-      expect(control?.textContent).toContain(title);
-      expect(control?.textContent).not.toContain('Open.');
+      expect(control?.textContent).toBe('Open.');
       const assignsBefore = assign.mock.calls.length;
       await act(async () => {
         control?.click();
@@ -496,8 +492,7 @@ describe('House code door on Get apps', () => {
 
     const openApp = async (id: string, title: string, origin: string) => {
       const control = container.querySelector(`[data-testid="open-app-${id}"]`) as HTMLAnchorElement | null;
-      expect(control?.textContent).toContain(title);
-      expect(control?.textContent).not.toContain('Open.');
+      expect(control?.textContent).toBe('Open.');
       const assignsBefore = assign.mock.calls.length;
       await act(async () => {
         control?.click();
