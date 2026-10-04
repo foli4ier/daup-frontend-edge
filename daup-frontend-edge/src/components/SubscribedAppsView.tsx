@@ -1,7 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useUserProfile } from '../context/UserProfileContext';
 import {
+  APPS_SHELF_TITLE,
+  ASK_FOR_ENHANCEMENT_LABEL,
   CANCEL_LABEL,
+  DELETE_THE_HOUSE_LABEL,
   EDIT_LABEL,
   OPEN_LABEL,
   PLACE_NAME_IN_USE,
@@ -16,7 +19,7 @@ import { DEFAULT_HUB_PANE, type HubPane } from '../hub/hubPane';
 import { continueHouseOpen, pickHousePlaceId } from '../hub/houseOpen';
 import { houseOtpMockActive, rememberedHouseOtpPhone } from '../hub/house-session';
 import { appUsesHouseRedeem } from '../hub/house-session/openUrl';
-import { ShopApp, listOwnerPlaces, navigateSameTab, navigateToChatHome, ownerPlaceKey } from '../hub/places';
+import { ShopApp, heldShopApps, listOwnerPlaces, navigateSameTab, navigateToChatHome, ownerPlaceKey } from '../hub/places';
 import { placeTileStatus, resolvePlacePlan } from '../hub/placeSubscription';
 import type { PlacePane } from './PlaceDetailView';
 import { loadSeednodeForPlace } from '../hub/seednode';
@@ -25,6 +28,8 @@ import { navigateToTheHouse } from '../hub/ownerArrival';
 import { projectOpenHandshakeFromHub } from '../hub/projectUrls';
 import { listOwnerPlaceRecords, listRegisteredPlaces, placeIdFromHubWallet } from '../stores/identityStore';
 import { toWhatsappE164 } from '../hub/whatsappE164';
+import { AskForEnhancementView } from './AskForEnhancementView';
+import { DeleteHouseModal } from './DeleteHouseModal';
 import { GetAppsSection } from './GetApps';
 import { HouseOtpDoor } from './HouseOtpDoor';
 import { OtherPlacesView } from './OtherPlaces';
@@ -155,7 +160,8 @@ function PlaceCard({
 
 export const SubscribedAppsView: React.FC<{
   pane?: Exclude<HubPane, 'you'>;
-  onOpenAsk?: () => void;
+  appsTab?: 'shelf' | 'ask';
+  onAppsTab?: (tab: 'shelf' | 'ask') => void;
   installedApps?: Record<string, boolean>;
   onSubscribeApp?: (moduleKey: string) => void;
   onLaunchApp?: (moduleKey: string) => void;
@@ -164,6 +170,8 @@ export const SubscribedAppsView: React.FC<{
   onClosePlace?: () => void;
 }> = ({
   pane = DEFAULT_HUB_PANE,
+  appsTab,
+  onAppsTab,
   installedApps = {},
   onSubscribeApp,
   onLaunchApp,
@@ -172,6 +180,8 @@ export const SubscribedAppsView: React.FC<{
   onClosePlace
 }) => {
   const [localOpenKey, setLocalOpenKey] = useState<string | null>(null);
+  const [localAppsTab, setLocalAppsTab] = useState<'shelf' | 'ask'>('shelf');
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [paidTick, setPaidTick] = useState(0);
   const [openedTab, setOpenedTab] = useState<PlacePane>('apps');
   const houseBusy = useRef(false);
@@ -195,6 +205,7 @@ export const SubscribedAppsView: React.FC<{
     hasHouse,
     ownerSession,
     beginNamingPlace,
+    clearHouse,
     profile,
     enabledApps,
     enableApp,
@@ -256,6 +267,11 @@ export const SubscribedAppsView: React.FC<{
   const showPlaces = pane === 'places';
   const showApps = pane === 'apps';
   const showOther = pane === 'other';
+  const appsPaneTab = appsTab ?? localAppsTab;
+  const pickAppsTab = (tab: 'shelf' | 'ask') => {
+    if (onAppsTab) onAppsTab(tab);
+    else setLocalAppsTab(tab);
+  };
   const openRecord = resolvedOpenKey
     ? ownerRecords.find(record => ownerPlaceKey(record) === resolvedOpenKey) || null
     : null;
@@ -555,6 +571,14 @@ export const SubscribedAppsView: React.FC<{
               >
                 {PLUS_REGISTER_LABEL}
               </button>
+              <button
+                type="button"
+                className="owner-quiet places-delete"
+                data-testid="delete-the-house"
+                onClick={() => setDeleteOpen(true)}
+              >
+                {DELETE_THE_HOUSE_LABEL}
+              </button>
             </div>
           ) : (
             <article className="place-card places-empty" data-testid="your-places-empty">
@@ -573,15 +597,60 @@ export const SubscribedAppsView: React.FC<{
       ) : null}
 
       {showApps ? (
-        <GetAppsSection
-          hasHouse={hasHouse}
-          installedApps={installedApps}
-          onGet={handleGet}
-          onOpen={handleOpen}
-          openHandshake={openHandshake}
-          enabledApps={enabledApps}
-        />
+        <div className="apps-pane" data-testid="apps-pane">
+          <div className="apps-tabs" role="tablist" aria-label={APPS_SHELF_TITLE}>
+            <button
+              type="button"
+              role="tab"
+              className={appsPaneTab === 'shelf' ? 'apps-tab is-current' : 'apps-tab'}
+              aria-selected={appsPaneTab === 'shelf'}
+              data-testid="apps-tab-shelf"
+              onClick={() => pickAppsTab('shelf')}
+            >
+              {APPS_SHELF_TITLE}
+            </button>
+            <button
+              type="button"
+              role="tab"
+              className={appsPaneTab === 'ask' ? 'apps-tab is-current' : 'apps-tab'}
+              aria-selected={appsPaneTab === 'ask'}
+              data-testid="apps-tab-ask"
+              onClick={() => pickAppsTab('ask')}
+            >
+              {ASK_FOR_ENHANCEMENT_LABEL}
+            </button>
+          </div>
+          {appsPaneTab === 'ask' ? (
+            <AskForEnhancementView
+              apps={heldShopApps({
+                hasHouse,
+                installed: installedApps,
+                enabledApps,
+                extraEnabled: ownerRecords.map(record => record.enabledApps || [])
+              })}
+            />
+          ) : (
+            <GetAppsSection
+              hasHouse={hasHouse}
+              installedApps={installedApps}
+              onGet={handleGet}
+              onOpen={handleOpen}
+              openHandshake={openHandshake}
+              enabledApps={enabledApps}
+            />
+          )}
+        </div>
       ) : null}
+
+      <DeleteHouseModal
+        isOpen={deleteOpen}
+        houseName={houseName}
+        onClose={() => setDeleteOpen(false)}
+        onConfirm={() => {
+          setDeleteOpen(false);
+          clearHouse();
+        }}
+      />
 
       {showOther ? (
         <OtherPlacesView

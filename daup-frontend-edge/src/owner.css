@@ -614,6 +614,84 @@ body {
   }
 }
 
+.apps-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.apps-tab {
+  appearance: none;
+  min-height: max(48px, var(--tap, 48px));
+  min-width: 48px;
+  padding: 0 14px;
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  background: var(--white);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.apps-tab.is-current {
+  background: var(--terracotta);
+  border-color: var(--terracotta);
+  color: #fff;
+}
+
+.ask-app-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  width: 100%;
+}
+
+.ask-choices {
+  display: flex;
+  flex-direction: column;
+  background: var(--card);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.ask-choice {
+  appearance: none;
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 16px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 650;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ask-choice:last-child {
+  border-bottom: 0;
+}
+
+.ask-still {
+  display: block;
+  width: 100%;
+  border-radius: 14px;
+  background: var(--white);
+}
+
+.ask-submit {
+  min-height: 48px;
+}
+
+.places-delete {
+  align-self: flex-start;
+  padding-left: 2px;
+}
+
 @media (max-width: 640px) {
   .place-card-actions {
     flex-wrap: nowrap;
@@ -1460,7 +1538,92 @@ body {
 .hub-you {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 8px;
+}
+
+.hub-you-title {
+  align-items: baseline;
+}
+
+.hub-you-name {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: clamp(1.8rem, 4vw, 2.4rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
+
+.hub-you-name.is-prompt,
+.hub-you-value.is-prompt {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.hub-you-lines {
+  display: flex;
+  flex-direction: column;
+}
+
+.hub-you-line {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+}
+
+.hub-you-key {
+  flex: 0 0 7.5rem;
+  color: var(--muted);
+  font-weight: 650;
+}
+
+.hub-you-value {
+  flex: 1;
+  min-width: 0;
+  font-weight: 650;
+}
+
+.hub-you-line input,
+.hub-you-line select {
+  flex: 1;
+  min-width: 0;
+  min-height: 48px;
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  padding: 0 12px;
+  background: var(--white);
+  color: var(--ink);
+  font: inherit;
+}
+
+.hub-you-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.hub-you-actions .btn {
+  flex: 1 1 8rem;
+  min-height: 48px;
+  min-width: 48px;
+}
+
+.hub-you-actions .btn-primary {
+  background: var(--terracotta);
+  border-color: var(--terracotta);
+  color: #fff;
+}
+
+.hub-you-actions .btn-outline {
+  background: transparent;
+  color: var(--ink);
+  border: 1.5px solid var(--line);
+}
+
+.hub-you-log-off {
+  align-self: flex-start;
+  padding-left: 2px;
 }
 
 .hub-you-card {
