@@ -145,7 +145,12 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
   ) => {
     const records = places.filter((place): place is NonNullable<typeof place> => Boolean(place));
     mergeHousePlacesIntoPlatform(records);
-    const next = applyHousePlacesToVault(current, email, records);
+    const applied = applyHousePlacesToVault(current, email, records);
+    // Registry writes do not change the vault object when this device already
+    // has a house. A new object lets My Places read the merged list.
+    const next = applied === current && records.length > 0
+      ? { ...applied, updatedAt: Date.now() }
+      : applied;
     saveIdentityVault(next);
     setVault(next);
     const house = (next.activeWallet?.legalName || '').trim();
@@ -155,24 +160,71 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
     return next;
   }, []);
 
-  // Initial vault. Place list from the house node runs only on email sign-in.
-  useEffect(() => {
+  const hydratePlacesFromHouse = useCallback(async (
+    session: OwnerSession,
+    base: UserIdentityVault,
+    stillCurrent: () => boolean = () => true
+  ): Promise<UserIdentityVault> => {
+    let listed: Awaited<ReturnType<typeof listPlacesByEmail>>;
     try {
-      const initialVault = loadIdentityVault();
-      setVault(initialVault);
-      const session = loadOwnerSession();
-      if (session) {
-        setOwnerSession(session);
-      }
-    } catch (err) {
-      console.error('[UserProfileProvider] Hydration error:', err);
-    } finally {
-      const timer = setTimeout(() => {
-        setIsHydrating(false);
-      }, 50);
-      return () => clearTimeout(timer);
+      listed = await listPlacesByEmail(session.email);
+    } catch {
+      return base;
     }
-  }, []);
+    if (!stillCurrent() || !listed.ok) return base;
+
+    const mapped = listed.places.map(housePlaceToPlatform);
+    const next = applyListedHousePlaces(base, session.email, mapped);
+    const listedPlaces = mapped.filter((place): place is NonNullable<typeof place> => Boolean(place));
+    for (const place of listedPlaces) {
+      const licensedId = (place.companyId || '').trim();
+      if (licensedId && !loadSeednodeForPlace(licensedId)) {
+        saveSeednodeForPlace(licensedId, attachHostedSeednodeStub(licensedId));
+      }
+    }
+    const heldId = next.companyNode?.companyId || '';
+    if (heldId && !isSeednodeAttached(next.seednode) && !loadSeednodeForPlace(heldId)) {
+      const seednode = saveSeednodeForPlace(heldId, attachHostedSeednodeStub(heldId));
+      const withSeed = { ...next, seednode, updatedAt: Date.now() };
+      if (!stillCurrent()) return next;
+      saveIdentityVault(withSeed);
+      setVault(withSeed);
+      return withSeed;
+    }
+    return next;
+  }, [applyListedHousePlaces]);
+
+  // Restored owner session: refresh Your places from the house node.
+  // A down node keeps whatever is already on this device.
+  useEffect(() => {
+    let cancelled = false;
+    const stillCurrent = () => !cancelled;
+    (async () => {
+      let session: OwnerSession | null = null;
+      let initialVault = DEFAULT_VAULT;
+      try {
+        initialVault = loadIdentityVault();
+        if (stillCurrent()) setVault(initialVault);
+        session = loadOwnerSession();
+        if (session && stillCurrent()) setOwnerSession(session);
+      } catch (err) {
+        console.error('[UserProfileProvider] Hydration error:', err);
+      }
+
+      if (session) {
+        try {
+          await hydratePlacesFromHouse(session, initialVault, stillCurrent);
+        } catch {
+          // keep local Your places.
+        }
+      }
+
+      if (stillCurrent()) setIsHydrating(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [hydratePlacesFromHouse]);
 
   // Multi-Tab Storage Synchronization
   useEffect(() => {
@@ -229,32 +281,13 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
     setVault(withEmail);
 
     try {
-      const listed = await listPlacesByEmail(session.email);
-      if (listed.ok) {
-        const next = applyListedHousePlaces(withEmail, session.email, listed.places.map(housePlaceToPlatform));
-        const listedPlaces = listed.places
-          .map(housePlaceToPlatform)
-          .filter((place): place is NonNullable<typeof place> => Boolean(place));
-        for (const place of listedPlaces) {
-          const licensedId = (place.companyId || '').trim();
-          if (licensedId && !loadSeednodeForPlace(licensedId)) {
-            saveSeednodeForPlace(licensedId, attachHostedSeednodeStub(licensedId));
-          }
-        }
-        const heldId = next.companyNode?.companyId || '';
-        if (heldId && !isSeednodeAttached(next.seednode) && !loadSeednodeForPlace(heldId)) {
-          const seednode = saveSeednodeForPlace(heldId, attachHostedSeednodeStub(heldId));
-          const withSeed = { ...next, seednode, updatedAt: Date.now() };
-          saveIdentityVault(withSeed);
-          setVault(withSeed);
-        }
-      }
+      await hydratePlacesFromHouse(session, withEmail);
     } catch {
       // keep local Your places.
     } finally {
       setIsHydrating(false);
     }
-  }, [applyListedHousePlaces]);
+  }, [hydratePlacesFromHouse]);
 
   const updateSignedInEmail = useCallback((email: string) => {
     const next = normalizeOwnerEmail(email);

@@ -1961,6 +1961,121 @@ describe('Your places. from the house node', () => {
     unmount();
   });
 
+  it('refreshes My Places from the house list when an owner session is restored', async () => {
+    localStorage.setItem(OWNER_SESSION_STORAGE_KEY, JSON.stringify({
+      email: 'you@gmail.com',
+      signedInAt: Date.now()
+    }));
+    mockHouseList([{
+      placeId: 'place-kortrijk',
+      ownerEmail: 'you@gmail.com',
+      placeName: 'Kortrijk',
+      app: 'eatery',
+      country: 'South Africa',
+      region: 'Western Cape',
+      city: 'Stellenbosch'
+    }]);
+
+    const { container, unmount } = render(<App />);
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 80));
+    });
+
+    expect(container.querySelector('[data-testid="hub-email-door"]')).toBeNull();
+    expect(container.querySelector('[data-testid="hub-home"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="your-places-empty"]')).toBeNull();
+    expect(container.querySelector('[data-testid="eatery-place-name"]')?.textContent).toContain('Kortrijk');
+    expect(listRegisteredPlaces()[0]).toMatchObject({
+      placeName: 'Kortrijk',
+      placeId: 'place-kortrijk',
+      ownerEmail: 'you@gmail.com'
+    });
+    const listCalls = (fetch as unknown as { mock: { calls: unknown[][] } }).mock.calls
+      .map(call => JSON.parse(String((call[1] as RequestInit | undefined)?.body || '{}')));
+    expect(listCalls.some(body => body.params?.name === 'places_list_by_email' && body.params?.arguments?.ownerEmail === 'you@gmail.com')).toBe(true);
+    expect(container.textContent).not.toMatch(/\b(peer|node|DID|DHT|wallet|MCP|npm|hydrate|neon)\b/i);
+    unmount();
+  });
+
+  it('merges a house-list place into My Places on session restore without dropping the local house', async () => {
+    saveIdentityVault({
+      ...houseVault,
+      profile: {
+        ...houseVault.profile,
+        demographics: {
+          ...houseVault.profile.demographics,
+          email: 'you@gmail.com'
+        }
+      }
+    });
+    localStorage.setItem(OWNER_SESSION_STORAGE_KEY, JSON.stringify({
+      email: 'you@gmail.com',
+      signedInAt: Date.now()
+    }));
+    registerPlaceOnPlatform({
+      placeName: 'The Olive',
+      app: 'eatery',
+      country: 'South Africa',
+      region: 'Western Cape',
+      city: 'Stellenbosch',
+      placeId: 'place-olive',
+      ownerEmail: 'you@gmail.com'
+    });
+    mockHouseList([{
+      placeId: 'place-kortrijk',
+      ownerEmail: 'you@gmail.com',
+      placeName: 'Kortrijk',
+      app: 'eatery',
+      country: 'South Africa',
+      region: 'Western Cape',
+      city: 'Stellenbosch'
+    }]);
+
+    const { container, unmount } = render(<App />);
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 80));
+    });
+
+    const names = Array.from(container.querySelectorAll('[data-place-name]'))
+      .map(row => row.getAttribute('data-place-name'));
+    expect(names).toEqual(expect.arrayContaining(['The Olive', 'Kortrijk']));
+    expect(container.querySelector('[data-testid="hub-email-door"]')).toBeNull();
+    expect(listRegisteredPlaces().map(place => place.placeName)).toEqual(expect.arrayContaining(['The Olive', 'Kortrijk']));
+    unmount();
+  });
+
+  it('keeps the local place when session restore cannot reach the house list', async () => {
+    saveIdentityVault(houseVault);
+    localStorage.setItem(OWNER_SESSION_STORAGE_KEY, JSON.stringify({
+      email: 'owner@theolive.co.za',
+      signedInAt: Date.now()
+    }));
+    registerPlaceOnPlatform({
+      placeName: 'The Olive',
+      app: 'eatery',
+      country: 'South Africa',
+      region: 'Western Cape',
+      city: 'Stellenbosch',
+      placeId: 'place-olive',
+      ownerEmail: 'owner@theolive.co.za'
+    });
+    vi.stubGlobal('fetch', vi.fn(async () => {
+      throw new TypeError('Failed to fetch');
+    }));
+
+    const { container, unmount } = render(<App />);
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 80));
+    });
+
+    expect(container.querySelector('[data-testid="hub-email-door"]')).toBeNull();
+    expect(container.querySelector('[data-testid="hub-home"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="eatery-place-name"]')?.textContent).toContain('The Olive');
+    expect(container.querySelector('[data-testid="your-places-empty"]')).toBeNull();
+    expect(listRegisteredPlaces()[0]).toMatchObject({ placeName: 'The Olive', placeId: 'place-olive' });
+    unmount();
+  });
+
   it('keeps No house on this hub yet. when the house list is unreachable', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => {
       throw new TypeError('Failed to fetch');
