@@ -25,7 +25,7 @@ Local Kortrijk / `daup-mcp-servers`: `VITE_APP_MCP_URL=http://localhost:8080` (H
 
 Both delete calls use the **placeId Hub currently holds** for that place (directory / vault). Live Kortrijk ids change across re-seeds — never hardcode. Order either way. Soft-fail either miss; local still clears.
 
-**Log off.** wipes Hub local + session keys on this origin (vault, places cache, session). Next email sign-in calls `places_list_by_email` again.
+**Log off.** wipes Hub local + session keys on this origin (vault, places cache, session). Next email sign-in calls `places_list_by_email` again. Opening the hub with a saved owner session also calls `places_list_by_email` when the network is up. A down node keeps the places already on this device.
 
 `app` is `eatery` \| `farm` \| `reseller` \| `maker` (Hub still sends a primary chain app). Slice A also sends `companyId` and `enabledApps[]` on register when present. Hub mints `companyId` once locally; never remint if MCP returns a different id.
 
@@ -52,6 +52,6 @@ Place-session OTP and `houseRedeem` Open URLs are separate from `/mcp`. See [`do
 ## UX lock
 
 1. `places_register` only on **Register a new place.**
-2. `places_list_by_email` only on email sign-in
+2. `places_list_by_email` on email sign-in and when a saved owner session is restored
 3. Empty card copy is unchanged
 4. Screenshots skipped when copy is unchanged
