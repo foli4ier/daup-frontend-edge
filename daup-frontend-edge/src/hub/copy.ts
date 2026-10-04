@@ -23,7 +23,7 @@ export const HUB_DOOR_BODY = 'For South African food-business owners. You run th
 /** One line wherever hub / place are introduced. House is not the owner word. */
 export const HUB_DOOR_GLOSSARY = 'Place = the business. Hub = where owners start and invite staff.';
 export const OPEN_THE_HOUSE_LABEL = 'Open the place';
-export const PLUS_REGISTER_LABEL = '+ Register';
+export const PLUS_REGISTER_LABEL = 'Register.';
 export const LIVE_STATUS_LABEL = 'LIVE';
 export const NAV_PLACES_LABEL = 'My places';
 export const NAV_APPS_LABEL = 'Apps';
@@ -70,6 +70,27 @@ export const SEED_HOSTED_LINE = 'R299 hosted seed.';
 export const SEED_HOSTED_ON_PREM_LINE = 'R0 hosted seed.';
 export const HOSTED_SEED_SUMMARY = 'Hosted seed.';
 export const PLACE_TRIAL_LINE = 'No charge for 30 days.';
+export const TRIAL_IS_30_DAYS = 'The trial is 30 days.';
+export const PERIOD_ENDED_LABEL = 'This period has ended.';
+export const PAYMENT_DUE_LABEL = 'Payment is due.';
+export const PAYMENT_DUE_TILE = 'Payment due.';
+export const EDIT_LABEL = 'Edit.';
+export const SAVE_LABEL = 'Save.';
+export const CANCEL_LABEL = 'Cancel.';
+export const SUBSCRIPTION_OPEN_LABEL = 'Subscription.';
+export const PLACE_SUBSCRIPTION_TAB = 'Subscription';
+export const PLACE_LOCATION_TAB = 'Location';
+export const ANNUAL_OFF_LINE = '10% off twelve months.';
+export const PLACE_NAME_IN_USE = 'That name is already in use.';
+export const PLAN_PLACE_LABEL = 'This place.';
+export const PLAN_HOSTED_SEED_LABEL = 'Hosted seed.';
+export const PLAN_BOTH_LABEL = 'Both.';
+export const PLAN_MONTHLY_LABEL = 'Monthly.';
+export const PLAN_ANNUAL_LABEL = 'Annual.';
+export const PAY_WITH_PAYSTACK_LABEL = 'Pay with Paystack.';
+export const PAYSTACK_CHANNELS_LABEL = 'Card, Ozow, or Capitec Pay.';
+export const PAYSTACK_NOT_READY_LABEL = 'Paystack is not ready.';
+export const PAYSTACK_NEED_EMAIL_LABEL = 'Add an email to pay.';
 export const ADD_APPS_LABEL = 'Add apps.';
 export const ALREADY_ON_PLACE_LABEL = 'Already on this place.';
 
@@ -81,6 +102,16 @@ export function daysLeftOnTrialLabel(days: number): string {
 export function renewsInDaysLabel(days: number): string {
   const n = Math.max(0, Math.floor(days));
   return n === 1 ? 'Renews in 1 day.' : `Renews in ${n} days.`;
+}
+
+export function daysLeftLabel(days: number): string {
+  const n = Math.max(0, Math.floor(days));
+  return n === 1 ? '1 day left.' : `${n} days left.`;
+}
+
+export function nextPaymentLabel(day: string): string {
+  const date = (day || '').trim();
+  return date ? `Next payment ${date}.` : '';
 }
 export const APPS_SOCIAL_KICKER = 'Social.';
 export const APPS_PAID_KICKER = 'Paid.';
@@ -304,10 +335,33 @@ export const HUB_HOME_COPY = [
   SEED_HOSTED_ON_PREM_LINE,
   HOSTED_SEED_SUMMARY,
   PLACE_TRIAL_LINE,
+  TRIAL_IS_30_DAYS,
+  PERIOD_ENDED_LABEL,
+  PAYMENT_DUE_LABEL,
+  PAYMENT_DUE_TILE,
+  EDIT_LABEL,
+  SAVE_LABEL,
+  CANCEL_LABEL,
+  SUBSCRIPTION_OPEN_LABEL,
+  PLACE_SUBSCRIPTION_TAB,
+  PLACE_LOCATION_TAB,
+  ANNUAL_OFF_LINE,
+  PLACE_NAME_IN_USE,
+  PLAN_PLACE_LABEL,
+  PLAN_HOSTED_SEED_LABEL,
+  PLAN_BOTH_LABEL,
+  PLAN_MONTHLY_LABEL,
+  PLAN_ANNUAL_LABEL,
+  PAY_WITH_PAYSTACK_LABEL,
+  PAYSTACK_CHANNELS_LABEL,
+  PAYSTACK_NOT_READY_LABEL,
+  PAYSTACK_NEED_EMAIL_LABEL,
   ADD_APPS_LABEL,
   ALREADY_ON_PLACE_LABEL,
   daysLeftOnTrialLabel(12),
   renewsInDaysLabel(18),
+  daysLeftLabel(18),
+  nextPaymentLabel('3 Nov 2026'),
   APPS_SOCIAL_KICKER,
   APPS_PAID_KICKER,
   DOWNLOAD_SEED_SETUP_LABEL,

@@ -1,5 +1,3 @@
-import React from 'react';
-import { ArrowLeftRight, Building2, Factory, FolderKanban, Landmark, MessageCircle, Refrigerator, Store, Utensils, UtensilsCrossed, Vault, Wheat, type LucideIcon } from 'lucide-react';
 import {
   APPS_SHELF_LINE,
   APPS_SHELF_TITLE,
@@ -9,27 +7,12 @@ import {
 import {
   SHELF_SHOP_APPS,
   ShopApp,
-  ShopAppId,
   interceptHouseRedeemClick,
   shopAppIsHeld,
   shopAppOpenHref
 } from '../hub/places';
 import type { ProjectOpenHandshake } from '../hub/projectUrls';
-
-const SHOP_ICONS: Record<ShopAppId, LucideIcon> = {
-  eatery: Utensils,
-  eatin: Refrigerator,
-  eatout: UtensilsCrossed,
-  project: FolderKanban,
-  finance: Landmark,
-  trade: ArrowLeftRight,
-  farm: Wheat,
-  reseller: Store,
-  maker: Factory,
-  chat: MessageCircle,
-  vault: Vault,
-  property: Building2
-};
+import { AppShelfTile } from './AppShelfTile';
 
 export interface GetAppsProps {
   hasHouse: boolean;
@@ -39,15 +22,6 @@ export interface GetAppsProps {
   /** Hub facts for Project Open. query (email / house / place / instance). */
   openHandshake?: ProjectOpenHandshake;
   enabledApps?: readonly string[];
-}
-
-function ShelfMark({ id }: { id: ShopAppId }) {
-  const Icon = SHOP_ICONS[id];
-  return (
-    <span className="ico-sq" aria-hidden="true">
-      {Icon ? <Icon size={22} /> : null}
-    </span>
-  );
 }
 
 function ShelfTile({
@@ -63,67 +37,38 @@ function ShelfTile({
   onOpen: (app: ShopApp) => void;
   openHandshake?: ProjectOpenHandshake;
 }) {
-  const mark = <ShelfMark id={app.id} />;
-  const name = <span className="shelf-tile-name">{app.title}</span>;
-
   if (!app.live) {
     return (
-      <div
-        className="shelf-tile is-soon"
-        data-testid={`coming-app-${app.id}`}
-        data-app-id={app.id}
-        aria-disabled="true"
-      >
-        {mark}
-        {name}
-        <span className="shelf-tile-state">{SOON_LABEL}</span>
-      </div>
+      <AppShelfTile
+        app={app}
+        testId={`coming-app-${app.id}`}
+        soon
+        state={SOON_LABEL}
+      />
     );
   }
 
   if (held) {
     const openHref = shopAppOpenHref(app, openHandshake);
-    if (openHref) {
-      return (
-        <a
-          className="shelf-tile"
-          href={openHref}
-          target="_self"
-          data-testid={`open-app-${app.id}`}
-          data-app-id={app.id}
-          onClick={event => interceptHouseRedeemClick(app, event, onOpen)}
-        >
-          {mark}
-          {name}
-        </a>
-      );
-    }
     return (
-      <button
-        type="button"
-        className="shelf-tile"
-        data-testid={`open-app-${app.id}`}
-        data-app-id={app.id}
-        onClick={() => onOpen(app)}
-      >
-        {mark}
-        {name}
-      </button>
+      <AppShelfTile
+        app={app}
+        testId={`open-app-${app.id}`}
+        href={openHref}
+        onClick={openHref
+          ? event => interceptHouseRedeemClick(app, event, onOpen)
+          : () => onOpen(app)}
+      />
     );
   }
 
   return (
-    <button
-      type="button"
-      className="shelf-tile"
-      data-testid={`get-app-${app.id}`}
-      data-app-id={app.id}
+    <AppShelfTile
+      app={app}
+      testId={`get-app-${app.id}`}
+      state={GET_LABEL}
       onClick={() => onGet(app)}
-    >
-      {mark}
-      {name}
-      <span className="shelf-tile-state">{GET_LABEL}</span>
-    </button>
+    />
   );
 }
 

@@ -83,13 +83,13 @@ describe('hub email door copy', () => {
     expect(SAME_CHAIN_CAPTION).toBe('Same chain. Not live yet.');
     expect(DELETE_THE_HOUSE_LABEL).toBe('Delete the place.');
     expect(REGISTER_A_NEW_HOUSE_LABEL).toBe('Register a new place.');
-    expect(PLUS_REGISTER_LABEL).toBe('+ Register');
+    expect(PLUS_REGISTER_LABEL).toBe('Register.');
     expect(YOUR_PLACES_KICKER).toBe('Your places.');
     expect(SETTINGS_KICKER).toBe('Settings.');
     expect(HUB_HOME_COPY).toContain('Settings.');
     expect(HUB_HOME_COPY).toContain('No place on this hub yet.');
     expect(HUB_HOME_COPY.join('\n')).not.toMatch(/\bhouse\b/i);
-    expect(HUB_HOME_COPY).toContain('+ Register');
+    expect(HUB_HOME_COPY).toContain('Register.');
     expect(HUB_HOME_COPY).not.toContain('Home');
     expect(HUB_HOME_COPY).toContain('My places');
     expect(HUB_HOME_COPY).toContain('Apps');

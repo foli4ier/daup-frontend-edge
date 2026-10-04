@@ -1,9 +1,13 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useUserProfile } from '../context/UserProfileContext';
 import {
-  HOSTED_SEED_SUMMARY,
+  CANCEL_LABEL,
+  EDIT_LABEL,
   OPEN_LABEL,
+  PLACE_NAME_IN_USE,
   PLUS_REGISTER_LABEL,
+  SAVE_LABEL,
+  SUBSCRIPTION_OPEN_LABEL,
   YOUR_PLACES_EMPTY,
   YOUR_PLACES_KICKER
 } from '../hub/copy';
@@ -13,7 +17,8 @@ import { continueHouseOpen, pickHousePlaceId } from '../hub/houseOpen';
 import { houseOtpMockActive, rememberedHouseOtpPhone } from '../hub/house-session';
 import { appUsesHouseRedeem } from '../hub/house-session/openUrl';
 import { ShopApp, listOwnerPlaces, navigateSameTab, navigateToChatHome, ownerPlaceKey } from '../hub/places';
-import { placeSubscriptionDisplay } from '../hub/placeSubscription';
+import { placeTileStatus, resolvePlacePlan } from '../hub/placeSubscription';
+import type { PlacePane } from './PlaceDetailView';
 import { loadSeednodeForPlace } from '../hub/seednode';
 import { navigateToEatOutHome } from '../hub/eatoutUrls';
 import { navigateToTheHouse } from '../hub/ownerArrival';
@@ -23,7 +28,130 @@ import { toWhatsappE164 } from '../hub/whatsappE164';
 import { GetAppsSection } from './GetApps';
 import { HouseOtpDoor } from './HouseOtpDoor';
 import { OtherPlacesView } from './OtherPlaces';
+import {
+  applyPaystackVerdict,
+  clearPaystackReturnQuery,
+  confirmPaystackReference,
+  paystackReferencesOnThisHub,
+  paystackReturnReference
+} from '../hub/paystackEntitlement';
 import { PlaceDetailView } from './PlaceDetailView';
+
+function PlaceCard({
+  index,
+  title,
+  city,
+  statusLine,
+  onOpen,
+  onSubscription,
+  onRename
+}: {
+  index: number;
+  title: string;
+  city: string;
+  statusLine: string;
+  onOpen: () => void;
+  onSubscription: () => void;
+  onRename: (nextName: string) => { ok: boolean; reason?: string };
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(title);
+  const [nameNote, setNameNote] = useState('');
+  const first = index === 0;
+  const save = () => {
+    const next = draft.trim();
+    if (!next || next === title) {
+      setDraft(title);
+      setEditing(false);
+      setNameNote('');
+      return;
+    }
+    const result = onRename(next);
+    if (!result.ok) {
+      setNameNote(result.reason || PLACE_NAME_IN_USE);
+      return;
+    }
+    setNameNote('');
+    setEditing(false);
+  };
+  return (
+    <article
+      className="place-card"
+      data-testid={first ? 'eatery-place-row' : 'owner-place-row'}
+      data-place-name={title}
+    >
+      {editing ? (
+        <div className="place-rename">
+          <input
+            className="place-rename-field"
+            data-testid={first ? 'edit-place-name-input' : `edit-place-name-input-${index}`}
+            value={draft}
+            aria-label="Place name."
+            onChange={event => setDraft(event.target.value)}
+          />
+          <div className="place-card-actions place-rename-actions">
+            <button type="button" className="btn btn-primary" data-testid={first ? 'save-place-name' : `save-place-name-${index}`} onClick={save}>
+              {SAVE_LABEL}
+            </button>
+            <button
+              type="button"
+              className="btn btn-outline"
+              data-testid={first ? 'cancel-place-name' : `cancel-place-name-${index}`}
+              onClick={() => {
+                setDraft(title);
+                setNameNote('');
+                setEditing(false);
+              }}
+            >
+              {CANCEL_LABEL}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="place-card-name">
+          <h3 data-testid={first ? 'eatery-place-name' : 'owner-place-name'}>{title}</h3>
+          <button
+            type="button"
+            className="place-text-action"
+            data-testid={first ? 'edit-place-name' : `edit-place-name-${index}`}
+            onClick={() => {
+              setDraft(title);
+              setNameNote('');
+              setEditing(true);
+            }}
+          >
+            {EDIT_LABEL}
+          </button>
+        </div>
+      )}
+      {nameNote ? <p className="caption" data-testid="place-name-note">{nameNote}</p> : null}
+      {city ? (
+        <p data-testid={first ? 'eatery-place-city' : 'owner-place-city'}>{city}</p>
+      ) : null}
+      {statusLine ? (
+        <p className="place-card-status" data-testid={first ? 'eatery-place-status' : 'owner-place-status'}>{statusLine}</p>
+      ) : null}
+      <div className="place-card-actions">
+        <button
+          type="button"
+          className="btn btn-primary"
+          data-testid={first ? 'open-the-house' : 'open-place'}
+          onClick={onOpen}
+        >
+          {OPEN_LABEL}
+        </button>
+        <button
+          type="button"
+          className="btn btn-outline"
+          data-testid={first ? 'open-place-subscription' : `open-place-subscription-${index}`}
+          onClick={onSubscription}
+        >
+          {SUBSCRIPTION_OPEN_LABEL}
+        </button>
+      </div>
+    </article>
+  );
+}
 
 export const SubscribedAppsView: React.FC<{
   pane?: Exclude<HubPane, 'you'>;
@@ -44,6 +172,8 @@ export const SubscribedAppsView: React.FC<{
   onClosePlace
 }) => {
   const [localOpenKey, setLocalOpenKey] = useState<string | null>(null);
+  const [paidTick, setPaidTick] = useState(0);
+  const [openedTab, setOpenedTab] = useState<PlacePane>('apps');
   const houseBusy = useRef(false);
   const [houseDoor, setHouseDoor] = useState<{
     app: ShopApp;
@@ -69,6 +199,8 @@ export const SubscribedAppsView: React.FC<{
     enabledApps,
     enableApp,
     enableAppsOnPlace,
+    renamePlace,
+    savePlaceLocation,
     companyId,
     trialState,
     vault,
@@ -76,6 +208,30 @@ export const SubscribedAppsView: React.FC<{
   } = useUserProfile();
   const houseName = (activeWallet?.legalName || '').trim();
   const email = ownerSession?.email || '';
+
+  useEffect(() => {
+    let cancel = false;
+    const fromUrl = paystackReturnReference();
+    const refs = [...new Set([fromUrl, ...paystackReferencesOnThisHub()].filter(Boolean))];
+    if (!refs.length) return undefined;
+    void (async () => {
+      let changed = false;
+      for (const reference of refs) {
+        try {
+          const verdict = await confirmPaystackReference(reference);
+          if (cancel || !verdict) continue;
+          if (applyPaystackVerdict(verdict)) changed = true;
+        } catch {
+          // A failed lookup is not a payment, and it does not clear a covered period.
+        }
+      }
+      if (fromUrl) clearPaystackReturnQuery();
+      if (!cancel && changed) setPaidTick(tick => tick + 1);
+    })();
+    return () => {
+      cancel = true;
+    };
+  }, []);
   const city = (profile.location?.city || '').trim();
   const ownerRecords = listOwnerPlaceRecords({
     email,
@@ -307,9 +463,11 @@ export const SubscribedAppsView: React.FC<{
       ) : null}
       {showPlaces && openRecord ? (
         <PlaceDetailView
-          key={ownerPlaceKey(openRecord)}
+          key={`${ownerPlaceKey(openRecord)}:${paidTick}`}
           place={openRecord}
           email={email}
+          tab={openedTab}
+          onTab={setOpenedTab}
           entitlement={loadPlaceEntitlement(openRecord.companyId || openRecord.placeId || '')}
           seed={
             loadSeednodeForPlace(openRecord.companyId || openRecord.placeId || '')
@@ -322,6 +480,9 @@ export const SubscribedAppsView: React.FC<{
             || (openRecord.placeName.trim() === houseName ? trialState.trialExpiresAt : null)
           }
           enabledApps={enabledForPlace(openRecord)}
+          onSaveLocation={(location) => {
+            savePlaceLocation(openRecord, location);
+          }}
           onBack={() => closePlace()}
           onAddApps={(appIds) => enableAppsOnPlace({
             ...openRecord,
@@ -353,53 +514,37 @@ export const SubscribedAppsView: React.FC<{
                 const record = ownerRecords.find(row => ownerPlaceKey(row) === key);
                 const licensed = (place.companyId || place.placeId || record?.companyId || record?.placeId || '').trim();
                 const entitlement = licensed ? loadPlaceEntitlement(licensed) : null;
-                const seed = licensed ? loadSeednodeForPlace(licensed) : null;
                 const isPrimaryHouse = place.title.trim() === houseName;
-                const sub = placeSubscriptionDisplay({
-                  entitlement,
-                  seedMode: seed?.mode || 'hosted',
-                  trialStartedAt: isPrimaryHouse ? trialState.trialStartedAt : null,
-                  trialEndsAt: entitlement?.trial_ends_at
-                    || (isPrimaryHouse ? trialState.trialExpiresAt : null)
-                });
+                const plan = resolvePlacePlan({ placeId: licensed });
+                const statusLine = placeTileStatus(
+                  entitlement || (isPrimaryHouse && trialState.trialExpiresAt ? {
+                    trial_started_at: trialState.trialStartedAt,
+                    trial_ends_at: trialState.trialExpiresAt,
+                    payment_method_ok: false
+                  } : null),
+                  Date.now(),
+                  plan.cadence
+                );
                 return (
-                  <article
-                    className="place-card"
-                    key={key}
-                    data-testid={index === 0 ? 'eatery-place-row' : 'owner-place-row'}
-                    data-place-name={place.title}
-                  >
-                    <div className="place-card-copy">
-                      <h3 data-testid={index === 0 ? 'eatery-place-name' : 'owner-place-name'}>{place.title}</h3>
-                      {place.city ? (
-                        <p data-testid={index === 0 ? 'eatery-place-city' : 'owner-place-city'}>{place.city}</p>
-                      ) : null}
-                      <p className="place-card-choice" data-testid={index === 0 ? 'eatery-place-choice' : 'place-card-choice'}>
-                        {sub.choiceLines.map(line => (
-                          <span key={line}>{line}</span>
-                        ))}
-                        {sub.seedSummary === HOSTED_SEED_SUMMARY ? (
-                          <span className="place-card-total">{sub.totalLine}</span>
-                        ) : null}
-                      </p>
-                      {sub.remaining ? (
-                        <p className="place-card-remaining" data-testid={index === 0 ? 'eatery-place-remaining' : 'place-card-remaining'}>
-                          {sub.remaining}
-                        </p>
-                      ) : null}
-                    </div>
-                    <span className="live" data-testid={index === 0 ? 'eatery-place-status' : 'owner-place-status'}>
-                      {place.status}
-                    </span>
-                    <button
-                      type="button"
-                      className="btn btn-primary"
-                      data-testid={index === 0 ? 'open-the-house' : 'open-place'}
-                      onClick={() => openPlace(key)}
-                    >
-                      {place.actionLabel || OPEN_LABEL}
-                    </button>
-                  </article>
+                  <PlaceCard
+                    key={`${key}:${paidTick}:${place.title}`}
+                    index={index}
+                    title={place.title}
+                    city={place.city}
+                    statusLine={statusLine}
+                    onOpen={() => {
+                      setOpenedTab('apps');
+                      openPlace(key);
+                    }}
+                    onSubscription={() => {
+                      setOpenedTab('subscription');
+                      openPlace(key);
+                    }}
+                    onRename={(nextName) => {
+                      if (!record) return { ok: false, reason: PLACE_NAME_IN_USE };
+                      return renamePlace(record, nextName);
+                    }}
+                  />
                 );
               })}
               <button

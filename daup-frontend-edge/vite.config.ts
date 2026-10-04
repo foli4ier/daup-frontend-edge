@@ -2,6 +2,7 @@ import { defineConfig, Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import { spawn, ChildProcess } from 'child_process';
+import { handlePaystackRequest } from './src/hub/paystackHandler';
 
 const runningProcesses: Record<string, ChildProcess> = {};
 
@@ -9,6 +10,41 @@ function onDemandAppLauncherPlugin(): Plugin {
   return {
     name: 'daup-on-demand-launcher',
     configureServer(server) {
+      server.middlewares.use(async (req, res, next) => {
+        const host = req.headers.host || 'localhost:3000';
+        const url = new URL(req.url || '/', `http://${host}`);
+        if (!url.pathname.startsWith('/api/paystack/')) {
+          next();
+          return;
+        }
+        try {
+          const chunks: Buffer[] = [];
+          for await (const chunk of req) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+          const body = Buffer.concat(chunks);
+          const headers = new Headers();
+          for (const [key, value] of Object.entries(req.headers)) {
+            if (typeof value === 'string') headers.set(key, value);
+            else if (Array.isArray(value)) headers.set(key, value.join(', '));
+          }
+          const request = new Request(url, {
+            method: req.method,
+            headers,
+            body: req.method === 'GET' || req.method === 'HEAD' ? undefined : body
+          });
+          const response = await handlePaystackRequest(request, {
+            PAYSTACK_SECRET_KEY: process.env.PAYSTACK_SECRET_KEY
+          });
+          res.statusCode = response.status;
+          response.headers.forEach((value, key) => res.setHeader(key, value));
+          res.end(Buffer.from(await response.arrayBuffer()));
+        } catch (err: any) {
+          res.statusCode = 500;
+          res.setHeader('Content-Type', 'application/json');
+          res.end(JSON.stringify({ paid: false, message: 'Paystack is not ready.' }));
+          console.error('[Paystack]', err?.message || err);
+        }
+      });
+
       server.middlewares.use('/api/launch-app', (req, res) => {
         try {
           const url = new URL(req.url || '', `http://${req.headers.host || 'localhost:3000'}`);
