@@ -112,6 +112,11 @@ export interface UserProfileContextType {
     next: EnableableAppId[];
     noOp: boolean;
   };
+  renamePlace: (place: PlatformPlaceRecord, nextName: string) => { ok: boolean; reason?: string };
+  savePlaceLocation: (
+    place: PlatformPlaceRecord,
+    location: { city: string; region: string; country: string }
+  ) => PlatformPlaceRecord | null;
   completeOnboarding: (finalProfileData?: Partial<UserProfile>, extras?: { enabledApps?: readonly string[] }) => Promise<void>;
   startFreeTrial: (durationDays?: number) => void;
   detectLocation: () => Promise<UserLocation>;
@@ -354,6 +359,67 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
       };
     });
   }, [commitVault, vault.profile.demographics.whatsappNumber]);
+
+  const renamePlace = useCallback((place: PlatformPlaceRecord, nextName: string) => {
+    const name = nextName.trim();
+    if (!name) return { ok: false, reason: 'Name the place.' };
+    const taken = listRegisteredPlaces().some(row => (
+      normalizeLegalName(row.placeName) === normalizeLegalName(name)
+      && row.companyId !== place.companyId
+      && row.placeId !== place.placeId
+    ));
+    if (taken) return { ok: false, reason: 'That name is already in use.' };
+    const saved = registerPlaceOnPlatform({ ...place, placeName: name });
+    if (!saved) return { ok: false, reason: 'Name the place.' };
+    const fromName = place.placeName;
+    const mapWallet = (wallet: WalletEntry): WalletEntry => (
+      normalizeLegalName(wallet.legalName) === normalizeLegalName(fromName)
+        ? { ...wallet, legalName: name }
+        : wallet
+    );
+    commitVault(prev => ({
+      ...prev,
+      activeWallet: prev.activeWallet ? mapWallet(prev.activeWallet) : prev.activeWallet,
+      registeredWallets: prev.registeredWallets.map(mapWallet),
+      profile: {
+        ...prev.profile,
+        wallets: (prev.profile.wallets || []).map(mapWallet),
+        updatedAt: Date.now()
+      },
+      updatedAt: Date.now()
+    }));
+    return { ok: true };
+  }, [commitVault]);
+
+  const savePlaceLocation = useCallback((
+    place: PlatformPlaceRecord,
+    location: { city: string; region: string; country: string }
+  ) => {
+    const city = location.city.trim();
+    const region = location.region.trim();
+    const country = location.country.trim();
+    const saved = registerPlaceOnPlatform({ ...place, city, region, country });
+    const isHouse = normalizeLegalName(place.placeName) === normalizeLegalName(vault.activeWallet?.legalName || '');
+    if (isHouse) {
+      commitVault(prev => ({
+        ...prev,
+        profile: {
+          ...prev.profile,
+          location: {
+            ...prev.profile.location,
+            city,
+            provinceState: region,
+            country
+          },
+          updatedAt: Date.now()
+        },
+        updatedAt: Date.now()
+      }));
+    } else {
+      commitVault(prev => ({ ...prev, updatedAt: Date.now() }));
+    }
+    return saved;
+  }, [commitVault, vault.activeWallet?.legalName]);
 
   // Update location
   const updateLocation = useCallback((location: Partial<UserLocation>) => {
@@ -1016,6 +1082,8 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
         setPrimaryWallet,
         enableApp,
         enableAppsOnPlace,
+        renamePlace,
+        savePlaceLocation,
         completeOnboarding,
         startFreeTrial,
         detectLocation,

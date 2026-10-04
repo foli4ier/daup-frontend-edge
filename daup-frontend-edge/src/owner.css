@@ -176,14 +176,24 @@ body {
   box-shadow: var(--shadow);
   padding: 12px 14px;
   display: flex;
-  align-items: flex-start;
-  gap: 12px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
   min-height: 64px;
 }
 
-.place-card-copy {
+.place-card-copy,
+.place-card-name {
   flex: 1 1 auto;
   min-width: 0;
+}
+
+.place-card-name {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  min-height: max(48px, var(--tap, 48px));
 }
 
 .place-card h3 {
@@ -199,6 +209,50 @@ body {
   margin: 2px 0 0;
   color: var(--muted);
   font-size: 0.92rem;
+}
+
+.place-text-action {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--forest);
+  font: inherit;
+  font-weight: 650;
+  min-height: max(48px, var(--tap, 48px));
+  min-width: 48px;
+  padding: 0 8px;
+  cursor: pointer;
+}
+
+.place-card-name input,
+.place-location-edit input {
+  flex: 1 1 140px;
+  min-width: 0;
+  min-height: max(48px, var(--tap, 48px));
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  padding: 0 12px;
+  background: var(--white);
+  color: var(--ink);
+  font: inherit;
+}
+
+.place-card .place-card-status {
+  margin-top: 2px;
+  color: var(--ink);
+  font-weight: 650;
+}
+
+.place-card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.place-card-actions .btn {
+  flex: 1 1 0;
+  width: auto;
+  min-width: 48px;
 }
 
 .place-card-choice {
@@ -293,11 +347,54 @@ body {
   display: contents;
 }
 
+.place-tabs {
+  display: flex;
+  gap: 8px;
+}
+
+.place-tab {
+  appearance: none;
+  flex: 1 1 0;
+  min-height: max(48px, var(--tap, 48px));
+  min-width: 48px;
+  padding: 0 8px;
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  background: var(--white);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.place-tab.is-on {
+  background: var(--terracotta);
+  border-color: var(--terracotta);
+  color: #fff;
+}
+
 .place-plan-choice {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 8px;
   margin: 8px 0 0;
+}
+
+.place-cadence-choice {
+  flex-direction: row;
+}
+
+.place-location-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.place-location-edit label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-weight: 650;
 }
 
 .place-plan,
@@ -308,6 +405,7 @@ body {
 
 .place-plan {
   appearance: none;
+  width: 100%;
   padding: 0 16px;
   border: 1.5px solid var(--line);
   border-radius: 12px;
@@ -316,7 +414,18 @@ body {
   font-family: var(--sans);
   font-size: 16px;
   font-weight: 650;
+  text-align: left;
   cursor: pointer;
+}
+
+.place-cadence-choice .place-plan {
+  flex: 1 1 0;
+  width: auto;
+  text-align: center;
+}
+
+.place-pay {
+  width: 100%;
 }
 
 .place-plan.is-on {
@@ -478,28 +587,8 @@ body {
 }
 
 @media (max-width: 640px) {
-  .place-card {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    grid-template-areas:
-      "copy status"
-      "open open";
-    align-items: center;
-  }
-
-  .place-card-copy {
-    grid-area: copy;
-  }
-
-  .place-card .live {
-    grid-area: status;
-    align-self: start;
-  }
-
-  .place-card .btn:not(.wizard-app) {
-    grid-area: open;
-    width: 100%;
-    min-width: 0;
+  .place-card-actions {
+    flex-wrap: nowrap;
   }
 }
 

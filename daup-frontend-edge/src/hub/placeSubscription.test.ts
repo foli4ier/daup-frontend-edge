@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
+  ANNUAL_OFF_LINE,
   daysLeftOnTrialLabel,
   hasBannedDoorCopy,
   HOSTED_SEED_SUMMARY,
@@ -14,6 +15,7 @@ import { loadPlaceEntitlement, TRIAL_MS } from './entitlements';
 import {
   ANNUAL_DISCOUNT_PERCENT,
   ANNUAL_MONTHS,
+  annualFigureLine,
   asPlaceSubClock,
   bundleAnnualCents,
   bundleMonthlyZar,
@@ -23,13 +25,17 @@ import {
   placeChoiceLines,
   placeChoiceTotalLine,
   placePlanQuote,
+  placeSubscriptionDate,
   placeSubscriptionDisplay,
+  placeTileStatus,
+  planChoiceLabel,
   remainingPeriodCopy,
   remainingPeriodDays,
   savePlacePlan,
   stubPeriodEnd,
   stubRenewsAt
 } from './placeSubscription';
+import { formatDayFirstDate, formatTrialEndsOn } from './zaFormat';
 
 describe('place subscription remaining', () => {
   const started = Date.parse('2026-09-01T12:00:00Z');
@@ -76,6 +82,35 @@ describe('place subscription remaining', () => {
       payment_method_ok: true
     }, paidNow)).toBe('Renews in 18 days.');
     expect(renewsInDaysLabel(1)).toBe('Renews in 1 day.');
+  });
+
+  it('keeps the tile to one status and puts the rand on the plan choice', () => {
+    const now = started + 18 * DAY_MS;
+    const clock = {
+      trial_started_at: started,
+      trial_ends_at: trialEnds,
+      payment_method_ok: false as const
+    };
+    expect(placeTileStatus(clock, now)).toBe('12 days left on trial.');
+    expect(placeSubscriptionDate(clock, now)).toBe(formatTrialEndsOn(trialEnds));
+
+    const paidNow = trialEnds + 12 * DAY_MS;
+    const paid = { ...clock, payment_method_ok: true };
+    expect(placeTileStatus(paid, paidNow)).toBe('18 days left.');
+    expect(placeSubscriptionDate(paid, paidNow)).toBe(
+      `Next payment ${formatDayFirstDate(trialEnds + TRIAL_MS)}.`
+    );
+
+    const dueNow = trialEnds + 2 * DAY_MS;
+    expect(placeTileStatus(clock, dueNow)).toBe('Payment due.');
+    expect(placeSubscriptionDate(clock, dueNow)).toBe('Payment due.');
+    expect(planChoiceLabel('place')).toBe('This place. R199 a month.');
+    expect(planChoiceLabel('hosted-seed')).toBe('Hosted seed. R299 a month.');
+    expect(planChoiceLabel('both')).toBe('Both. R498 a month.');
+    expect(annualFigureLine('both')).toBe('R5378.40 a year.');
+    expect(annualFigureLine('place')).toBe('R2149.20 a year.');
+    expect(annualFigureLine('hosted-seed')).toBe('R3229.20 a year.');
+    expect(ANNUAL_OFF_LINE).toBe('10% off twelve months.');
   });
 
   it('uses vault trial dates when no entitlement is stored', () => {

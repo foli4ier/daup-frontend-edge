@@ -1,90 +1,56 @@
-import React, { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ADD_APPS_LABEL,
-  ALREADY_ON_PLACE_LABEL,
+  ANNUAL_OFF_LINE,
   BACK_TO_PLACES_LABEL,
+  CANCEL_LABEL,
   CHECK_SEED_LABEL,
-  COMING_KICKER,
   DOWNLOAD_SEED_SETUP_LABEL,
-  LIVE_STATUS_LABEL,
+  EDIT_LABEL,
   ON_PREM_SEED_NEXT,
   PAY_WITH_PAYSTACK_LABEL,
-  PAYMENT_DUE_LABEL,
   PAYSTACK_CHANNELS_LABEL,
   PAYSTACK_NOT_READY_LABEL,
-  PLACE_ACTIVE_STATUS,
   PLACE_APPS_KICKER,
-  PLACE_PAUSED,
-  PLACE_PAYMENT_DUE,
-  PLACE_SUB_LINE,
+  PLACE_LOCATION_TAB,
+  PLACE_SUBSCRIPTION_TAB,
   PLACE_TRIAL_LINE,
-  PLACE_TRIAL_STATUS,
   PLAN_ANNUAL_LABEL,
-  PLAN_BOTH_LABEL,
-  PLAN_HOSTED_SEED_LABEL,
   PLAN_MONTHLY_LABEL,
-  PLAN_PLACE_LABEL,
-  SEED_HOSTED_LINE,
-  SEED_HOSTED_ON_PREM_LINE,
+  SAVE_LABEL,
   SEED_KICKER,
   SEEDNODE_MODE_HOSTED,
   SEEDNODE_MODE_ON_PREM,
   SEEDNODE_STATUS_CONNECTED,
   SEED_STATUS_NOT_CONNECTED,
-  SEED_STATUS_UNCHECKED,
-  SOON_LABEL,
-  SUBSCRIPTION_KICKER
+  SEED_STATUS_UNCHECKED
 } from '../hub/copy';
-import {
-  PLACE_SUB_MONTHLY_CODE,
-  PLACE_TRIAL_CODE,
-  SEED_HOSTED_MONTHLY_CODE,
-  stubCatalogLines,
-  stubMonthlyLines
-} from '../hub/priceMeters';
 import { resolvePlaceSubscriptionStatus, type PlaceEntitlement } from '../hub/entitlements';
 import { pollSeednodeStatus } from '../hub/houseMcp';
 import {
-  HOSTED_SEED_DOOR_LABEL,
   SEED_SETUP_ZIP_HREF,
   onPremAttachFields,
   saveSeednodeForPlace,
   seedConfigForMode,
-  seednodeDoorHost,
   type SeednodeConfig,
   type SeednodeMode
 } from '../hub/seednode';
 import { ENABLEABLE_SHOP_APPS, SHELF_SHOP_APPS, interceptHouseRedeemClick, shopAppOpenHref, type ShopApp } from '../hub/places';
 import {
-  placePlanQuote,
-  remainingPeriodCopy,
+  annualFigureLine,
+  placeSubscriptionDate,
+  placeTileStatus,
+  planChoiceLabel,
   resolvePlacePlan,
   savePlacePlan,
-  trialThenPlanCopy,
   type PlacePlanChoice
 } from '../hub/placeSubscription';
-import { formatTrialEndsOn } from '../hub/zaFormat';
 import type { ProjectOpenHandshake } from '../hub/projectUrls';
 import type { PlatformPlaceRecord } from '../stores/identityStore';
 import { openPaystackCheckout, startPaystackCheckout } from '../hub/paystackEntitlement';
 import { AppShelfTile } from './AppShelfTile';
 
-function kitchenStatus(status: ReturnType<typeof resolvePlaceSubscriptionStatus> | null): string {
-  if (status === 'trial') return PLACE_TRIAL_STATUS;
-  if (status === 'active') return PLACE_ACTIVE_STATUS;
-  if (status === 'past_due') return PLACE_PAYMENT_DUE;
-  if (status === 'suspended') return PLACE_PAUSED;
-  return '';
-}
-
-function kitchenMeterLine(code: string, zarExVat: number): string {
-  if (code === PLACE_TRIAL_CODE) return PLACE_TRIAL_LINE;
-  if (code === PLACE_SUB_MONTHLY_CODE) return PLACE_SUB_LINE;
-  if (code === SEED_HOSTED_MONTHLY_CODE) {
-    return zarExVat === 0 ? SEED_HOSTED_ON_PREM_LINE : SEED_HOSTED_LINE;
-  }
-  return '';
-}
+export type PlacePane = 'apps' | 'subscription' | 'location';
 
 export function PlaceDetailView({
   place,
@@ -93,9 +59,12 @@ export function PlaceDetailView({
   seed,
   trialEndsAt,
   enabledApps,
+  tab,
+  onTab,
   onBack,
   onOpenApp,
   onAddApps,
+  onSaveLocation,
   openHandshake
 }: {
   place: PlatformPlaceRecord;
@@ -104,9 +73,12 @@ export function PlaceDetailView({
   seed: SeednodeConfig | null;
   trialEndsAt?: number | null;
   enabledApps: readonly string[];
+  tab: PlacePane;
+  onTab: (tab: PlacePane) => void;
   onBack: () => void;
   onOpenApp: (app: ShopApp) => void;
   onAddApps?: (appIds: readonly string[]) => void;
+  onSaveLocation?: (location: { city: string; region: string; country: string }) => void;
   openHandshake?: ProjectOpenHandshake;
 }) {
   const licensedId = (place.companyId || '').trim();
@@ -114,39 +86,39 @@ export function PlaceDetailView({
   const [seedConfig, setSeedConfig] = useState<SeednodeConfig | null>(seed);
   const [seedCheck, setSeedCheck] = useState<'unchecked' | 'connected' | 'not-connected'>('unchecked');
   const [checkingSeed, setCheckingSeed] = useState(false);
+  const [adding, setAdding] = useState(false);
   const [picking, setPicking] = useState<string[]>([]);
   const [planOverride, setPlanOverride] = useState<PlacePlanChoice | null>(null);
   const [payNote, setPayNote] = useState('');
   const [paying, setPaying] = useState(false);
+  const [locEditing, setLocEditing] = useState(false);
+  const [city, setCity] = useState(place.city || '');
+  const [region, setRegion] = useState(place.region || '');
+  const [country, setCountry] = useState(place.country || '');
   const status = entitlement ? resolvePlaceSubscriptionStatus(entitlement) : (trialEndsAt ? 'trial' : null);
   const mode: SeednodeMode = seedConfig?.mode || 'hosted';
-  const host = seednodeDoorHost(seedConfig);
-  const trialLines = stubMonthlyLines({
-    seedMode: mode,
-    inTrial: status === 'trial'
-  });
-  const catalog = stubCatalogLines({ seedMode: mode });
-  const lines = status === 'trial' ? [...trialLines, ...catalog] : catalog;
-  const trialEnds = (status === 'trial' && (entitlement?.trial_ends_at || trialEndsAt))
-    ? formatTrialEndsOn(entitlement?.trial_ends_at || trialEndsAt || 0)
-    : '';
+  const clock = entitlement || (trialEndsAt ? {
+    trial_started_at: null,
+    trial_ends_at: trialEndsAt,
+    payment_method_ok: false
+  } : null);
   const plan = planOverride || resolvePlacePlan({
     placeId: licensedId || openedPlaceId,
     seedMode: mode
   });
-  const quote = placePlanQuote(plan.bundle, plan.cadence);
-  const remaining = remainingPeriodCopy(
-    entitlement || (trialEndsAt ? {
-      trial_started_at: null,
-      trial_ends_at: trialEndsAt,
-      payment_method_ok: false
-    } : null),
-    Date.now(),
-    plan.cadence
-  );
-  const paymentDue = status === 'past_due' || status === 'suspended';
-  const apps = SHELF_SHOP_APPS.filter(app => app.id !== 'eatout' && enabledApps.includes(app.id));
+  const tileStatus = placeTileStatus(clock, Date.now(), plan.cadence);
+  const dateLine = placeSubscriptionDate(clock, Date.now(), plan.cadence);
+  const apps = SHELF_SHOP_APPS.filter(app => app.id !== 'eatout' && app.live && enabledApps.includes(app.id));
   const heldApps = new Set(enabledApps);
+  const missingApps = ENABLEABLE_SHOP_APPS.filter(app => app.live && !heldApps.has(app.id));
+  const locationLine = [place.city, place.region, place.country].map(part => (part || '').trim()).filter(Boolean).join(', ');
+
+  useEffect(() => {
+    if (locEditing) return;
+    setCity(place.city || '');
+    setRegion(place.region || '');
+    setCountry(place.country || '');
+  }, [place.city, place.region, place.country, locEditing]);
 
   const payWithPaystack = () => {
     if (paying) return;
@@ -232,6 +204,11 @@ export function PlaceDetailView({
     }
   };
 
+  const saveLocation = () => {
+    onSaveLocation?.({ city, region, country });
+    setLocEditing(false);
+  };
+
   return (
     <section className="place-detail" data-testid="place-detail">
       <button
@@ -245,237 +222,289 @@ export function PlaceDetailView({
 
       <header className="place-detail-head">
         <h1 data-testid="place-detail-name">{place.placeName}</h1>
-        {place.city ? (
-          <p className="caption" data-testid="place-detail-city">{place.city}</p>
-        ) : null}
       </header>
 
-      <article className="place-detail-block" data-testid="place-apps">
-        <div className="section-head">
-          <span className="kicker">{PLACE_APPS_KICKER}</span>
-          <span className="rule" />
-        </div>
-        <div className="apps-shelf" data-testid="place-apps-shelf">
-          {apps.map(app => {
-            const openHref = app.live ? shopAppOpenHref(app, openHandshake) : undefined;
-            return (
-              <div
-                className="place-app-slot"
-                key={app.id}
-                data-testid={`place-app-${app.id}`}
-              >
-                <AppShelfTile
-                  app={app}
-                  testId={app.live ? `open-place-app-${app.id}` : `coming-place-app-${app.id}`}
-                  href={openHref}
-                  soon={!app.live}
-                  state={app.live ? undefined : SOON_LABEL}
-                  onClick={app.live
-                    ? (openHref
-                      ? event => interceptHouseRedeemClick(app, event, onOpenApp)
-                      : () => onOpenApp(app))
-                    : undefined}
-                />
-              </div>
-            );
-          })}
-        </div>
-        <div className="place-add-apps" data-testid="place-add-apps">
-          <div className="section-head">
-            <span className="kicker">{ADD_APPS_LABEL}</span>
-            <span className="rule" />
-          </div>
-          <div className="wizard-apps">
-            {ENABLEABLE_SHOP_APPS.map(app => {
-              const already = heldApps.has(app.id);
-              const selected = picking.includes(app.id);
+      <div className="place-tabs" role="tablist" data-testid="place-tabs">
+        {([
+          ['apps', PLACE_APPS_KICKER],
+          ['subscription', PLACE_SUBSCRIPTION_TAB],
+          ['location', PLACE_LOCATION_TAB]
+        ] as const).map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            className={tab === id ? 'place-tab is-on' : 'place-tab'}
+            data-testid={`place-tab-${id}`}
+            aria-selected={tab === id}
+            onClick={() => onTab(id)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'apps' ? (
+        <article className="place-detail-block" data-testid="place-apps">
+          <div className="apps-shelf" data-testid="place-apps-shelf">
+            {apps.map(app => {
+              const openHref = shopAppOpenHref(app, openHandshake);
               return (
-                <button
-                  key={app.id}
-                  type="button"
-                  className={already ? 'wizard-app is-held' : (selected ? 'wizard-app is-on' : 'wizard-app')}
-                  data-testid={`add-app-${app.id}`}
-                  disabled={already}
-                  aria-pressed={already || selected}
-                  aria-disabled={already}
-                  onClick={() => {
-                    if (already) return;
-                    setPicking(prev => (
-                      prev.includes(app.id)
-                        ? prev.filter(id => id !== app.id)
-                        : [...prev, app.id]
-                    ));
-                  }}
-                >
-                  <span>{app.title}</span>
-                  {already ? (
-                    <span className="caption" data-testid={`already-on-place-${app.id}`}>
-                      {ALREADY_ON_PLACE_LABEL}
-                    </span>
-                  ) : (
-                    app.live
-                      ? <span className="live">{LIVE_STATUS_LABEL}</span>
-                      : <span className="coming-flag">{COMING_KICKER}</span>
-                  )}
-                </button>
+                <div className="place-app-slot" key={app.id} data-testid={`place-app-${app.id}`}>
+                  <AppShelfTile
+                    app={app}
+                    testId={`open-place-app-${app.id}`}
+                    href={openHref}
+                    onClick={openHref
+                      ? event => interceptHouseRedeemClick(app, event, onOpenApp)
+                      : () => onOpenApp(app)}
+                  />
+                </div>
               );
             })}
           </div>
-          <button
-            type="button"
-            className="btn btn-primary"
-            data-testid="confirm-add-apps"
-            disabled={!picking.length || !onAddApps}
-            onClick={() => {
-              if (!picking.length) return;
-              onAddApps?.(picking);
-              setPicking([]);
-            }}
-          >
-            {ADD_APPS_LABEL}
-          </button>
-        </div>
-      </article>
-
-      <article className="card place-detail-block" data-testid="place-seed">
-        <div className="section-head">
-          <span className="kicker">{SEED_KICKER}</span>
-          <span className="rule" />
-        </div>
-        <div className="seed-mode-choice" data-testid="place-seed-mode">
-          <button
-            type="button"
-            className={mode === 'hosted' ? 'seed-mode is-on' : 'seed-mode'}
-            data-testid="seed-mode-hosted"
-            aria-pressed={mode === 'hosted'}
-            onClick={() => chooseMode('hosted')}
-          >
-            {SEEDNODE_MODE_HOSTED}
-          </button>
-          <button
-            type="button"
-            className={mode === 'on-prem' ? 'seed-mode is-on' : 'seed-mode'}
-            data-testid="seed-mode-on-prem"
-            aria-pressed={mode === 'on-prem'}
-            onClick={() => chooseMode('on-prem')}
-          >
-            {SEEDNODE_MODE_ON_PREM}
-          </button>
-        </div>
-        <p className="caption" data-testid="place-seed-host">{host || HOSTED_SEED_DOOR_LABEL}</p>
-        <p className="caption" data-testid="place-seed-status">
-          {seedCheck === 'connected'
-            ? SEEDNODE_STATUS_CONNECTED
-            : seedCheck === 'not-connected'
-              ? SEED_STATUS_NOT_CONNECTED
-              : SEED_STATUS_UNCHECKED}
-        </p>
-        <div className="place-detail-cta">
-          <button
-            type="button"
-            className="btn btn-outline"
-            data-testid="check-seed"
-            disabled={checkingSeed}
-            onClick={() => { void onCheckSeed(); }}
-          >
-            {CHECK_SEED_LABEL}
-          </button>
-        </div>
-        {mode === 'on-prem' ? (
-          <div className="place-seed-on-prem" data-testid="seed-on-prem-next">
-            <p className="caption">{ON_PREM_SEED_NEXT}</p>
-            <a
-              className="btn btn-primary"
-              href={SEED_SETUP_ZIP_HREF}
-              data-testid="download-seed-setup"
-            >
-              {DOWNLOAD_SEED_SETUP_LABEL}
-            </a>
+          <div className="place-add-apps">
+            {adding ? (
+              <div data-testid="place-add-apps">
+                <div className="wizard-apps">
+                  {missingApps.map(app => {
+                    const selected = picking.includes(app.id);
+                    return (
+                      <button
+                        key={app.id}
+                        type="button"
+                        className={selected ? 'wizard-app is-on' : 'wizard-app'}
+                        data-testid={`add-app-${app.id}`}
+                        aria-pressed={selected}
+                        onClick={() => {
+                          setPicking(prev => (
+                            prev.includes(app.id)
+                              ? prev.filter(id => id !== app.id)
+                              : [...prev, app.id]
+                          ));
+                        }}
+                      >
+                        <span>{app.title}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  data-testid="confirm-add-apps"
+                  disabled={!picking.length || !onAddApps}
+                  onClick={() => {
+                    if (!picking.length) return;
+                    onAddApps?.(picking);
+                    setPicking([]);
+                    setAdding(false);
+                  }}
+                >
+                  {ADD_APPS_LABEL}
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="btn btn-outline"
+                data-testid="show-add-apps"
+                onClick={() => setAdding(true)}
+              >
+                {ADD_APPS_LABEL}
+              </button>
+            )}
           </div>
-        ) : null}
-      </article>
+        </article>
+      ) : null}
 
-      <article className="card place-detail-block" data-testid="place-subscription">
-        <div className="section-head">
-          <span className="kicker">{SUBSCRIPTION_KICKER}</span>
-          <span className="rule" />
-        </div>
-        {status ? (
-          <p data-testid="place-sub-status">{kitchenStatus(status)}</p>
-        ) : null}
-        {remaining ? (
-          <p className="caption" data-testid="place-sub-remaining">{remaining}</p>
-        ) : null}
-        {trialEnds ? (
-          <p className="caption" data-testid="place-sub-trial-ends">{trialEnds}</p>
-        ) : null}
-        <ul className="place-sub-meters" data-testid="place-sub-meters">
-          {lines.map(line => {
-            const copy = kitchenMeterLine(line.code, line.zarExVat);
-            return copy ? (
-              <li key={line.code} data-meter={line.code} data-zar={line.zarExVat}>{copy}</li>
-            ) : null;
-          })}
-        </ul>
-        <div className="place-plan-choice" data-testid="place-plan-choice" role="group" aria-label={SUBSCRIPTION_KICKER}>
-          {([
-            ['place', PLAN_PLACE_LABEL],
-            ['hosted-seed', PLAN_HOSTED_SEED_LABEL],
-            ['both', PLAN_BOTH_LABEL]
-          ] as const).map(([bundle, label]) => (
+      {tab === 'subscription' ? (
+        <article className="card place-detail-block" data-testid="place-subscription">
+          {tileStatus ? (
+            <p data-testid="place-sub-status">{tileStatus}</p>
+          ) : null}
+          {dateLine && dateLine !== tileStatus ? (
+            <p className="caption" data-testid="place-sub-date">{dateLine}</p>
+          ) : null}
+          <div className="place-plan-choice" data-testid="place-plan-choice" role="group" aria-label={PLACE_SUBSCRIPTION_TAB}>
+            {(['place', 'hosted-seed', 'both'] as const).map(bundle => (
+              <button
+                key={bundle}
+                type="button"
+                className={plan.bundle === bundle ? 'place-plan is-on' : 'place-plan'}
+                data-testid={`plan-${bundle}`}
+                aria-pressed={plan.bundle === bundle}
+                onClick={() => choosePlan({ bundle })}
+              >
+                {planChoiceLabel(bundle)}
+              </button>
+            ))}
+          </div>
+          <div className="place-plan-choice place-cadence-choice" data-testid="place-cadence-choice">
+            {([
+              ['monthly', PLAN_MONTHLY_LABEL],
+              ['annual', PLAN_ANNUAL_LABEL]
+            ] as const).map(([cadence, label]) => (
+              <button
+                key={cadence}
+                type="button"
+                className={plan.cadence === cadence ? 'place-plan is-on' : 'place-plan'}
+                data-testid={`cadence-${cadence}`}
+                aria-pressed={plan.cadence === cadence}
+                onClick={() => choosePlan({ cadence })}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          {plan.cadence === 'annual' ? (
+            <>
+              <p data-testid="place-sub-annual-off">{ANNUAL_OFF_LINE}</p>
+              <p className="place-sub-quote" data-testid="place-sub-quote">{annualFigureLine(plan.bundle)}</p>
+            </>
+          ) : null}
+          {status === 'trial' ? (
+            <p data-testid="place-sub-trial">{PLACE_TRIAL_LINE}</p>
+          ) : null}
+          <div className="place-detail-cta">
             <button
-              key={bundle}
               type="button"
-              className={plan.bundle === bundle ? 'place-plan is-on' : 'place-plan'}
-              data-testid={`plan-${bundle}`}
-              aria-pressed={plan.bundle === bundle}
-              onClick={() => choosePlan({ bundle })}
+              className="btn btn-primary place-pay"
+              data-testid="pay-with-paystack"
+              aria-busy={paying}
+              disabled={paying}
+              onClick={payWithPaystack}
             >
-              {label}
+              {PAY_WITH_PAYSTACK_LABEL}
             </button>
-          ))}
-        </div>
-        <div className="place-plan-choice" data-testid="place-cadence-choice">
-          {([
-            ['monthly', PLAN_MONTHLY_LABEL],
-            ['annual', PLAN_ANNUAL_LABEL]
-          ] as const).map(([cadence, label]) => (
-            <button
-              key={cadence}
-              type="button"
-              className={plan.cadence === cadence ? 'place-plan is-on' : 'place-plan'}
-              data-testid={`cadence-${cadence}`}
-              aria-pressed={plan.cadence === cadence}
-              onClick={() => choosePlan({ cadence })}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-        <p className="place-sub-quote" data-testid="place-sub-quote">{quote.line}</p>
-        {status === 'trial' ? (
-          <p className="caption" data-testid="place-sub-then">{trialThenPlanCopy(quote.line)}</p>
-        ) : null}
-        {paymentDue ? (
-          <p data-testid="place-payment-due">{PAYMENT_DUE_LABEL}</p>
-        ) : null}
-        <div className="place-detail-cta">
-          <button
-            type="button"
-            className="btn btn-primary place-pay"
-            data-testid="pay-with-paystack"
-            aria-busy={paying}
-            disabled={paying}
-            onClick={payWithPaystack}
-          >
-            {PAY_WITH_PAYSTACK_LABEL}
-          </button>
-        </div>
-        <p className="caption place-pay-note" data-testid="paystack-channels">{PAYSTACK_CHANNELS_LABEL}</p>
-        {payNote ? (
-          <p className="caption place-pay-note" data-testid="paystack-note">{payNote}</p>
-        ) : null}
-      </article>
+          </div>
+          <p className="caption place-pay-note" data-testid="paystack-channels">{PAYSTACK_CHANNELS_LABEL}</p>
+          {payNote ? (
+            <p className="caption place-pay-note" data-testid="paystack-note">{payNote}</p>
+          ) : null}
+          {seedConfig ? (
+            <div className="place-seed-sheet" data-testid="place-seed">
+              <p className="caption">{SEED_KICKER}</p>
+              <div className="seed-mode-choice" data-testid="place-seed-mode">
+                <button
+                  type="button"
+                  className={mode === 'hosted' ? 'seed-mode is-on' : 'seed-mode'}
+                  data-testid="seed-mode-hosted"
+                  aria-pressed={mode === 'hosted'}
+                  onClick={() => chooseMode('hosted')}
+                >
+                  {SEEDNODE_MODE_HOSTED}
+                </button>
+                <button
+                  type="button"
+                  className={mode === 'on-prem' ? 'seed-mode is-on' : 'seed-mode'}
+                  data-testid="seed-mode-on-prem"
+                  aria-pressed={mode === 'on-prem'}
+                  onClick={() => chooseMode('on-prem')}
+                >
+                  {SEEDNODE_MODE_ON_PREM}
+                </button>
+              </div>
+              <p className="caption" data-testid="place-seed-host">
+                {mode === 'on-prem' ? SEEDNODE_MODE_ON_PREM : SEEDNODE_MODE_HOSTED}
+              </p>
+              <p className="caption" data-testid="place-seed-status">
+                {seedCheck === 'connected'
+                  ? SEEDNODE_STATUS_CONNECTED
+                  : seedCheck === 'not-connected'
+                    ? SEED_STATUS_NOT_CONNECTED
+                    : SEED_STATUS_UNCHECKED}
+              </p>
+              <div className="place-detail-cta">
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  data-testid="check-seed"
+                  disabled={checkingSeed}
+                  onClick={() => { void onCheckSeed(); }}
+                >
+                  {CHECK_SEED_LABEL}
+                </button>
+              </div>
+              {mode === 'on-prem' ? (
+                <div className="place-seed-on-prem" data-testid="seed-on-prem-next">
+                  <p className="caption">{ON_PREM_SEED_NEXT}</p>
+                  <a
+                    className="btn btn-primary"
+                    href={SEED_SETUP_ZIP_HREF}
+                    data-testid="download-seed-setup"
+                  >
+                    {DOWNLOAD_SEED_SETUP_LABEL}
+                  </a>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+        </article>
+      ) : null}
+
+      {tab === 'location' ? (
+        <article className="card place-detail-block" data-testid="place-location">
+          {locEditing ? (
+            <div className="place-location-edit" data-testid="place-location-edit">
+              <label>
+                City.
+                <input
+                  data-testid="place-location-city"
+                  value={city}
+                  onChange={event => setCity(event.target.value)}
+                />
+              </label>
+              <label>
+                Province.
+                <input
+                  data-testid="place-location-region"
+                  value={region}
+                  onChange={event => setRegion(event.target.value)}
+                />
+              </label>
+              <label>
+                Country.
+                <input
+                  data-testid="place-location-country"
+                  value={country}
+                  onChange={event => setCountry(event.target.value)}
+                />
+              </label>
+              <div className="place-card-actions">
+                <button type="button" className="btn btn-primary" data-testid="save-place-location" onClick={saveLocation}>
+                  {SAVE_LABEL}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  data-testid="cancel-place-location"
+                  onClick={() => {
+                    setCity(place.city || '');
+                    setRegion(place.region || '');
+                    setCountry(place.country || '');
+                    setLocEditing(false);
+                  }}
+                >
+                  {CANCEL_LABEL}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="place-card-name">
+              <p data-testid="place-location-line">{locationLine}</p>
+              <button
+                type="button"
+                className="place-text-action"
+                data-testid="edit-place-location"
+                onClick={() => setLocEditing(true)}
+              >
+                {EDIT_LABEL}
+              </button>
+            </div>
+          )}
+        </article>
+      ) : null}
     </section>
   );
 }

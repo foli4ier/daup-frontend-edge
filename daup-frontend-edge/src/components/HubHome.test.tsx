@@ -23,7 +23,6 @@ import { bindCompanyId } from '../hub/companyNode';
 import { PLACE_TRIAL_STARTED, TRIAL_MS, loadPlaceEntitlement, loadTrialEvent, saveNodeEntitlement } from '../hub/entitlements';
 import {
   ADD_APPS_LABEL,
-  ALREADY_ON_PLACE_LABEL,
   ASK_FOR_ENHANCEMENT_LABEL,
   APPS_SHELF_LINE,
   APPS_SHELF_TITLE,
@@ -34,13 +33,11 @@ import {
   NAV_OTHER_PLACES_LABEL,
   NAV_PLACES_LABEL,
   OPEN_LABEL,
-  PLACE_SUB_LINE,
   PLUS_REGISTER_LABEL,
   REGISTER_A_NEW_HOUSE_LABEL,
   RESERVE_A_TABLE_LABEL,
   SAME_CHAIN_CAPTION,
   SEE_THE_MENU_LABEL,
-  SEED_HOSTED_LINE,
   SOON_LABEL,
   YOUR_PLACES_EMPTY,
   YOUR_PLACES_KICKER,
@@ -440,7 +437,10 @@ describe('hub home after email', () => {
     expect(name?.textContent).toContain('The Olive');
     expect(name?.textContent).not.toContain('Eatery');
     expect(container.querySelector('[data-testid="eatery-place-city"]')?.textContent).toBe('Stellenbosch');
-    expect(container.querySelector('[data-testid="eatery-place-status"]')?.textContent).toBe('LIVE');
+    expect(container.querySelector('[data-testid="eatery-place-status"]')?.textContent).toBe('Payment due.');
+    expect(container.querySelector('[data-testid="eatery-place-row"]')?.textContent).not.toContain('LIVE');
+    expect(container.querySelector('[data-testid="eatery-place-row"]')?.textContent).not.toMatch(/R\d/);
+    expect(container.querySelector('[data-testid="open-place-subscription"]')?.textContent).toBe('Subscription.');
     expect(open?.textContent).toBe(OPEN_LABEL);
     expect(open?.className).toContain('btn-primary');
     expect(open?.tagName).toBe('BUTTON');
@@ -452,13 +452,16 @@ describe('hub home after email', () => {
     });
     expect(container.querySelector('[data-testid="place-detail"]')).toBeTruthy();
     expect(container.querySelector('[data-testid="place-detail-name"]')?.textContent).toContain('The Olive');
-    const detailOrder = Array.from(container.querySelectorAll(
-      '[data-testid="place-apps"], [data-testid="place-seed"], [data-testid="place-subscription"]'
-    )).map(el => el.getAttribute('data-testid'));
-    expect(detailOrder).toEqual(['place-apps', 'place-seed', 'place-subscription']);
-    expect(container.querySelector('[data-testid="place-seed"]')).toBeTruthy();
-    expect(container.querySelector('[data-testid="place-subscription"]')).toBeTruthy();
+    expect(Array.from(container.querySelectorAll('[role="tab"]')).map(tab => tab.textContent)).toEqual([
+      'Apps',
+      'Subscription',
+      'Location'
+    ]);
+    expect(container.querySelector('[data-testid="place-tab-apps"]')?.getAttribute('aria-selected')).toBe('true');
     expect(container.querySelector('[data-testid="place-apps"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="place-seed"]')).toBeNull();
+    expect(container.querySelector('[data-testid="place-subscription"]')).toBeNull();
+    expect(container.querySelector('[data-testid="place-location"]')).toBeNull();
     const eateryOpen = container.querySelector('[data-testid="open-place-app-eatery"]') as HTMLAnchorElement | null;
     const href = eateryOpen?.getAttribute('href') || '';
     const hints = new URL(href, 'https://eatery.daup.co.za');
@@ -2064,10 +2067,13 @@ describe('P0/P1 place list and control plane', () => {
     expect(loadIdentityVault().companyNode?.companyId).toBe(firstId);
 
     expect(container.querySelector('[data-testid="eatery-place-name"]')?.textContent).toContain('The Olive');
-    expect(container.querySelector('[data-testid="eatery-place-trial"]')?.textContent)
-      .toContain('No charge for 30 days.');
-    expect(container.querySelector('[data-testid="eatery-place-remaining"]')?.textContent)
+    expect(container.querySelector('[data-testid="eatery-place-status"]')?.textContent)
       .toBe('30 days left on trial.');
+    expect(container.querySelector('[data-testid="eatery-place-row"]')?.textContent)
+      .not.toContain('No charge for 30 days.');
+    expect(container.querySelector('[data-testid="eatery-place-row"]')?.textContent).not.toMatch(/R\d/);
+    expect(container.querySelector('[data-testid="register-another-place"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="eatery-place-row"] [data-testid="register-another-place"]')).toBeNull();
     act(() => {
       (container.querySelector('[data-testid="register-another-place"]') as HTMLButtonElement).click();
     });
@@ -2098,35 +2104,43 @@ describe('P0/P1 place list and control plane', () => {
     const saltRow = Array.from(container.querySelectorAll('[data-place-name]'))
       .find(row => row.getAttribute('data-place-name') === 'Salt');
     act(() => {
-      (saltRow?.querySelector('button') as HTMLButtonElement | null)?.click();
+      (saltRow?.querySelector('[data-testid="open-place"], [data-testid="open-the-house"]') as HTMLButtonElement | null)?.click();
     });
     expect(container.querySelector('[data-testid="place-detail"]')).toBeTruthy();
     expect(container.querySelector('[data-testid="place-detail-name"]')?.textContent).toContain('Salt');
+    expect(container.querySelector('[data-testid="place-tab-apps"]')?.getAttribute('aria-selected')).toBe('true');
+    expect(container.querySelector('[data-testid="place-seed"]')).toBeNull();
+    expect(container.querySelector('[data-testid="place-subscription"]')).toBeNull();
+    expect(container.querySelector('[data-testid="open-place-app-project"]')?.className).toContain('shelf-tile');
+    expect(container.querySelector('[data-testid="place-apps-shelf"]')?.className).toContain('apps-shelf');
+    expect(container.querySelector('[data-testid="place-app-project"]')?.textContent).toContain('Project');
+    expect(container.querySelector('[data-testid="place-app-project"]')?.textContent).not.toContain('LIVE');
+    expect(container.querySelector('[data-testid="place-app-eatery"]')).toBeNull();
+    expect(container.querySelector('[data-testid="on-the-chain"]')).toBeNull();
+
+    act(() => {
+      (container.querySelector('[data-testid="place-tab-subscription"]') as HTMLButtonElement).click();
+    });
+    expect(container.querySelector('[data-testid="place-tab-subscription"]')?.getAttribute('aria-selected')).toBe('true');
+    expect(container.querySelector('[data-testid="place-apps"]')).toBeNull();
     expect(container.querySelector('[data-testid="place-seed"]')?.textContent).toContain('Seed.');
     expect(container.querySelector('[data-testid="seed-mode-hosted"]')?.textContent).toBe('Hosted.');
     expect(container.querySelector('[data-testid="seed-mode-hosted"]')?.getAttribute('aria-pressed')).toBe('true');
     expect(container.querySelector('[data-testid="seed-mode-on-prem"]')?.textContent).toBe('On this premises.');
-    expect(container.querySelector('[data-testid="place-seed-host"]')?.textContent).toBe('daup.co.za');
+    expect(container.querySelector('[data-testid="place-seed-host"]')?.textContent).toBe('Hosted.');
     expect(container.querySelector('[data-testid="place-seed-status"]')?.textContent).toBe('Status not checked yet.');
     expect(container.querySelector('[data-testid="check-seed"]')?.textContent).toBe('Check seed.');
     expect(container.querySelector('[data-testid="manage-seed"]')).toBeNull();
     expect(container.querySelector('[data-testid="place-detail"]')?.textContent).not.toMatch(/seednode/i);
     expect(container.querySelector('[data-testid="place-detail"]')?.textContent).not.toMatch(/\bnode\b/i);
-    expect(container.querySelector('[data-testid="place-sub-status"]')?.textContent).toBe('Trial.');
-    expect(container.querySelector('[data-testid="place-sub-remaining"]')?.textContent)
+    expect(container.querySelector('[data-testid="place-sub-status"]')?.textContent)
       .toBe('30 days left on trial.');
-    expect(container.querySelector('[data-testid="open-place-app-project"]')?.className).toContain('shelf-tile');
-    expect(container.querySelector('[data-testid="place-apps-shelf"]')?.className).toContain('apps-shelf');
-    expect(container.querySelector('[data-testid="place-sub-meters"]')?.textContent).toContain('No charge for 30 days.');
-    expect(container.querySelector('[data-testid="place-sub-meters"]')?.textContent).toContain('R199 a month for this place.');
-    expect(container.querySelector('[data-testid="place-sub-meters"]')?.textContent).toContain('R299 hosted seed.');
-    const saltOrder = Array.from(container.querySelectorAll(
-      '[data-testid="place-apps"], [data-testid="place-seed"], [data-testid="place-subscription"]'
-    )).map(el => el.getAttribute('data-testid'));
-    expect(saltOrder).toEqual(['place-apps', 'place-seed', 'place-subscription']);
-    expect(container.querySelector('[data-testid="place-app-project"]')?.textContent).toContain('Project');
-    expect(container.querySelector('[data-testid="place-app-eatery"]')).toBeNull();
-    expect(container.querySelector('[data-testid="on-the-chain"]')).toBeNull();
+    expect(container.querySelector('[data-testid="place-sub-date"]')?.textContent).toMatch(/^Ends /);
+    expect(container.querySelector('[data-testid="place-sub-trial"]')?.textContent).toBe('No charge for 30 days.');
+    expect(container.querySelector('[data-testid="plan-place"]')?.textContent).toBe('This place. R199 a month.');
+    expect(container.querySelector('[data-testid="plan-hosted-seed"]')?.textContent).toBe('Hosted seed. R299 a month.');
+    expect(container.querySelector('[data-testid="plan-both"]')?.textContent).toBe('Both. R498 a month.');
+    expect(container.querySelector('[data-testid="place-sub-meters"]')).toBeNull();
     expect(container.textContent).not.toMatch(/\b(peer|DID|DHT|wallet|MCP|npm|hydrate|neon)\b/i);
     expect(container.textContent).not.toContain('co_');
 
@@ -2135,11 +2149,11 @@ describe('P0/P1 place list and control plane', () => {
     });
     expect(container.querySelector('[data-testid="seed-mode-on-prem"]')?.getAttribute('aria-pressed')).toBe('true');
     expect(container.querySelector('[data-testid="seed-mode-hosted"]')?.getAttribute('aria-pressed')).toBe('false');
-    expect(container.querySelector('[data-testid="place-seed-host"]')?.textContent).toBe('This premises.');
+    expect(container.querySelector('[data-testid="place-seed-host"]')?.textContent).toBe('On this premises.');
     expect(container.querySelector('[data-testid="place-seed-status"]')?.textContent).toBe('Status not checked yet.');
-    expect(container.querySelector('[data-testid="place-sub-meters"]')?.textContent).toContain('R199 a month for this place.');
-    expect(container.querySelector('[data-testid="place-sub-meters"]')?.textContent).toContain('R0 hosted seed.');
-    expect(container.querySelector('[data-testid="place-sub-meters"]')?.textContent).not.toContain('R299 hosted seed.');
+    expect(container.querySelector('[data-testid="plan-place"]')?.textContent).toBe('This place. R199 a month.');
+    expect(container.querySelector('[data-testid="plan-hosted-seed"]')?.textContent).toBe('Hosted seed. R299 a month.');
+    expect(container.querySelector('[data-testid="place-subscription"]')?.textContent).not.toContain('R0');
     const download = container.querySelector('[data-testid="download-seed-setup"]') as HTMLAnchorElement | null;
     expect(download?.textContent).toBe('Download seed setup.');
     expect(download?.getAttribute('href')).toBe(
@@ -2163,8 +2177,8 @@ describe('P0/P1 place list and control plane', () => {
       (container.querySelector('[data-testid="seed-mode-hosted"]') as HTMLButtonElement).click();
     });
     expect(container.querySelector('[data-testid="seed-mode-hosted"]')?.getAttribute('aria-pressed')).toBe('true');
-    expect(container.querySelector('[data-testid="place-seed-host"]')?.textContent).toBe('daup.co.za');
-    expect(container.querySelector('[data-testid="place-sub-meters"]')?.textContent).toContain('R299 hosted seed.');
+    expect(container.querySelector('[data-testid="place-seed-host"]')?.textContent).toBe('Hosted.');
+    expect(container.querySelector('[data-testid="plan-hosted-seed"]')?.textContent).toBe('Hosted seed. R299 a month.');
     expect(container.querySelector('[data-testid="download-seed-setup"]')).toBeNull();
 
     act(() => {
@@ -2224,19 +2238,82 @@ describe('My places subscription display and Add apps.', () => {
     });
   });
 
-  it('shows the chosen sub and time remaining on the My places card', async () => {
+  it('shows days left on the My places card and keeps the price off it', async () => {
     const { container, unmount } = render(<App />);
     await act(async () => {
       await new Promise(resolve => setTimeout(resolve, 80));
     });
 
-    const choice = container.querySelector('[data-testid="eatery-place-choice"]');
-    expect(choice?.textContent).toContain(PLACE_SUB_LINE);
-    expect(choice?.textContent).toContain(SEED_HOSTED_LINE);
-    expect(choice?.textContent).toContain('R498 a month.');
-    expect(container.querySelector('[data-testid="eatery-place-remaining"]')?.textContent)
+    const card = container.querySelector('[data-testid="eatery-place-row"]');
+    expect(card?.textContent).not.toMatch(/R\d/);
+    expect(card?.textContent).not.toContain('No charge for 30 days.');
+    expect(card?.textContent).not.toContain('LIVE');
+    expect(card?.textContent).not.toContain('Paystack');
+    expect(container.querySelector('[data-testid="eatery-place-status"]')?.textContent)
       .toMatch(/\d+ days left on trial\./);
+    expect(container.querySelector('[data-testid="eatery-place-city"]')?.textContent).toBe('Stellenbosch');
     expect(container.textContent).not.toMatch(/\b(peer|DID|DHT|wallet|MCP|npm|hydrate|neon|node|co_)\b/i);
+    unmount();
+  });
+
+  it('renames the place on the tile', async () => {
+    const { container, unmount } = render(<App />);
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 80));
+    });
+
+    act(() => {
+      (container.querySelector('[data-testid="edit-place-name"]') as HTMLButtonElement).click();
+    });
+    const input = container.querySelector('[data-testid="edit-place-name-input"]') as HTMLInputElement;
+    expect(input.value).toBe('The Olive');
+    typeInto(input, 'The Grove');
+    act(() => {
+      (container.querySelector('[data-testid="cancel-place-name"]') as HTMLButtonElement).click();
+    });
+    expect(container.querySelector('[data-testid="eatery-place-name"]')?.textContent).toContain('The Olive');
+
+    act(() => {
+      (container.querySelector('[data-testid="edit-place-name"]') as HTMLButtonElement).click();
+    });
+    typeInto(container.querySelector('[data-testid="edit-place-name-input"]') as HTMLInputElement, 'The Grove');
+    act(() => {
+      (container.querySelector('[data-testid="save-place-name"]') as HTMLButtonElement).click();
+    });
+    expect(container.querySelector('[data-testid="eatery-place-name"]')?.textContent).toContain('The Grove');
+    expect(listRegisteredPlaces().some(place => place.placeName === 'The Grove')).toBe(true);
+    expect(container.querySelector('[data-testid="place-detail"]')).toBeNull();
+    unmount();
+  });
+
+  it('edits the place location on the Location tab', async () => {
+    const { container, unmount } = render(<App />);
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 80));
+    });
+
+    act(() => {
+      (container.querySelector('[data-testid="open-the-house"]') as HTMLButtonElement).click();
+    });
+    act(() => {
+      (container.querySelector('[data-testid="place-tab-location"]') as HTMLButtonElement).click();
+    });
+    expect(container.querySelector('[data-testid="place-location-line"]')?.textContent).toContain('Stellenbosch');
+    expect(container.querySelector('[data-testid="place-location"] input')).toBeNull();
+    expect(container.querySelector('[data-testid="place-location"]')?.textContent).not.toMatch(/R\d/);
+    expect(container.querySelector('[data-testid="pay-with-paystack"]')).toBeNull();
+    act(() => {
+      (container.querySelector('[data-testid="edit-place-location"]') as HTMLButtonElement).click();
+    });
+    typeInto(container.querySelector('[data-testid="place-location-city"]') as HTMLInputElement, 'Franschhoek');
+    act(() => {
+      (container.querySelector('[data-testid="save-place-location"]') as HTMLButtonElement).click();
+    });
+    expect(container.querySelector('[data-testid="place-location-line"]')?.textContent).toContain('Franschhoek');
+    act(() => {
+      (container.querySelector('[data-testid="back-to-places"]') as HTMLButtonElement).click();
+    });
+    expect(container.querySelector('[data-testid="eatery-place-city"]')?.textContent).toBe('Franschhoek');
     unmount();
   });
 
@@ -2249,27 +2326,28 @@ describe('My places subscription display and Add apps.', () => {
     act(() => {
       (container.querySelector('[data-testid="open-the-house"]') as HTMLButtonElement).click();
     });
+    expect(container.querySelector('[data-testid="place-tab-apps"]')?.getAttribute('aria-selected')).toBe('true');
+    expect(container.querySelector('[data-testid="show-add-apps"]')?.textContent).toBe(ADD_APPS_LABEL);
+    expect(container.querySelector('[data-testid="place-add-apps"]')).toBeNull();
+    expect(container.querySelector('[data-testid="place-seed"]')).toBeNull();
+    expect(container.querySelector('[data-testid="place-app-project"]')).toBeNull();
+    act(() => {
+      (container.querySelector('[data-testid="show-add-apps"]') as HTMLButtonElement).click();
+    });
     expect(container.querySelector('[data-testid="place-add-apps"]')?.textContent).toContain(ADD_APPS_LABEL);
     expect(container.querySelector('[data-testid="add-app-chat"]')?.textContent).toContain('Chat');
-    expect(container.querySelector('[data-testid="add-app-chat"]')?.textContent).toContain('LIVE');
+    expect(container.querySelector('[data-testid="add-app-chat"]')?.textContent).not.toContain('LIVE');
     expect((container.querySelector('[data-testid="add-app-chat"]') as HTMLButtonElement).disabled).toBe(false);
     expect(container.querySelector('[data-testid="add-app-vault"]')?.textContent).toContain('Vault');
-    expect(container.querySelector('[data-testid="add-app-vault"]')?.textContent).toContain('LIVE');
-    expect((container.querySelector('[data-testid="add-app-vault"]') as HTMLButtonElement).disabled).toBe(false);
+    expect(container.querySelector('[data-testid="add-app-vault"]')?.textContent).not.toContain('LIVE');
     expect(container.querySelector('[data-testid="add-app-property"]')?.textContent).toContain('Property');
-    expect(container.querySelector('[data-testid="add-app-property"]')?.textContent).toContain('LIVE');
+    expect(container.querySelector('[data-testid="add-app-property"]')?.textContent).not.toContain('LIVE');
     expect(container.querySelector('[data-testid="add-app-property"]')?.textContent).not.toMatch(/rental/i);
-    expect((container.querySelector('[data-testid="add-app-property"]') as HTMLButtonElement).disabled).toBe(false);
     expect(container.querySelector('[data-testid="add-app-eatout"]')).toBeNull();
-    expect(container.querySelector('[data-testid="already-on-place-eatery"]')?.textContent)
-      .toBe(ALREADY_ON_PLACE_LABEL);
-    expect((container.querySelector('[data-testid="add-app-eatery"]') as HTMLButtonElement).disabled).toBe(true);
-    expect(container.querySelector('[data-testid="place-app-project"]')).toBeNull();
-    expect(container.querySelector('[data-testid="place-sub-remaining"]')?.textContent)
-      .toMatch(/\d+ days left on trial\./);
+    expect(container.querySelector('[data-testid="add-app-eatery"]')).toBeNull();
+    expect(container.querySelector('[data-testid="already-on-place-eatery"]')).toBeNull();
 
     act(() => {
-      (container.querySelector('[data-testid="add-app-eatery"]') as HTMLButtonElement).click();
       (container.querySelector('[data-testid="add-app-project"]') as HTMLButtonElement).click();
     });
     act(() => {
@@ -2278,24 +2356,23 @@ describe('My places subscription display and Add apps.', () => {
 
     expect(container.querySelector('[data-testid="place-app-eatery"]')?.textContent).toContain('Eatery');
     expect(container.querySelector('[data-testid="place-app-project"]')?.textContent).toContain('Project');
-    expect(container.querySelector('[data-testid="already-on-place-project"]')?.textContent)
-      .toBe(ALREADY_ON_PLACE_LABEL);
-    expect((container.querySelector('[data-testid="add-app-project"]') as HTMLButtonElement).disabled).toBe(true);
+    expect(container.querySelector('[data-testid="add-app-project"]')).toBeNull();
     expect(loadPlaceEntitlement('co_olive')?.enabled_apps).toEqual(['eatery', 'project']);
     expect(listRegisteredPlaces().find(place => place.companyId === 'co_olive')?.enabledApps)
       .toEqual(['eatery', 'project']);
     expect(loadIdentityVault().companyNode?.enabledApps).toEqual(['eatery', 'project']);
 
     act(() => {
-      (container.querySelector('[data-testid="add-app-project"]') as HTMLButtonElement).click();
+      (container.querySelector('[data-testid="show-add-apps"]') as HTMLButtonElement).click();
     });
+    expect(container.querySelector('[data-testid="add-app-project"]')).toBeNull();
     expect(loadPlaceEntitlement('co_olive')?.enabled_apps).toEqual(['eatery', 'project']);
     expect(container.querySelectorAll('[data-testid="place-app-project"]').length).toBe(1);
     expect(container.textContent).not.toMatch(/\b(peer|DID|DHT|wallet|MCP|npm|hydrate|neon|node|co_)\b/i);
     unmount();
   });
 
-  it('shows Renews in N days. after trial when payment is stubbed ok', async () => {
+  it('shows N days left. on the tile after trial when payment is stubbed ok', async () => {
     saveNodeEntitlement({
       companyId: 'co_olive',
       node_subscription_status: 'active',
@@ -2309,8 +2386,9 @@ describe('My places subscription display and Add apps.', () => {
     await act(async () => {
       await new Promise(resolve => setTimeout(resolve, 80));
     });
-    expect(container.querySelector('[data-testid="eatery-place-remaining"]')?.textContent)
-      .toMatch(/Renews in \d+ days\./);
+    expect(container.querySelector('[data-testid="eatery-place-status"]')?.textContent)
+      .toMatch(/^\d+ days left\.$/);
+    expect(container.querySelector('[data-testid="eatery-place-row"]')?.textContent).not.toMatch(/Renews in /);
     expect(TRIAL_MS).toBe(30 * day);
     unmount();
   });
@@ -2323,42 +2401,46 @@ describe('My places subscription display and Add apps.', () => {
     });
 
     act(() => {
-      (container.querySelector('[data-testid="open-the-house"]') as HTMLButtonElement).click();
+      (container.querySelector('[data-testid="open-place-subscription"]') as HTMLButtonElement).click();
     });
 
-    const eatery = container.querySelector('[data-testid="open-place-app-eatery"]');
-    expect(eatery?.className).toContain('shelf-tile');
-    expect(eatery?.textContent).toContain('Eatery');
-    expect(eatery?.textContent).not.toContain(OPEN_LABEL);
-    expect(eatery?.querySelector('svg')).toBeTruthy();
-    expect(container.querySelector('[data-testid="place-apps-shelf"]')?.className).toContain('apps-shelf');
-    expect(container.querySelector('[data-testid="place-sub-remaining"]')?.textContent)
+    expect(container.querySelector('[data-testid="place-tab-subscription"]')?.getAttribute('aria-selected')).toBe('true');
+    expect(container.querySelector('[data-testid="place-apps"]')).toBeNull();
+    expect(container.querySelector('[data-testid="place-sub-status"]')?.textContent)
       .toMatch(/\d+ days left on trial\./);
-    expect(container.querySelector('[data-testid="place-sub-quote"]')?.textContent).toBe('R498 a month.');
-    expect(container.querySelector('[data-testid="place-sub-then"]')?.textContent)
-      .toBe('The trial is 30 days. Then R498 a month.');
+    expect(container.querySelector('[data-testid="place-sub-date"]')?.textContent).toMatch(/^Ends /);
+    expect(container.querySelector('[data-testid="place-sub-quote"]')).toBeNull();
+    expect(container.querySelector('[data-testid="place-sub-then"]')).toBeNull();
+    expect(container.querySelector('[data-testid="place-sub-trial"]')?.textContent).toBe('No charge for 30 days.');
+    expect(container.querySelector('[data-testid="paystack-note"]')).toBeNull();
     expect(container.querySelector('[data-testid="paystack-channels"]')?.textContent)
       .toBe('Card, Ozow, or Capitec Pay.');
+    expect(container.querySelector('[data-testid="pay-with-paystack"]')?.textContent).toBe('Pay with Paystack.');
     expect(container.textContent).not.toContain('2606460754');
+    expect(container.textContent).not.toContain('Pay by EFT.');
 
     act(() => {
       (container.querySelector('[data-testid="plan-place"]') as HTMLButtonElement).click();
     });
-    expect(container.querySelector('[data-testid="place-sub-quote"]')?.textContent).toBe('R199 a month.');
+    expect(container.querySelector('[data-testid="plan-place"]')?.getAttribute('aria-pressed')).toBe('true');
+    expect(container.querySelector('[data-testid="place-sub-quote"]')).toBeNull();
 
     act(() => {
       (container.querySelector('[data-testid="plan-hosted-seed"]') as HTMLButtonElement).click();
     });
-    expect(container.querySelector('[data-testid="place-sub-quote"]')?.textContent).toBe('R299 a month.');
+    expect(container.querySelector('[data-testid="plan-hosted-seed"]')?.textContent).toBe('Hosted seed. R299 a month.');
+    expect(container.querySelector('[data-testid="place-sub-quote"]')).toBeNull();
 
     act(() => {
       (container.querySelector('[data-testid="plan-both"]') as HTMLButtonElement).click();
       (container.querySelector('[data-testid="cadence-annual"]') as HTMLButtonElement).click();
     });
+    expect(container.querySelector('[data-testid="place-sub-annual-off"]')?.textContent)
+      .toBe('10% off twelve months.');
     expect(container.querySelector('[data-testid="place-sub-quote"]')?.textContent)
-      .toBe('R5378.40 a year. 10% off R5976.');
-    expect(container.querySelector('[data-testid="place-sub-then"]')?.textContent)
-      .toContain('10% off R5976.');
+      .toBe('R5378.40 a year.');
+    expect(container.textContent).not.toContain('10% off R5976.');
+    expect(container.textContent).not.toContain('The trial is 30 days. Then');
 
     vi.mocked(fetch).mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
@@ -2407,9 +2489,10 @@ describe('My places subscription display and Add apps.', () => {
     await act(async () => {
       await new Promise(resolve => setTimeout(resolve, 80));
     });
-    expect(container.querySelector('[data-testid="eatery-place-remaining"]')?.textContent)
-      .toBe('This period has ended.');
-    expect(container.querySelector('[data-testid="eatery-place-due"]')?.textContent).toContain('Payment is due.');
+    expect(container.querySelector('[data-testid="eatery-place-status"]')?.textContent)
+      .toBe('Payment due.');
+    expect(container.querySelector('[data-testid="eatery-place-row"]')?.textContent).not.toContain('This period has ended.');
+    expect(container.querySelector('[data-testid="eatery-place-row"]')?.textContent).not.toContain('Payment is due.');
     expect(container.querySelector('[data-testid="eatery-place-eft"]')).toBeNull();
     expect(container.textContent).not.toContain('2606460754');
     expect(container.textContent).not.toContain('MR FRANS OLIVIER');
@@ -2417,9 +2500,11 @@ describe('My places subscription display and Add apps.', () => {
     expect(loadPlaceEntitlement('co_olive')?.payment_method_ok).toBe(false);
 
     act(() => {
-      (container.querySelector('[data-testid="open-the-house"]') as HTMLButtonElement).click();
+      (container.querySelector('[data-testid="open-place-subscription"]') as HTMLButtonElement).click();
     });
-    expect(container.querySelector('[data-testid="place-payment-due"]')?.textContent).toBe('Payment is due.');
+    expect(container.querySelector('[data-testid="place-sub-status"]')?.textContent).toBe('Payment due.');
+    expect(container.querySelector('[data-testid="place-sub-date"]')).toBeNull();
+    expect(container.querySelector('[data-testid="paystack-note"]')).toBeNull();
     expect(container.querySelector('[data-testid="pay-with-paystack"]')?.textContent).toBe('Pay with Paystack.');
     expect(container.querySelector('[data-testid="paystack-channels"]')?.textContent)
       .toBe('Card, Ozow, or Capitec Pay.');

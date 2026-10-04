@@ -73,6 +73,15 @@ export const PLACE_TRIAL_LINE = 'No charge for 30 days.';
 export const TRIAL_IS_30_DAYS = 'The trial is 30 days.';
 export const PERIOD_ENDED_LABEL = 'This period has ended.';
 export const PAYMENT_DUE_LABEL = 'Payment is due.';
+export const PAYMENT_DUE_TILE = 'Payment due.';
+export const EDIT_LABEL = 'Edit.';
+export const SAVE_LABEL = 'Save.';
+export const CANCEL_LABEL = 'Cancel.';
+export const SUBSCRIPTION_OPEN_LABEL = 'Subscription.';
+export const PLACE_SUBSCRIPTION_TAB = 'Subscription';
+export const PLACE_LOCATION_TAB = 'Location';
+export const ANNUAL_OFF_LINE = '10% off twelve months.';
+export const PLACE_NAME_IN_USE = 'That name is already in use.';
 export const PLAN_PLACE_LABEL = 'This place.';
 export const PLAN_HOSTED_SEED_LABEL = 'Hosted seed.';
 export const PLAN_BOTH_LABEL = 'Both.';
@@ -93,6 +102,16 @@ export function daysLeftOnTrialLabel(days: number): string {
 export function renewsInDaysLabel(days: number): string {
   const n = Math.max(0, Math.floor(days));
   return n === 1 ? 'Renews in 1 day.' : `Renews in ${n} days.`;
+}
+
+export function daysLeftLabel(days: number): string {
+  const n = Math.max(0, Math.floor(days));
+  return n === 1 ? '1 day left.' : `${n} days left.`;
+}
+
+export function nextPaymentLabel(day: string): string {
+  const date = (day || '').trim();
+  return date ? `Next payment ${date}.` : '';
 }
 export const APPS_SOCIAL_KICKER = 'Social.';
 export const APPS_PAID_KICKER = 'Paid.';
@@ -319,6 +338,15 @@ export const HUB_HOME_COPY = [
   TRIAL_IS_30_DAYS,
   PERIOD_ENDED_LABEL,
   PAYMENT_DUE_LABEL,
+  PAYMENT_DUE_TILE,
+  EDIT_LABEL,
+  SAVE_LABEL,
+  CANCEL_LABEL,
+  SUBSCRIPTION_OPEN_LABEL,
+  PLACE_SUBSCRIPTION_TAB,
+  PLACE_LOCATION_TAB,
+  ANNUAL_OFF_LINE,
+  PLACE_NAME_IN_USE,
   PLAN_PLACE_LABEL,
   PLAN_HOSTED_SEED_LABEL,
   PLAN_BOTH_LABEL,
@@ -332,6 +360,8 @@ export const HUB_HOME_COPY = [
   ALREADY_ON_PLACE_LABEL,
   daysLeftOnTrialLabel(12),
   renewsInDaysLabel(18),
+  daysLeftLabel(18),
+  nextPaymentLabel('3 Nov 2026'),
   APPS_SOCIAL_KICKER,
   APPS_PAID_KICKER,
   DOWNLOAD_SEED_SETUP_LABEL,

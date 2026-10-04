@@ -9,10 +9,17 @@
  */
 
 import {
+  ANNUAL_OFF_LINE,
+  daysLeftLabel,
   daysLeftOnTrialLabel,
   HOSTED_SEED_SUMMARY,
+  nextPaymentLabel,
+  PAYMENT_DUE_TILE,
   PERIOD_ENDED_LABEL,
   PLACE_SUB_LINE,
+  PLAN_BOTH_LABEL,
+  PLAN_HOSTED_SEED_LABEL,
+  PLAN_PLACE_LABEL,
   renewsInDaysLabel,
   SEED_HOSTED_LINE,
   SEED_HOSTED_ON_PREM_LINE,
@@ -30,6 +37,7 @@ import {
   stubCatalogLines
 } from './priceMeters';
 import type { SeednodeMode } from './seednode';
+import { formatDayFirstDate, formatTrialEndsOn } from './zaFormat';
 
 export const DAY_MS = 24 * 60 * 60 * 1000;
 export const ANNUAL_MONTHS = 12;
@@ -260,6 +268,54 @@ export function remainingPeriodCopy(
   if (status === 'active') return renewsInDaysLabel(days);
   return '';
 }
+
+/** One line on the My places tile. Trial, paid days left, or payment due. */
+export function placeTileStatus(
+  clock: PlaceSubClock | null | undefined,
+  now = Date.now(),
+  cadence: PlaceCadence = 'monthly'
+): string {
+  if (!clock) return '';
+  const status = resolvePlaceSubscriptionStatus(clock, now);
+  if (status === 'past_due' || status === 'suspended') return PAYMENT_DUE_TILE;
+  const end = stubRenewsAt(clock, now, cadence);
+  if (end == null) return '';
+  const days = remainingPeriodDays(end, now);
+  if (status === 'trial') return daysLeftOnTrialLabel(days);
+  if (status === 'active') return daysLeftLabel(days);
+  return '';
+}
+
+/** The date line on Subscription. Due repeats the tile status. */
+export function placeSubscriptionDate(
+  clock: PlaceSubClock | null | undefined,
+  now = Date.now(),
+  cadence: PlaceCadence = 'monthly'
+): string {
+  if (!clock) return '';
+  const status = resolvePlaceSubscriptionStatus(clock, now);
+  if (status === 'past_due' || status === 'suspended') return PAYMENT_DUE_TILE;
+  const end = stubRenewsAt(clock, now, cadence);
+  if (end == null) return '';
+  if (status === 'trial') return formatTrialEndsOn(end);
+  if (status === 'active') return nextPaymentLabel(formatDayFirstDate(end));
+  return '';
+}
+
+export function planChoiceLabel(bundle: PlaceBundle): string {
+  const name = bundle === 'place'
+    ? PLAN_PLACE_LABEL
+    : bundle === 'hosted-seed'
+      ? PLAN_HOSTED_SEED_LABEL
+      : PLAN_BOTH_LABEL;
+  return `${name} ${placePlanQuote(bundle, 'monthly').line}`;
+}
+
+export function annualFigureLine(bundle: PlaceBundle): string {
+  return `${formatZarFromCents(bundleAnnualCents(bundle))} a year.`;
+}
+
+export { ANNUAL_OFF_LINE };
 
 export function placeChoiceLines(seedMode: SeednodeMode = 'hosted'): string[] {
   const catalog = stubCatalogLines({ seedMode });
