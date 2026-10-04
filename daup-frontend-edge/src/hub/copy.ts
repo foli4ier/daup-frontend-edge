@@ -23,7 +23,7 @@ export const HUB_DOOR_BODY = 'For South African food-business owners. You run th
 /** One line wherever hub / place are introduced. House is not the owner word. */
 export const HUB_DOOR_GLOSSARY = 'Place = the business. Hub = where owners start and invite staff.';
 export const OPEN_THE_HOUSE_LABEL = 'Open the place';
-export const PLUS_REGISTER_LABEL = '+ Register';
+export const PLUS_REGISTER_LABEL = 'Register.';
 export const LIVE_STATUS_LABEL = 'LIVE';
 export const NAV_PLACES_LABEL = 'My places';
 export const NAV_APPS_LABEL = 'Apps';

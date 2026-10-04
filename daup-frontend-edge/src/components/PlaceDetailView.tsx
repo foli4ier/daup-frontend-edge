@@ -29,9 +29,6 @@ import { resolvePlaceSubscriptionStatus, type PlaceEntitlement } from '../hub/en
 import { pollSeednodeStatus } from '../hub/houseMcp';
 import {
   SEED_SETUP_ZIP_HREF,
-  onPremAttachFields,
-  saveSeednodeForPlace,
-  seedConfigForMode,
   type SeednodeConfig,
   type SeednodeMode
 } from '../hub/seednode';
@@ -83,7 +80,7 @@ export function PlaceDetailView({
 }) {
   const licensedId = (place.companyId || '').trim();
   const openedPlaceId = (place.placeId || '').trim();
-  const [seedConfig, setSeedConfig] = useState<SeednodeConfig | null>(seed);
+  const [seedConfig] = useState<SeednodeConfig | null>(seed);
   const [seedCheck, setSeedCheck] = useState<'unchecked' | 'connected' | 'not-connected'>('unchecked');
   const [checkingSeed, setCheckingSeed] = useState(false);
   const [adding, setAdding] = useState(false);
@@ -154,29 +151,6 @@ export function PlaceDetailView({
       if (id) savePlacePlan(id, next);
       return next;
     });
-  };
-
-  const chooseMode = (next: SeednodeMode) => {
-    const mapKey = licensedId || openedPlaceId;
-    if (!mapKey || next === mode) return;
-    const attach = next === 'on-prem'
-      ? onPremAttachFields({
-          ownerEmail: email,
-          companyId: licensedId,
-          placeId: openedPlaceId
-        })
-      : null;
-    const config = saveSeednodeForPlace(
-      mapKey,
-      attach || seedConfigForMode({
-        mode: next,
-        companyId: licensedId || openedPlaceId,
-        placeId: openedPlaceId,
-        ownerEmail: email
-      })
-    );
-    setSeedConfig(config);
-    setSeedCheck('unchecked');
   };
 
   const onCheckSeed = async () => {
@@ -385,26 +359,6 @@ export function PlaceDetailView({
           {seedConfig ? (
             <div className="place-seed-sheet" data-testid="place-seed">
               <p className="caption">{SEED_KICKER}</p>
-              <div className="seed-mode-choice" data-testid="place-seed-mode">
-                <button
-                  type="button"
-                  className={mode === 'hosted' ? 'seed-mode is-on' : 'seed-mode'}
-                  data-testid="seed-mode-hosted"
-                  aria-pressed={mode === 'hosted'}
-                  onClick={() => chooseMode('hosted')}
-                >
-                  {SEEDNODE_MODE_HOSTED}
-                </button>
-                <button
-                  type="button"
-                  className={mode === 'on-prem' ? 'seed-mode is-on' : 'seed-mode'}
-                  data-testid="seed-mode-on-prem"
-                  aria-pressed={mode === 'on-prem'}
-                  onClick={() => chooseMode('on-prem')}
-                >
-                  {SEEDNODE_MODE_ON_PREM}
-                </button>
-              </div>
               <p className="caption" data-testid="place-seed-host">
                 {mode === 'on-prem' ? SEEDNODE_MODE_ON_PREM : SEEDNODE_MODE_HOSTED}
               </p>

@@ -80,15 +80,16 @@ function PlaceCard({
       data-testid={first ? 'eatery-place-row' : 'owner-place-row'}
       data-place-name={title}
     >
-      <div className="place-card-name">
-        {editing ? (
-          <>
-            <input
-              data-testid={first ? 'edit-place-name-input' : `edit-place-name-input-${index}`}
-              value={draft}
-              aria-label="Place name."
-              onChange={event => setDraft(event.target.value)}
-            />
+      {editing ? (
+        <div className="place-rename">
+          <input
+            className="place-rename-field"
+            data-testid={first ? 'edit-place-name-input' : `edit-place-name-input-${index}`}
+            value={draft}
+            aria-label="Place name."
+            onChange={event => setDraft(event.target.value)}
+          />
+          <div className="place-card-actions place-rename-actions">
             <button type="button" className="btn btn-primary" data-testid={first ? 'save-place-name' : `save-place-name-${index}`} onClick={save}>
               {SAVE_LABEL}
             </button>
@@ -104,25 +105,25 @@ function PlaceCard({
             >
               {CANCEL_LABEL}
             </button>
-          </>
-        ) : (
-          <>
-            <h3 data-testid={first ? 'eatery-place-name' : 'owner-place-name'}>{title}</h3>
-            <button
-              type="button"
-              className="place-text-action"
-              data-testid={first ? 'edit-place-name' : `edit-place-name-${index}`}
-              onClick={() => {
-                setDraft(title);
-                setNameNote('');
-                setEditing(true);
-              }}
-            >
-              {EDIT_LABEL}
-            </button>
-          </>
-        )}
-      </div>
+          </div>
+        </div>
+      ) : (
+        <div className="place-card-name">
+          <h3 data-testid={first ? 'eatery-place-name' : 'owner-place-name'}>{title}</h3>
+          <button
+            type="button"
+            className="place-text-action"
+            data-testid={first ? 'edit-place-name' : `edit-place-name-${index}`}
+            onClick={() => {
+              setDraft(title);
+              setNameNote('');
+              setEditing(true);
+            }}
+          >
+            {EDIT_LABEL}
+          </button>
+        </div>
+      )}
       {nameNote ? <p className="caption" data-testid="place-name-note">{nameNote}</p> : null}
       {city ? (
         <p data-testid={first ? 'eatery-place-city' : 'owner-place-city'}>{city}</p>

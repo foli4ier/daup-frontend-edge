@@ -137,11 +137,11 @@ body {
 }
 
 .has-thumb .owner-main {
-  padding-bottom: 28px;
+  padding-bottom: calc(128px + env(safe-area-inset-bottom, 0px));
 }
 
 .has-thumb {
-  padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
 }
 
 .owner-advanced-nav {
@@ -225,6 +225,7 @@ body {
 }
 
 .place-card-name input,
+.place-rename-field,
 .place-location-edit input {
   flex: 1 1 140px;
   min-width: 0;
@@ -235,6 +236,18 @@ body {
   background: var(--white);
   color: var(--ink);
   font: inherit;
+}
+
+.place-rename-field {
+  display: block;
+  width: 100%;
+  flex: none;
+}
+
+.place-rename-actions .btn {
+  flex: 1 1 0;
+  min-width: 48px;
+  min-height: max(48px, var(--tap, 48px));
 }
 
 .place-card .place-card-status {

@@ -53,7 +53,7 @@ import {
 } from '../hub/copy';
 import { App } from '../App';
 import { HANDOFF_EMAIL_HINT, HANDOFF_HOUSE_HINT, buildOpenTheHouseUrl, cookieSetsParentDomain, expireOwnerCookie, handoffPresentsCredential } from '../hub/ownerArrival';
-import { loadSeednodeForPlace, ON_PREM_SEED_ENDPOINT } from '../hub/seednode';
+import { loadSeednodeForPlace } from '../hub/seednode';
 import { readPlaceSession, rememberPlaceSession } from '../hub/house-session';
 
 const houseVault: UserIdentityVault = {
@@ -2124,9 +2124,8 @@ describe('P0/P1 place list and control plane', () => {
     expect(container.querySelector('[data-testid="place-tab-subscription"]')?.getAttribute('aria-selected')).toBe('true');
     expect(container.querySelector('[data-testid="place-apps"]')).toBeNull();
     expect(container.querySelector('[data-testid="place-seed"]')?.textContent).toContain('Seed.');
-    expect(container.querySelector('[data-testid="seed-mode-hosted"]')?.textContent).toBe('Hosted.');
-    expect(container.querySelector('[data-testid="seed-mode-hosted"]')?.getAttribute('aria-pressed')).toBe('true');
-    expect(container.querySelector('[data-testid="seed-mode-on-prem"]')?.textContent).toBe('On this premises.');
+    expect(container.querySelector('[data-testid="seed-mode-hosted"]')).toBeNull();
+    expect(container.querySelector('[data-testid="seed-mode-on-prem"]')).toBeNull();
     expect(container.querySelector('[data-testid="place-seed-host"]')?.textContent).toBe('Hosted.');
     expect(container.querySelector('[data-testid="place-seed-status"]')?.textContent).toBe('Status not checked yet.');
     expect(container.querySelector('[data-testid="check-seed"]')?.textContent).toBe('Check seed.');
@@ -2144,42 +2143,10 @@ describe('P0/P1 place list and control plane', () => {
     expect(container.textContent).not.toMatch(/\b(peer|DID|DHT|wallet|MCP|npm|hydrate|neon)\b/i);
     expect(container.textContent).not.toContain('co_');
 
-    act(() => {
-      (container.querySelector('[data-testid="seed-mode-on-prem"]') as HTMLButtonElement).click();
-    });
-    expect(container.querySelector('[data-testid="seed-mode-on-prem"]')?.getAttribute('aria-pressed')).toBe('true');
-    expect(container.querySelector('[data-testid="seed-mode-hosted"]')?.getAttribute('aria-pressed')).toBe('false');
-    expect(container.querySelector('[data-testid="place-seed-host"]')?.textContent).toBe('On this premises.');
-    expect(container.querySelector('[data-testid="place-seed-status"]')?.textContent).toBe('Status not checked yet.');
-    expect(container.querySelector('[data-testid="plan-place"]')?.textContent).toBe('This place. R199 a month.');
-    expect(container.querySelector('[data-testid="plan-hosted-seed"]')?.textContent).toBe('Hosted seed. R299 a month.');
-    expect(container.querySelector('[data-testid="place-subscription"]')?.textContent).not.toContain('R0');
-    const download = container.querySelector('[data-testid="download-seed-setup"]') as HTMLAnchorElement | null;
-    expect(download?.textContent).toBe('Download seed setup.');
-    expect(download?.getAttribute('href')).toBe(
-      'https://github.com/foli4ier/daup-mcp-servers/releases/download/onprem-seed-v0/daup-onprem-seed-v0.zip'
-    );
-    expect(download?.getAttribute('href')).not.toMatch(/\.tgz(\?|$)/);
-    expect(container.querySelector('[data-testid="seed-on-prem-next"]')?.textContent).toContain('download the setup');
-    const onPremAttach = loadSeednodeForPlace(salt?.companyId || '');
-    expect(onPremAttach?.mode).toBe('on-prem');
-    expect(onPremAttach?.endpoint).toBe(ON_PREM_SEED_ENDPOINT);
-    expect(onPremAttach?.companyId).toBe(salt?.companyId);
-    expect(onPremAttach?.ownerEmail).toBe('owner@theolive.co.za');
-    expect(onPremAttach?.placeId).toBeTruthy();
-    if (salt?.placeId) {
-      expect(onPremAttach?.placeId).toBe(salt.placeId);
-    }
-    expect(container.querySelector('[data-testid="place-detail"]')?.textContent).not.toMatch(/seednode/i);
-    expect(container.querySelector('[data-testid="place-detail"]')?.textContent).not.toMatch(/\bnode\b/i);
-
-    act(() => {
-      (container.querySelector('[data-testid="seed-mode-hosted"]') as HTMLButtonElement).click();
-    });
-    expect(container.querySelector('[data-testid="seed-mode-hosted"]')?.getAttribute('aria-pressed')).toBe('true');
     expect(container.querySelector('[data-testid="place-seed-host"]')?.textContent).toBe('Hosted.');
-    expect(container.querySelector('[data-testid="plan-hosted-seed"]')?.textContent).toBe('Hosted seed. R299 a month.');
     expect(container.querySelector('[data-testid="download-seed-setup"]')).toBeNull();
+    expect(container.querySelector('[data-testid="plan-hosted-seed"]')?.textContent).toBe('Hosted seed. R299 a month.');
+    expect(loadSeednodeForPlace(salt?.companyId || '')?.mode).toBe('hosted');
 
     act(() => {
       (container.querySelector('[data-testid="back-to-places"]') as HTMLButtonElement).click();
