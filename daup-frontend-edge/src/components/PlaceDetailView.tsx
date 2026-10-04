@@ -4,13 +4,12 @@ import {
   ALREADY_ON_PLACE_LABEL,
   BACK_TO_PLACES_LABEL,
   CHECK_SEED_LABEL,
-  COMING_DOT_LABEL,
   COMING_KICKER,
   DOWNLOAD_SEED_SETUP_LABEL,
   LIVE_STATUS_LABEL,
-  MANAGE_BILLING_LABEL,
   ON_PREM_SEED_NEXT,
-  OPEN_LABEL,
+  PAY_BY_EFT_LABEL,
+  PAYMENT_DUE_LABEL,
   PLACE_ACTIVE_STATUS,
   PLACE_APPS_KICKER,
   PLACE_PAUSED,
@@ -18,6 +17,11 @@ import {
   PLACE_SUB_LINE,
   PLACE_TRIAL_LINE,
   PLACE_TRIAL_STATUS,
+  PLAN_ANNUAL_LABEL,
+  PLAN_BOTH_LABEL,
+  PLAN_HOSTED_SEED_LABEL,
+  PLAN_MONTHLY_LABEL,
+  PLAN_PLACE_LABEL,
   SEED_HOSTED_LINE,
   SEED_HOSTED_ON_PREM_LINE,
   SEED_KICKER,
@@ -26,6 +30,7 @@ import {
   SEEDNODE_STATUS_CONNECTED,
   SEED_STATUS_NOT_CONNECTED,
   SEED_STATUS_UNCHECKED,
+  SOON_LABEL,
   SUBSCRIPTION_KICKER
 } from '../hub/copy';
 import {
@@ -47,11 +52,20 @@ import {
   type SeednodeConfig,
   type SeednodeMode
 } from '../hub/seednode';
-import { ENABLEABLE_SHOP_APPS, SHOP_APPS, interceptHouseRedeemClick, shopAppOpenHref, type ShopApp } from '../hub/places';
-import { remainingPeriodCopy } from '../hub/placeSubscription';
+import { ENABLEABLE_SHOP_APPS, SHELF_SHOP_APPS, interceptHouseRedeemClick, shopAppOpenHref, type ShopApp } from '../hub/places';
+import {
+  placePlanQuote,
+  remainingPeriodCopy,
+  resolvePlacePlan,
+  savePlacePlan,
+  trialThenPlanCopy,
+  type PlacePlanChoice
+} from '../hub/placeSubscription';
 import { formatTrialEndsOn } from '../hub/zaFormat';
 import type { ProjectOpenHandshake } from '../hub/projectUrls';
 import type { PlatformPlaceRecord } from '../stores/identityStore';
+import { AppShelfTile } from './AppShelfTile';
+import { EftDetails } from './EftDetails';
 
 function kitchenStatus(status: ReturnType<typeof resolvePlaceSubscriptionStatus> | null): string {
   if (status === 'trial') return PLACE_TRIAL_STATUS;
@@ -99,6 +113,8 @@ export function PlaceDetailView({
   const [seedCheck, setSeedCheck] = useState<'unchecked' | 'connected' | 'not-connected'>('unchecked');
   const [checkingSeed, setCheckingSeed] = useState(false);
   const [picking, setPicking] = useState<string[]>([]);
+  const [planOverride, setPlanOverride] = useState<PlacePlanChoice | null>(null);
+  const [showEft, setShowEft] = useState(false);
   const status = entitlement ? resolvePlaceSubscriptionStatus(entitlement) : (trialEndsAt ? 'trial' : null);
   const mode: SeednodeMode = seedConfig?.mode || 'hosted';
   const host = seednodeDoorHost(seedConfig);
@@ -111,15 +127,36 @@ export function PlaceDetailView({
   const trialEnds = (status === 'trial' && (entitlement?.trial_ends_at || trialEndsAt))
     ? formatTrialEndsOn(entitlement?.trial_ends_at || trialEndsAt || 0)
     : '';
+  const plan = planOverride || resolvePlacePlan({
+    placeId: licensedId || openedPlaceId,
+    seedMode: mode
+  });
+  const quote = placePlanQuote(plan.bundle, plan.cadence);
   const remaining = remainingPeriodCopy(
     entitlement || (trialEndsAt ? {
       trial_started_at: null,
       trial_ends_at: trialEndsAt,
       payment_method_ok: false
-    } : null)
+    } : null),
+    Date.now(),
+    plan.cadence
   );
-  const apps = SHOP_APPS.filter(app => app.id !== 'eatout' && enabledApps.includes(app.id));
+  const paymentDue = status === 'past_due' || status === 'suspended';
+  const apps = SHELF_SHOP_APPS.filter(app => app.id !== 'eatout' && enabledApps.includes(app.id));
   const heldApps = new Set(enabledApps);
+
+  const choosePlan = (patch: Partial<PlacePlanChoice>) => {
+    const id = licensedId || openedPlaceId;
+    setPlanOverride(prev => {
+      const held = prev || resolvePlacePlan({ placeId: id, seedMode: mode });
+      const next: PlacePlanChoice = {
+        bundle: patch.bundle ?? held.bundle,
+        cadence: patch.cadence ?? held.cadence
+      };
+      if (id) savePlacePlan(id, next);
+      return next;
+    });
+  };
 
   const chooseMode = (next: SeednodeMode) => {
     const mapKey = licensedId || openedPlaceId;
@@ -192,46 +229,28 @@ export function PlaceDetailView({
           <span className="kicker">{PLACE_APPS_KICKER}</span>
           <span className="rule" />
         </div>
-        <div className="place-apps-list">
+        <div className="apps-shelf" data-testid="place-apps-shelf">
           {apps.map(app => {
-            const openHref = shopAppOpenHref(app, openHandshake);
+            const openHref = app.live ? shopAppOpenHref(app, openHandshake) : undefined;
             return (
-              <article
-                className="place-card"
+              <div
+                className="place-app-slot"
                 key={app.id}
                 data-testid={`place-app-${app.id}`}
               >
-                <div className="place-card-copy">
-                  <h3>{app.title}</h3>
-                </div>
-                {app.live ? (
-                  <span className="live">{LIVE_STATUS_LABEL}</span>
-                ) : (
-                  <span className="coming-flag">{COMING_KICKER}</span>
-                )}
-                {app.live ? (
-                  openHref ? (
-                    <a
-                      className="btn btn-primary"
-                      href={openHref}
-                      target="_self"
-                      data-testid={`open-place-app-${app.id}`}
-                      onClick={event => interceptHouseRedeemClick(app, event, onOpenApp)}
-                    >
-                      {OPEN_LABEL}
-                    </a>
-                  ) : (
-                    <button
-                      type="button"
-                      className="btn btn-primary"
-                      data-testid={`open-place-app-${app.id}`}
-                      onClick={() => onOpenApp(app)}
-                    >
-                      {OPEN_LABEL}
-                    </button>
-                  )
-                ) : null}
-              </article>
+                <AppShelfTile
+                  app={app}
+                  testId={app.live ? `open-place-app-${app.id}` : `coming-place-app-${app.id}`}
+                  href={openHref}
+                  soon={!app.live}
+                  state={app.live ? undefined : SOON_LABEL}
+                  onClick={app.live
+                    ? (openHref
+                      ? event => interceptHouseRedeemClick(app, event, onOpenApp)
+                      : () => onOpenApp(app))
+                    : undefined}
+                />
+              </div>
             );
           })}
         </div>
@@ -372,17 +391,61 @@ export function PlaceDetailView({
             ) : null;
           })}
         </ul>
+        <div className="place-plan-choice" data-testid="place-plan-choice" role="group" aria-label={SUBSCRIPTION_KICKER}>
+          {([
+            ['place', PLAN_PLACE_LABEL],
+            ['hosted-seed', PLAN_HOSTED_SEED_LABEL],
+            ['both', PLAN_BOTH_LABEL]
+          ] as const).map(([bundle, label]) => (
+            <button
+              key={bundle}
+              type="button"
+              className={plan.bundle === bundle ? 'place-plan is-on' : 'place-plan'}
+              data-testid={`plan-${bundle}`}
+              aria-pressed={plan.bundle === bundle}
+              onClick={() => choosePlan({ bundle })}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <div className="place-plan-choice" data-testid="place-cadence-choice">
+          {([
+            ['monthly', PLAN_MONTHLY_LABEL],
+            ['annual', PLAN_ANNUAL_LABEL]
+          ] as const).map(([cadence, label]) => (
+            <button
+              key={cadence}
+              type="button"
+              className={plan.cadence === cadence ? 'place-plan is-on' : 'place-plan'}
+              data-testid={`cadence-${cadence}`}
+              aria-pressed={plan.cadence === cadence}
+              onClick={() => choosePlan({ cadence })}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <p className="place-sub-quote" data-testid="place-sub-quote">{quote.line}</p>
+        {status === 'trial' ? (
+          <p className="caption" data-testid="place-sub-then">{trialThenPlanCopy(quote.line)}</p>
+        ) : null}
+        {paymentDue ? (
+          <p data-testid="place-payment-due">{PAYMENT_DUE_LABEL}</p>
+        ) : null}
         <div className="place-detail-cta">
           <button
             type="button"
-            className="btn btn-outline"
-            data-testid="manage-billing"
-            disabled
+            className="btn btn-primary place-pay"
+            data-testid="pay-by-eft"
+            onClick={() => setShowEft(true)}
           >
-            {MANAGE_BILLING_LABEL}
+            {PAY_BY_EFT_LABEL}
           </button>
-          <span className="caption">{COMING_DOT_LABEL}</span>
         </div>
+        {showEft || paymentDue ? (
+          <EftDetails amountLine={quote.line} reference={place.placeName} />
+        ) : null}
       </article>
     </section>
   );

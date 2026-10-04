@@ -2064,6 +2064,10 @@ describe('P0/P1 place list and control plane', () => {
     expect(loadIdentityVault().companyNode?.companyId).toBe(firstId);
 
     expect(container.querySelector('[data-testid="eatery-place-name"]')?.textContent).toContain('The Olive');
+    expect(container.querySelector('[data-testid="eatery-place-trial"]')?.textContent)
+      .toContain('No charge for 30 days.');
+    expect(container.querySelector('[data-testid="eatery-place-remaining"]')?.textContent)
+      .toBe('30 days left on trial.');
     act(() => {
       (container.querySelector('[data-testid="register-another-place"]') as HTMLButtonElement).click();
     });
@@ -2109,6 +2113,10 @@ describe('P0/P1 place list and control plane', () => {
     expect(container.querySelector('[data-testid="place-detail"]')?.textContent).not.toMatch(/seednode/i);
     expect(container.querySelector('[data-testid="place-detail"]')?.textContent).not.toMatch(/\bnode\b/i);
     expect(container.querySelector('[data-testid="place-sub-status"]')?.textContent).toBe('Trial.');
+    expect(container.querySelector('[data-testid="place-sub-remaining"]')?.textContent)
+      .toBe('30 days left on trial.');
+    expect(container.querySelector('[data-testid="open-place-app-project"]')?.className).toContain('shelf-tile');
+    expect(container.querySelector('[data-testid="place-apps-shelf"]')?.className).toContain('apps-shelf');
     expect(container.querySelector('[data-testid="place-sub-meters"]')?.textContent).toContain('No charge for 30 days.');
     expect(container.querySelector('[data-testid="place-sub-meters"]')?.textContent).toContain('R199 a month for this place.');
     expect(container.querySelector('[data-testid="place-sub-meters"]')?.textContent).toContain('R299 hosted seed.');
@@ -2304,6 +2312,98 @@ describe('My places subscription display and Add apps.', () => {
     expect(container.querySelector('[data-testid="eatery-place-remaining"]')?.textContent)
       .toMatch(/Renews in \d+ days\./);
     expect(TRIAL_MS).toBe(30 * day);
+    unmount();
+  });
+
+  it('lets the owner choose a plan and pay by EFT without marking the place paid', async () => {
+    const { container, unmount } = render(<App />);
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 80));
+    });
+
+    act(() => {
+      (container.querySelector('[data-testid="open-the-house"]') as HTMLButtonElement).click();
+    });
+
+    const eatery = container.querySelector('[data-testid="open-place-app-eatery"]');
+    expect(eatery?.className).toContain('shelf-tile');
+    expect(eatery?.textContent).toContain('Eatery');
+    expect(eatery?.textContent).not.toContain(OPEN_LABEL);
+    expect(eatery?.querySelector('svg')).toBeTruthy();
+    expect(container.querySelector('[data-testid="place-apps-shelf"]')?.className).toContain('apps-shelf');
+    expect(container.querySelector('[data-testid="place-sub-remaining"]')?.textContent)
+      .toMatch(/\d+ days left on trial\./);
+    expect(container.querySelector('[data-testid="place-sub-quote"]')?.textContent).toBe('R498 a month.');
+    expect(container.querySelector('[data-testid="place-sub-then"]')?.textContent)
+      .toBe('The trial is 30 days. Then R498 a month.');
+    expect(container.querySelector('[data-testid="place-eft"]')).toBeNull();
+
+    act(() => {
+      (container.querySelector('[data-testid="plan-place"]') as HTMLButtonElement).click();
+    });
+    expect(container.querySelector('[data-testid="place-sub-quote"]')?.textContent).toBe('R199 a month.');
+
+    act(() => {
+      (container.querySelector('[data-testid="plan-hosted-seed"]') as HTMLButtonElement).click();
+    });
+    expect(container.querySelector('[data-testid="place-sub-quote"]')?.textContent).toBe('R299 a month.');
+
+    act(() => {
+      (container.querySelector('[data-testid="plan-both"]') as HTMLButtonElement).click();
+      (container.querySelector('[data-testid="cadence-annual"]') as HTMLButtonElement).click();
+    });
+    expect(container.querySelector('[data-testid="place-sub-quote"]')?.textContent)
+      .toBe('R5378.40 a year. 10% off R5976.');
+    expect(container.querySelector('[data-testid="place-sub-then"]')?.textContent)
+      .toContain('10% off R5976.');
+
+    act(() => {
+      (container.querySelector('[data-testid="pay-by-eft"]') as HTMLButtonElement).click();
+    });
+    const eft = container.querySelector('[data-testid="place-eft"]');
+    expect(eft?.textContent).toContain('Capitec');
+    expect(eft?.textContent).toContain('MR FRANS OLIVIER');
+    expect(eft?.textContent).toContain('Savings Account');
+    expect(eft?.textContent).toContain('2606460754');
+    expect(eft?.textContent).toContain('470010');
+    expect(eft?.textContent).toContain('R5378.40 a year. 10% off R5976.');
+    expect(eft?.textContent).toContain('The Olive');
+    expect(eft?.querySelector('input')).toBeNull();
+    expect(loadPlaceEntitlement('co_olive')?.payment_method_ok).toBe(false);
+    expect(container.textContent).not.toMatch(/\b(peer|DID|DHT|wallet|MCP|npm|hydrate|neon|node|co_)\b/i);
+    unmount();
+  });
+
+  it('shows payment due and the bank details when the period has ended', async () => {
+    saveNodeEntitlement({
+      companyId: 'co_olive',
+      node_subscription_status: 'past_due',
+      trial_started_at: Date.now() - 40 * day,
+      trial_ends_at: Date.now() - 2 * day,
+      enabled_apps: ['eatery'],
+      billable_locations: 1,
+      payment_method_ok: false
+    });
+    const { container, unmount } = render(<App />);
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 80));
+    });
+    expect(container.querySelector('[data-testid="eatery-place-remaining"]')?.textContent)
+      .toBe('This period has ended.');
+    expect(container.querySelector('[data-testid="eatery-place-due"]')?.textContent).toContain('Payment is due.');
+    expect(container.querySelector('[data-testid="eatery-place-eft"]')?.textContent).toContain('Capitec');
+    expect(container.querySelector('[data-testid="eatery-place-eft"]')?.textContent).toContain('2606460754');
+    expect(container.querySelector('[data-testid="open-the-house"]')).toBeTruthy();
+    expect(loadPlaceEntitlement('co_olive')?.payment_method_ok).toBe(false);
+
+    act(() => {
+      (container.querySelector('[data-testid="open-the-house"]') as HTMLButtonElement).click();
+    });
+    expect(container.querySelector('[data-testid="place-payment-due"]')?.textContent).toBe('Payment is due.');
+    expect(container.querySelector('[data-testid="place-eft"]')?.textContent).toContain('MR FRANS OLIVIER');
+    expect(container.querySelector('[data-testid="place-eft"]')?.querySelector('input')).toBeNull();
+    expect(loadPlaceEntitlement('co_olive')?.payment_method_ok).toBe(false);
+    expect(listRegisteredPlaces().some(place => place.placeName === 'The Olive')).toBe(true);
     unmount();
   });
 });

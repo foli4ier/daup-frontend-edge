@@ -15,7 +15,9 @@ import {
   ENABLE_APPS_TITLE,
   ENABLE_APPS_SUB,
   PICK_AN_APP_MESSAGE,
-  ENABLED_APPS_LABEL
+  ENABLED_APPS_LABEL,
+  PLACE_TRIAL_LINE,
+  TRIAL_IS_30_DAYS
 } from '../hub/copy';
 import { type EnableableAppId } from '../hub/companyNode';
 import { ENABLEABLE_SHOP_APPS } from '../hub/places';
@@ -566,6 +568,9 @@ export const OnboardingWizard: React.FC = () => {
                   {ENABLEABLE_SHOP.filter(app => enabledApps.includes(app.id)).map(app => app.title).join(', ')}
                 </dd>
               </dl>
+              <p className="caption" data-testid="wizard-trial" style={{ margin: 0 }}>
+                {TRIAL_IS_30_DAYS} {PLACE_TRIAL_LINE}
+              </p>
               <p className="caption" style={{ margin: 0 }}>
                 After this, open the place from your hub. Invite tonight’s floor when you are ready.
               </p>

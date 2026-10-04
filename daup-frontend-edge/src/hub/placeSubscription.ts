@@ -2,13 +2,16 @@
  * My places subscription chrome (list cards + place detail).
  *
  * Kitchen English only. Meters stay PLACE_SUB R199 and SEED_HOSTED R299 / R0.
- * Remaining period is a stub: trial_ends_at, else trial_started + 30d, else
- * the next 30-day boundary after that for a paid place. No checkout (G).
+ * A chosen plan is place only (R199), hosted seed (R299), or both (R199+R299).
+ * Annual is 10% off twelve months of that choice. The trial is 30 days first.
+ * Remaining period: trial end, else the next monthly (30-day) or annual cycle.
+ * EFT details are shown in the place. Opening them does not mark it paid.
  */
 
 import {
   daysLeftOnTrialLabel,
   HOSTED_SEED_SUMMARY,
+  PERIOD_ENDED_LABEL,
   PLACE_SUB_LINE,
   renewsInDaysLabel,
   SEED_HOSTED_LINE,
@@ -29,6 +32,173 @@ import {
 import type { SeednodeMode } from './seednode';
 
 export const DAY_MS = 24 * 60 * 60 * 1000;
+export const ANNUAL_MONTHS = 12;
+export const ANNUAL_DISCOUNT_PERCENT = 10;
+export const ANNUAL_PERIOD_DAYS = 365;
+export const ANNUAL_PERIOD_MS = ANNUAL_PERIOD_DAYS * DAY_MS;
+export const PLACE_PLAN_KEY = 'daup_place_plans';
+
+/** Place only, hosted seed only, or both. R498 is 199 + 299, not a third product. */
+export type PlaceBundle = 'place' | 'hosted-seed' | 'both';
+export type PlaceCadence = 'monthly' | 'annual';
+
+export interface PlacePlanChoice {
+  bundle: PlaceBundle;
+  cadence: PlaceCadence;
+}
+
+export interface PlacePlanQuote {
+  bundle: PlaceBundle;
+  cadence: PlaceCadence;
+  monthlyZar: number;
+  annualListCents: number;
+  annualCents: number;
+  discountCents: number;
+  line: string;
+}
+
+/** Shown on the payment screen. Not a card gateway, and not proof of payment. */
+export const EFT_PAYEE = {
+  bank: 'Capitec',
+  accountHolder: 'MR FRANS OLIVIER',
+  accountType: 'Savings Account',
+  accountNumber: '2606460754',
+  branchCode: '470010'
+} as const;
+
+export function bundleMonthlyZar(bundle: PlaceBundle): number {
+  if (bundle === 'place') return PLACE_SUB_MONTHLY_ZAR_EX_VAT;
+  if (bundle === 'hosted-seed') return SEED_HOSTED_MONTHLY_ZAR_EX_VAT;
+  return PLACE_SUB_MONTHLY_ZAR_EX_VAT + SEED_HOSTED_MONTHLY_ZAR_EX_VAT;
+}
+
+/** 10% off twelve months, in cents. */
+export function bundleAnnualCents(bundle: PlaceBundle): number {
+  const listCents = bundleMonthlyZar(bundle) * ANNUAL_MONTHS * 100;
+  const discountCents = Math.round(listCents * ANNUAL_DISCOUNT_PERCENT / 100);
+  return listCents - discountCents;
+}
+
+export function formatZarFromCents(cents: number): string {
+  const abs = Math.abs(Math.round(cents));
+  const rands = Math.floor(abs / 100);
+  const frac = abs % 100;
+  return frac === 0 ? `R${rands}` : `R${rands}.${String(frac).padStart(2, '0')}`;
+}
+
+export function placePlanQuote(bundle: PlaceBundle, cadence: PlaceCadence): PlacePlanQuote {
+  const monthlyZar = bundleMonthlyZar(bundle);
+  const annualListCents = monthlyZar * ANNUAL_MONTHS * 100;
+  const annualCents = bundleAnnualCents(bundle);
+  const line = cadence === 'monthly'
+    ? `R${monthlyZar} a month.`
+    : `${formatZarFromCents(annualCents)} a year. 10% off ${formatZarFromCents(annualListCents)}.`;
+  return {
+    bundle,
+    cadence,
+    monthlyZar,
+    annualListCents,
+    annualCents,
+    discountCents: annualListCents - annualCents,
+    line
+  };
+}
+
+export function trialThenPlanCopy(quoteLine: string): string {
+  return `The trial is 30 days. Then ${quoteLine}`;
+}
+
+export function defaultPlacePlan(seedMode: SeednodeMode = 'hosted'): PlacePlanChoice {
+  return {
+    bundle: seedMode === 'on-prem' ? 'place' : 'both',
+    cadence: 'monthly'
+  };
+}
+
+export function billingPeriodMs(cadence: PlaceCadence = 'monthly'): number {
+  return cadence === 'annual' ? ANNUAL_PERIOD_MS : TRIAL_MS;
+}
+
+function asBundle(value: unknown): PlaceBundle | null {
+  if (value === 'place' || value === 'hosted-seed' || value === 'both') return value;
+  return null;
+}
+
+function asCadence(value: unknown): PlaceCadence | null {
+  if (value === 'monthly' || value === 'annual') return value;
+  return null;
+}
+
+function readPlans(): Record<string, PlacePlanChoice> {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = localStorage.getItem(PLACE_PLAN_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    if (!parsed || typeof parsed !== 'object') return {};
+    const out: Record<string, PlacePlanChoice> = {};
+    for (const [key, value] of Object.entries(parsed)) {
+      if (!value || typeof value !== 'object') continue;
+      const row = value as Record<string, unknown>;
+      const bundle = asBundle(row.bundle);
+      const cadence = asCadence(row.cadence);
+      const id = key.trim();
+      if (!id || !bundle || !cadence) continue;
+      out[id] = { bundle, cadence };
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+export function loadPlacePlan(placeId?: string | null): PlacePlanChoice | null {
+  const id = (placeId || '').trim();
+  if (!id) return null;
+  return readPlans()[id] || null;
+}
+
+/** Saves the chosen plan only. Never writes payment_method_ok or card data. */
+export function savePlacePlan(placeId: string, choice: PlacePlanChoice): PlacePlanChoice | null {
+  const id = (placeId || '').trim();
+  const bundle = asBundle(choice.bundle);
+  const cadence = asCadence(choice.cadence);
+  if (!id || !bundle || !cadence || typeof window === 'undefined') return null;
+  const next = { bundle, cadence };
+  const all = readPlans();
+  all[id] = next;
+  try {
+    localStorage.setItem(PLACE_PLAN_KEY, JSON.stringify(all));
+  } catch {
+    return null;
+  }
+  return next;
+}
+
+export function resolvePlacePlan(args: {
+  placeId?: string | null;
+  seedMode?: SeednodeMode;
+  plan?: PlacePlanChoice | null;
+}): PlacePlanChoice {
+  if (args.plan && asBundle(args.plan.bundle) && asCadence(args.plan.cadence)) {
+    return { bundle: args.plan.bundle, cadence: args.plan.cadence };
+  }
+  return loadPlacePlan(args.placeId) || defaultPlacePlan(args.seedMode || 'hosted');
+}
+
+/**
+ * What the payment screen shows. Does not flip payment_method_ok.
+ * Opening this view is not a payment.
+ */
+export function paymentScreenState(entitlement?: { payment_method_ok?: boolean } | null): {
+  payment_method_ok: boolean;
+  payee: typeof EFT_PAYEE;
+} {
+  return {
+    payment_method_ok: entitlement?.payment_method_ok === true,
+    payee: EFT_PAYEE
+  };
+}
 
 export type PlaceSubClock = Pick<
   PlaceEntitlement,
@@ -72,15 +242,17 @@ export function stubPeriodEnd(clock: PlaceSubClock | null | undefined): number |
  */
 export function stubRenewsAt(
   clock: PlaceSubClock | null | undefined,
-  now = Date.now()
+  now = Date.now(),
+  cadence: PlaceCadence = 'monthly'
 ): number | null {
   const first = stubPeriodEnd(clock);
   if (first == null || !clock) return null;
   const status = resolvePlaceSubscriptionStatus(clock, now);
   if (status !== 'active' || now < first) return first;
+  const periodMs = billingPeriodMs(cadence);
   const elapsed = now - first;
-  const cycles = Math.floor(elapsed / TRIAL_MS) + 1;
-  return first + cycles * TRIAL_MS;
+  const cycles = Math.floor(elapsed / periodMs) + 1;
+  return first + cycles * periodMs;
 }
 
 export function remainingPeriodDays(endsAt: number, now = Date.now()): number {
@@ -89,11 +261,13 @@ export function remainingPeriodDays(endsAt: number, now = Date.now()): number {
 
 export function remainingPeriodCopy(
   clock: PlaceSubClock | null | undefined,
-  now = Date.now()
+  now = Date.now(),
+  cadence: PlaceCadence = 'monthly'
 ): string {
   if (!clock) return '';
   const status = resolvePlaceSubscriptionStatus(clock, now);
-  const end = stubRenewsAt(clock, now);
+  if (status === 'past_due' || status === 'suspended') return PERIOD_ENDED_LABEL;
+  const end = stubRenewsAt(clock, now, cadence);
   if (end == null) return '';
   const days = remainingPeriodDays(end, now);
   if (status === 'trial') return daysLeftOnTrialLabel(days);
@@ -125,21 +299,38 @@ export function placeSubscriptionDisplay(args: {
   trialEndsAt?: number | null;
   paymentMethodOk?: boolean;
   now?: number;
+  placeId?: string | null;
+  plan?: PlacePlanChoice | null;
 }): {
   status: PlaceSubscriptionStatus | null;
   choiceLines: string[];
   totalLine: string;
+  quoteLine: string;
+  plan: PlacePlanChoice;
+  quote: PlacePlanQuote;
   remaining: string;
   seedSummary: string;
+  paymentDue: boolean;
 } {
   const seedMode = args.seedMode || 'hosted';
+  const plan = resolvePlacePlan({
+    placeId: args.placeId,
+    seedMode,
+    plan: args.plan
+  });
+  const quote = placePlanQuote(plan.bundle, plan.cadence);
   const clock = asPlaceSubClock(args);
   const now = args.now ?? Date.now();
+  const status = clock ? resolvePlaceSubscriptionStatus(clock, now) : null;
   return {
-    status: clock ? resolvePlaceSubscriptionStatus(clock, now) : null,
+    status,
     choiceLines: placeChoiceLines(seedMode),
     totalLine: placeChoiceTotalLine(seedMode),
-    remaining: remainingPeriodCopy(clock, now),
-    seedSummary: seedMode === 'on-prem' ? SEEDNODE_MODE_ON_PREM : HOSTED_SEED_SUMMARY
+    quoteLine: quote.line,
+    plan,
+    quote,
+    remaining: remainingPeriodCopy(clock, now, plan.cadence),
+    seedSummary: seedMode === 'on-prem' ? SEEDNODE_MODE_ON_PREM : HOSTED_SEED_SUMMARY,
+    paymentDue: status === 'past_due' || status === 'suspended'
   };
 }

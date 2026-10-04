@@ -70,6 +70,21 @@ export const SEED_HOSTED_LINE = 'R299 hosted seed.';
 export const SEED_HOSTED_ON_PREM_LINE = 'R0 hosted seed.';
 export const HOSTED_SEED_SUMMARY = 'Hosted seed.';
 export const PLACE_TRIAL_LINE = 'No charge for 30 days.';
+export const TRIAL_IS_30_DAYS = 'The trial is 30 days.';
+export const PERIOD_ENDED_LABEL = 'This period has ended.';
+export const PAYMENT_DUE_LABEL = 'Payment is due.';
+export const PLAN_PLACE_LABEL = 'This place.';
+export const PLAN_HOSTED_SEED_LABEL = 'Hosted seed.';
+export const PLAN_BOTH_LABEL = 'Both.';
+export const PLAN_MONTHLY_LABEL = 'Monthly.';
+export const PLAN_ANNUAL_LABEL = 'Annual.';
+export const PAY_BY_EFT_LABEL = 'Pay by EFT.';
+export const EFT_BANK_LABEL = 'Bank.';
+export const EFT_HOLDER_LABEL = 'Account holder.';
+export const EFT_TYPE_LABEL = 'Account type.';
+export const EFT_NUMBER_LABEL = 'Account number.';
+export const EFT_BRANCH_LABEL = 'Branch code.';
+export const EFT_REFERENCE_LABEL = 'Reference.';
 export const ADD_APPS_LABEL = 'Add apps.';
 export const ALREADY_ON_PLACE_LABEL = 'Already on this place.';
 
@@ -304,6 +319,21 @@ export const HUB_HOME_COPY = [
   SEED_HOSTED_ON_PREM_LINE,
   HOSTED_SEED_SUMMARY,
   PLACE_TRIAL_LINE,
+  TRIAL_IS_30_DAYS,
+  PERIOD_ENDED_LABEL,
+  PAYMENT_DUE_LABEL,
+  PLAN_PLACE_LABEL,
+  PLAN_HOSTED_SEED_LABEL,
+  PLAN_BOTH_LABEL,
+  PLAN_MONTHLY_LABEL,
+  PLAN_ANNUAL_LABEL,
+  PAY_BY_EFT_LABEL,
+  EFT_BANK_LABEL,
+  EFT_HOLDER_LABEL,
+  EFT_TYPE_LABEL,
+  EFT_NUMBER_LABEL,
+  EFT_BRANCH_LABEL,
+  EFT_REFERENCE_LABEL,
   ADD_APPS_LABEL,
   ALREADY_ON_PLACE_LABEL,
   daysLeftOnTrialLabel(12),

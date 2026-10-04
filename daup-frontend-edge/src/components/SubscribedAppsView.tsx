@@ -3,6 +3,8 @@ import { useUserProfile } from '../context/UserProfileContext';
 import {
   HOSTED_SEED_SUMMARY,
   OPEN_LABEL,
+  PAYMENT_DUE_LABEL,
+  PLACE_TRIAL_LINE,
   PLUS_REGISTER_LABEL,
   YOUR_PLACES_EMPTY,
   YOUR_PLACES_KICKER
@@ -23,6 +25,7 @@ import { toWhatsappE164 } from '../hub/whatsappE164';
 import { GetAppsSection } from './GetApps';
 import { HouseOtpDoor } from './HouseOtpDoor';
 import { OtherPlacesView } from './OtherPlaces';
+import { EftDetails } from './EftDetails';
 import { PlaceDetailView } from './PlaceDetailView';
 
 export const SubscribedAppsView: React.FC<{
@@ -357,6 +360,7 @@ export const SubscribedAppsView: React.FC<{
                 const isPrimaryHouse = place.title.trim() === houseName;
                 const sub = placeSubscriptionDisplay({
                   entitlement,
+                  placeId: licensed,
                   seedMode: seed?.mode || 'hosted',
                   trialStartedAt: isPrimaryHouse ? trialState.trialStartedAt : null,
                   trialEndsAt: entitlement?.trial_ends_at
@@ -379,13 +383,28 @@ export const SubscribedAppsView: React.FC<{
                           <span key={line}>{line}</span>
                         ))}
                         {sub.seedSummary === HOSTED_SEED_SUMMARY ? (
-                          <span className="place-card-total">{sub.totalLine}</span>
+                          <span className="place-card-total">{sub.quoteLine}</span>
                         ) : null}
                       </p>
+                      {sub.status === 'trial' ? (
+                        <p className="place-card-trial" data-testid={index === 0 ? 'eatery-place-trial' : 'place-card-trial'}>
+                          {PLACE_TRIAL_LINE}
+                        </p>
+                      ) : null}
                       {sub.remaining ? (
                         <p className="place-card-remaining" data-testid={index === 0 ? 'eatery-place-remaining' : 'place-card-remaining'}>
                           {sub.remaining}
                         </p>
+                      ) : null}
+                      {sub.paymentDue ? (
+                        <div className="place-card-due" data-testid={index === 0 ? 'eatery-place-due' : 'place-card-due'}>
+                          <p>{PAYMENT_DUE_LABEL}</p>
+                          <EftDetails
+                            amountLine={sub.quoteLine}
+                            reference={place.title}
+                            testId={index === 0 ? 'eatery-place-eft' : `place-card-eft-${index}`}
+                          />
+                        </div>
                       ) : null}
                     </div>
                     <span className="live" data-testid={index === 0 ? 'eatery-place-status' : 'owner-place-status'}>

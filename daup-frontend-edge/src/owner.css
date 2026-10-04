@@ -289,6 +289,92 @@ body {
   gap: 10px;
 }
 
+.place-app-slot {
+  display: contents;
+}
+
+.place-plan-choice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0 0;
+}
+
+.place-plan,
+.place-pay {
+  min-height: max(48px, var(--tap, 48px));
+  min-width: 48px;
+}
+
+.place-plan {
+  appearance: none;
+  padding: 0 16px;
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  background: var(--white);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.place-plan.is-on {
+  border-color: var(--forest);
+  background: var(--peach);
+}
+
+.place-sub-quote {
+  margin: 8px 0 0;
+  font-weight: 700;
+}
+
+.place-eft {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.place-eft dl {
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.place-eft dl > div {
+  display: grid;
+  gap: 2px;
+}
+
+.place-eft dt {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+.place-eft dd {
+  margin: 0;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.place-card-trial {
+  margin-top: 4px;
+  color: var(--ink);
+}
+
+.place-card-due {
+  margin-top: 8px;
+}
+
+.place-card-due > p {
+  margin: 0 0 4px;
+  color: var(--ink);
+  font-weight: 700;
+}
+
 .place-add-apps {
   margin-top: 12px;
 }
