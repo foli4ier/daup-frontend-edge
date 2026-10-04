@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useUserProfile } from '../context/UserProfileContext';
 import {
   HOSTED_SEED_SUMMARY,
@@ -25,7 +25,13 @@ import { toWhatsappE164 } from '../hub/whatsappE164';
 import { GetAppsSection } from './GetApps';
 import { HouseOtpDoor } from './HouseOtpDoor';
 import { OtherPlacesView } from './OtherPlaces';
-import { EftDetails } from './EftDetails';
+import {
+  applyPaystackVerdict,
+  clearPaystackReturnQuery,
+  confirmPaystackReference,
+  paystackReferencesOnThisHub,
+  paystackReturnReference
+} from '../hub/paystackEntitlement';
 import { PlaceDetailView } from './PlaceDetailView';
 
 export const SubscribedAppsView: React.FC<{
@@ -47,6 +53,7 @@ export const SubscribedAppsView: React.FC<{
   onClosePlace
 }) => {
   const [localOpenKey, setLocalOpenKey] = useState<string | null>(null);
+  const [paidTick, setPaidTick] = useState(0);
   const houseBusy = useRef(false);
   const [houseDoor, setHouseDoor] = useState<{
     app: ShopApp;
@@ -79,6 +86,30 @@ export const SubscribedAppsView: React.FC<{
   } = useUserProfile();
   const houseName = (activeWallet?.legalName || '').trim();
   const email = ownerSession?.email || '';
+
+  useEffect(() => {
+    let cancel = false;
+    const fromUrl = paystackReturnReference();
+    const refs = [...new Set([fromUrl, ...paystackReferencesOnThisHub()].filter(Boolean))];
+    if (!refs.length) return undefined;
+    void (async () => {
+      let changed = false;
+      for (const reference of refs) {
+        try {
+          const verdict = await confirmPaystackReference(reference);
+          if (cancel || !verdict) continue;
+          if (applyPaystackVerdict(verdict)) changed = true;
+        } catch {
+          // A failed lookup is not a payment, and it does not clear a covered period.
+        }
+      }
+      if (fromUrl) clearPaystackReturnQuery();
+      if (!cancel && changed) setPaidTick(tick => tick + 1);
+    })();
+    return () => {
+      cancel = true;
+    };
+  }, []);
   const city = (profile.location?.city || '').trim();
   const ownerRecords = listOwnerPlaceRecords({
     email,
@@ -310,7 +341,7 @@ export const SubscribedAppsView: React.FC<{
       ) : null}
       {showPlaces && openRecord ? (
         <PlaceDetailView
-          key={ownerPlaceKey(openRecord)}
+          key={`${ownerPlaceKey(openRecord)}:${paidTick}`}
           place={openRecord}
           email={email}
           entitlement={loadPlaceEntitlement(openRecord.companyId || openRecord.placeId || '')}
@@ -369,7 +400,7 @@ export const SubscribedAppsView: React.FC<{
                 return (
                   <article
                     className="place-card"
-                    key={key}
+                    key={`${key}:${paidTick}`}
                     data-testid={index === 0 ? 'eatery-place-row' : 'owner-place-row'}
                     data-place-name={place.title}
                   >
@@ -397,14 +428,9 @@ export const SubscribedAppsView: React.FC<{
                         </p>
                       ) : null}
                       {sub.paymentDue ? (
-                        <div className="place-card-due" data-testid={index === 0 ? 'eatery-place-due' : 'place-card-due'}>
-                          <p>{PAYMENT_DUE_LABEL}</p>
-                          <EftDetails
-                            amountLine={sub.quoteLine}
-                            reference={place.title}
-                            testId={index === 0 ? 'eatery-place-eft' : `place-card-eft-${index}`}
-                          />
-                        </div>
+                        <p className="place-card-due" data-testid={index === 0 ? 'eatery-place-due' : 'place-card-due'}>
+                          {PAYMENT_DUE_LABEL}
+                        </p>
                       ) : null}
                     </div>
                     <span className="live" data-testid={index === 0 ? 'eatery-place-status' : 'owner-place-status'}>

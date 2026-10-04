@@ -4,8 +4,8 @@
  * Kitchen English only. Meters stay PLACE_SUB R199 and SEED_HOSTED R299 / R0.
  * A chosen plan is place only (R199), hosted seed (R299), or both (R199+R299).
  * Annual is 10% off twelve months of that choice. The trial is 30 days first.
- * Remaining period: trial end, else the next monthly (30-day) or annual cycle.
- * EFT details are shown in the place. Opening them does not mark it paid.
+ * Remaining period: trial end, else paid_until, else the next monthly or annual cycle.
+ * Paystack confirms the charge. Choosing a plan does not mark the place paid.
  */
 
 import {
@@ -56,15 +56,6 @@ export interface PlacePlanQuote {
   discountCents: number;
   line: string;
 }
-
-/** Shown on the payment screen. Not a card gateway, and not proof of payment. */
-export const EFT_PAYEE = {
-  bank: 'Capitec',
-  accountHolder: 'MR FRANS OLIVIER',
-  accountType: 'Savings Account',
-  accountNumber: '2606460754',
-  branchCode: '470010'
-} as const;
 
 export function bundleMonthlyZar(bundle: PlaceBundle): number {
   if (bundle === 'place') return PLACE_SUB_MONTHLY_ZAR_EX_VAT;
@@ -117,6 +108,12 @@ export function defaultPlacePlan(seedMode: SeednodeMode = 'hosted'): PlacePlanCh
 
 export function billingPeriodMs(cadence: PlaceCadence = 'monthly'): number {
   return cadence === 'annual' ? ANNUAL_PERIOD_MS : TRIAL_MS;
+}
+
+/** ZAR subunits (cents). Annual is the discounted year, not twelve full months. */
+export function planAmountCents(bundle: PlaceBundle, cadence: PlaceCadence): number {
+  const quote = placePlanQuote(bundle, cadence);
+  return cadence === 'annual' ? quote.annualCents : quote.monthlyZar * 100;
 }
 
 function asBundle(value: unknown): PlaceBundle | null {
@@ -186,24 +183,10 @@ export function resolvePlacePlan(args: {
   return loadPlacePlan(args.placeId) || defaultPlacePlan(args.seedMode || 'hosted');
 }
 
-/**
- * What the payment screen shows. Does not flip payment_method_ok.
- * Opening this view is not a payment.
- */
-export function paymentScreenState(entitlement?: { payment_method_ok?: boolean } | null): {
-  payment_method_ok: boolean;
-  payee: typeof EFT_PAYEE;
-} {
-  return {
-    payment_method_ok: entitlement?.payment_method_ok === true,
-    payee: EFT_PAYEE
-  };
-}
-
 export type PlaceSubClock = Pick<
   PlaceEntitlement,
   'trial_started_at' | 'trial_ends_at' | 'payment_method_ok'
->;
+> & Partial<Pick<PlaceEntitlement, 'paid_until' | 'paystack_reference'>>;
 
 export function asPlaceSubClock(args: {
   entitlement?: PlaceSubClock | null;
@@ -215,7 +198,9 @@ export function asPlaceSubClock(args: {
     return {
       trial_started_at: args.entitlement.trial_started_at,
       trial_ends_at: args.entitlement.trial_ends_at,
-      payment_method_ok: args.entitlement.payment_method_ok === true
+      payment_method_ok: args.entitlement.payment_method_ok === true,
+      paid_until: args.entitlement.paid_until ?? null,
+      paystack_reference: args.entitlement.paystack_reference ?? null
     };
   }
   const started = typeof args.trialStartedAt === 'number' ? args.trialStartedAt : null;
@@ -248,6 +233,7 @@ export function stubRenewsAt(
   const first = stubPeriodEnd(clock);
   if (first == null || !clock) return null;
   const status = resolvePlaceSubscriptionStatus(clock, now);
+  if (status === 'active' && typeof clock.paid_until === 'number') return clock.paid_until;
   if (status !== 'active' || now < first) return first;
   const periodMs = billingPeriodMs(cadence);
   const elapsed = now - first;

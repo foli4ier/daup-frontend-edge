@@ -2315,7 +2315,8 @@ describe('My places subscription display and Add apps.', () => {
     unmount();
   });
 
-  it('lets the owner choose a plan and pay by EFT without marking the place paid', async () => {
+  it('lets the owner choose a plan and open Paystack without marking the place paid', async () => {
+    let checkoutBody = '';
     const { container, unmount } = render(<App />);
     await act(async () => {
       await new Promise(resolve => setTimeout(resolve, 80));
@@ -2336,7 +2337,9 @@ describe('My places subscription display and Add apps.', () => {
     expect(container.querySelector('[data-testid="place-sub-quote"]')?.textContent).toBe('R498 a month.');
     expect(container.querySelector('[data-testid="place-sub-then"]')?.textContent)
       .toBe('The trial is 30 days. Then R498 a month.');
-    expect(container.querySelector('[data-testid="place-eft"]')).toBeNull();
+    expect(container.querySelector('[data-testid="paystack-channels"]')?.textContent)
+      .toBe('Card, Ozow, or Capitec Pay.');
+    expect(container.textContent).not.toContain('2606460754');
 
     act(() => {
       (container.querySelector('[data-testid="plan-place"]') as HTMLButtonElement).click();
@@ -2357,24 +2360,40 @@ describe('My places subscription display and Add apps.', () => {
     expect(container.querySelector('[data-testid="place-sub-then"]')?.textContent)
       .toContain('10% off R5976.');
 
-    act(() => {
-      (container.querySelector('[data-testid="pay-by-eft"]') as HTMLButtonElement).click();
+    vi.mocked(fetch).mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes('/api/paystack/checkout')) {
+        checkoutBody = String(init?.body || '');
+        return new Response(JSON.stringify({
+          paid: true,
+          authorizationUrl: 'https://checkout.paystack.com/test'
+        }), { status: 200, headers: { 'content-type': 'application/json' } });
+      }
+      throw new TypeError('Failed to fetch');
     });
-    const eft = container.querySelector('[data-testid="place-eft"]');
-    expect(eft?.textContent).toContain('Capitec');
-    expect(eft?.textContent).toContain('MR FRANS OLIVIER');
-    expect(eft?.textContent).toContain('Savings Account');
-    expect(eft?.textContent).toContain('2606460754');
-    expect(eft?.textContent).toContain('470010');
-    expect(eft?.textContent).toContain('R5378.40 a year. 10% off R5976.');
-    expect(eft?.textContent).toContain('The Olive');
-    expect(eft?.querySelector('input')).toBeNull();
+
+    await act(async () => {
+      (container.querySelector('[data-testid="pay-with-paystack"]') as HTMLButtonElement).click();
+      await new Promise(resolve => setTimeout(resolve, 20));
+    });
+    expect(container.querySelector('[data-testid="pay-with-paystack"]')?.textContent).toBe('Pay with Paystack.');
+    expect(checkoutBody).toContain('"bundle":"both"');
+    expect(checkoutBody).toContain('"cadence":"annual"');
+    expect(checkoutBody).not.toContain('2606460754');
+    expect(checkoutBody).not.toMatch(/"amount"/);
+    expect(container.textContent).not.toContain('2606460754');
+    expect(container.textContent).not.toContain('MR FRANS OLIVIER');
+    expect(container.textContent).not.toContain('470010');
+    expect(container.querySelector('[data-testid="place-subscription"] input')).toBeNull();
     expect(loadPlaceEntitlement('co_olive')?.payment_method_ok).toBe(false);
     expect(container.textContent).not.toMatch(/\b(peer|DID|DHT|wallet|MCP|npm|hydrate|neon|node|co_)\b/i);
+    vi.mocked(fetch).mockImplementation(async () => {
+      throw new TypeError('Failed to fetch');
+    });
     unmount();
   });
 
-  it('shows payment due and the bank details when the period has ended', async () => {
+  it('shows payment due without bank details when the period has ended', async () => {
     saveNodeEntitlement({
       companyId: 'co_olive',
       node_subscription_status: 'past_due',
@@ -2391,8 +2410,9 @@ describe('My places subscription display and Add apps.', () => {
     expect(container.querySelector('[data-testid="eatery-place-remaining"]')?.textContent)
       .toBe('This period has ended.');
     expect(container.querySelector('[data-testid="eatery-place-due"]')?.textContent).toContain('Payment is due.');
-    expect(container.querySelector('[data-testid="eatery-place-eft"]')?.textContent).toContain('Capitec');
-    expect(container.querySelector('[data-testid="eatery-place-eft"]')?.textContent).toContain('2606460754');
+    expect(container.querySelector('[data-testid="eatery-place-eft"]')).toBeNull();
+    expect(container.textContent).not.toContain('2606460754');
+    expect(container.textContent).not.toContain('MR FRANS OLIVIER');
     expect(container.querySelector('[data-testid="open-the-house"]')).toBeTruthy();
     expect(loadPlaceEntitlement('co_olive')?.payment_method_ok).toBe(false);
 
@@ -2400,8 +2420,12 @@ describe('My places subscription display and Add apps.', () => {
       (container.querySelector('[data-testid="open-the-house"]') as HTMLButtonElement).click();
     });
     expect(container.querySelector('[data-testid="place-payment-due"]')?.textContent).toBe('Payment is due.');
-    expect(container.querySelector('[data-testid="place-eft"]')?.textContent).toContain('MR FRANS OLIVIER');
-    expect(container.querySelector('[data-testid="place-eft"]')?.querySelector('input')).toBeNull();
+    expect(container.querySelector('[data-testid="pay-with-paystack"]')?.textContent).toBe('Pay with Paystack.');
+    expect(container.querySelector('[data-testid="paystack-channels"]')?.textContent)
+      .toBe('Card, Ozow, or Capitec Pay.');
+    expect(container.textContent).not.toContain('MR FRANS OLIVIER');
+    expect(container.textContent).not.toContain('2606460754');
+    expect(container.querySelector('[data-testid="place-subscription"] input')).toBeNull();
     expect(loadPlaceEntitlement('co_olive')?.payment_method_ok).toBe(false);
     expect(listRegisteredPlaces().some(place => place.placeName === 'The Olive')).toBe(true);
     unmount();

@@ -329,35 +329,8 @@ body {
   font-weight: 700;
 }
 
-.place-eft {
-  margin-top: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.place-eft dl {
-  margin: 0;
-  display: grid;
-  gap: 8px;
-}
-
-.place-eft dl > div {
-  display: grid;
-  gap: 2px;
-}
-
-.place-eft dt {
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.82rem;
-  font-weight: 650;
-}
-
-.place-eft dd {
-  margin: 0;
-  font-weight: 700;
-  letter-spacing: 0.01em;
+.place-pay-note {
+  margin: 8px 0 0;
 }
 
 .place-card-trial {

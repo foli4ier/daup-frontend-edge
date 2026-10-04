@@ -11,8 +11,10 @@
  * Idempotent per placeId — keep original timestamps. Existing `node.trial_started`
  * / companyId records map onto place.trial_started / placeId without reminting.
  *
- * After trial_ends_at: active if payment stub OK; else past_due (read-only
- * grace, 7 days) then suspended (no writes). Payment is stubbed — no invoices.
+ * After trial_ends_at: active only when payment_method_ok still covers the
+ * period. Paystack sets that flag after a confirmed charge, subscription,
+ * or invoice. A legacy stub with no Paystack reference stays as stored.
+ * Else past_due (read-only grace, 7 days) then suspended (no writes).
  *
  * Meters: see priceMeters.ts / docs/license-pivot.md.
  */
@@ -53,8 +55,18 @@ export interface PlaceEntitlement {
   enabled_apps: EnableableAppId[];
   /** Unused in v0 (LOCATION dead). Kept so stored records stay readable. */
   billable_locations: number;
-  /** Slice G will wire real payment. Stub false → past_due after trial. */
+  /**
+   * True only after a confirmed Paystack charge, active subscription, or
+   * paid invoice — or a legacy stub that never went through Paystack.
+   * Opening checkout does not set this.
+   */
   payment_method_ok: boolean;
+  /** Paystack transaction reference. Absent on a legacy stub. */
+  paystack_reference?: string | null;
+  /** Set when Paystack has a subscription for this charge. */
+  paystack_subscription_code?: string | null;
+  /** Epoch ms. A one-off charge covers the place until this moment. */
+  paid_until?: number | null;
 }
 
 export type NodeEntitlement = PlaceEntitlement;
@@ -117,13 +129,25 @@ export function minBillableLocations(value: unknown): number {
   return 1;
 }
 
+/** Legacy stubs have no Paystack reference and no paid_until. */
+export function paystackPeriodOpen(
+  rec: Pick<PlaceEntitlement, 'payment_method_ok'> & Partial<Pick<PlaceEntitlement, 'paystack_reference' | 'paid_until'>>,
+  now = Date.now()
+): boolean {
+  if (rec.payment_method_ok !== true) return false;
+  const tracked = Boolean(rec.paystack_reference) || typeof rec.paid_until === 'number';
+  if (!tracked) return true;
+  if (typeof rec.paid_until !== 'number') return true;
+  return now < rec.paid_until;
+}
+
 export function resolvePlaceSubscriptionStatus(
-  rec: Pick<PlaceEntitlement, 'trial_started_at' | 'trial_ends_at' | 'payment_method_ok'>,
+  rec: Pick<PlaceEntitlement, 'trial_started_at' | 'trial_ends_at' | 'payment_method_ok'> & Partial<Pick<PlaceEntitlement, 'paystack_reference' | 'paid_until'>>,
   now = Date.now()
 ): PlaceSubscriptionStatus {
   if (!rec.trial_started_at || !rec.trial_ends_at) return 'suspended';
   if (now < rec.trial_ends_at) return 'trial';
-  if (rec.payment_method_ok) return 'active';
+  if (paystackPeriodOpen(rec, now)) return 'active';
   if (now < rec.trial_ends_at + PAST_DUE_MS) return 'past_due';
   return 'suspended';
 }
@@ -144,6 +168,13 @@ export function asPlaceEntitlement(value: unknown): PlaceEntitlement | null {
   const trialStarted = typeof raw.trial_started_at === 'number' ? raw.trial_started_at : null;
   const trialEnds = typeof raw.trial_ends_at === 'number' ? raw.trial_ends_at : null;
   const paymentOk = raw.payment_method_ok === true;
+  const reference = typeof raw.paystack_reference === 'string' ? raw.paystack_reference.trim() : '';
+  const subscriptionCode = typeof raw.paystack_subscription_code === 'string'
+    ? raw.paystack_subscription_code.trim()
+    : '';
+  const paidUntil = typeof raw.paid_until === 'number' && Number.isFinite(raw.paid_until)
+    ? raw.paid_until
+    : null;
   const rec: PlaceEntitlement = {
     placeId,
     companyId: placeId,
@@ -153,7 +184,10 @@ export function asPlaceEntitlement(value: unknown): PlaceEntitlement | null {
     trial_ends_at: trialEnds,
     enabled_apps: normalizeEnabledApps(raw.enabled_apps ?? raw.enabledApps),
     billable_locations: minBillableLocations(raw.billable_locations ?? raw.billableLocations),
-    payment_method_ok: paymentOk
+    payment_method_ok: paymentOk,
+    paystack_reference: reference || null,
+    paystack_subscription_code: subscriptionCode || null,
+    paid_until: paidUntil
   };
   const status = resolvePlaceSubscriptionStatus(rec);
   rec.place_subscription_status = status;

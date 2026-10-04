@@ -18,9 +18,8 @@ import {
   bundleAnnualCents,
   bundleMonthlyZar,
   DAY_MS,
-  EFT_PAYEE,
-  paymentScreenState,
   PLACE_PLAN_KEY,
+  planAmountCents,
   placeChoiceLines,
   placeChoiceTotalLine,
   placePlanQuote,
@@ -145,6 +144,12 @@ describe('place plan price math', () => {
     expect(placePlanQuote('hosted-seed', 'annual').line).toBe('R3229.20 a year. 10% off R3588.');
     expect(placePlanQuote('both', 'annual').line).toBe('R5378.40 a year. 10% off R5976.');
     expect(placePlanQuote('both', 'annual').discountCents).toBe(498 * 12 * 10);
+    expect(planAmountCents('place', 'monthly')).toBe(19900);
+    expect(planAmountCents('hosted-seed', 'monthly')).toBe(29900);
+    expect(planAmountCents('both', 'monthly')).toBe(49800);
+    expect(planAmountCents('place', 'annual')).toBe(199 * 12 * 90);
+    expect(planAmountCents('hosted-seed', 'annual')).toBe(299 * 12 * 90);
+    expect(planAmountCents('both', 'annual')).toBe(498 * 12 * 90);
     expect(hasBannedDoorCopy(placePlanQuote('both', 'annual').line)).toBe(false);
   });
 
@@ -173,14 +178,6 @@ describe('place plan price math', () => {
       payment_method_ok: false
     };
     expect(remainingPeriodCopy(clock, trialEnds + DAY_MS)).toBe(PERIOD_ENDED_LABEL);
-    const screen = paymentScreenState(clock);
-    expect(screen.payment_method_ok).toBe(false);
-    expect(screen.payee).toEqual(EFT_PAYEE);
-    expect(EFT_PAYEE.bank).toBe('Capitec');
-    expect(EFT_PAYEE.accountHolder).toBe('MR FRANS OLIVIER');
-    expect(EFT_PAYEE.accountType).toBe('Savings Account');
-    expect(EFT_PAYEE.accountNumber).toBe('2606460754');
-    expect(EFT_PAYEE.branchCode).toBe('470010');
     expect(clock.payment_method_ok).toBe(false);
   });
 
@@ -192,8 +189,7 @@ describe('place plan price math', () => {
     const raw = localStorage.getItem(PLACE_PLAN_KEY) || '';
     expect(raw).toContain('both');
     expect(raw).toContain('annual');
-    expect(raw).not.toMatch(/payment_method_ok|card|2606460754|cvv/i);
+    expect(raw).not.toMatch(/payment_method_ok|cvv|2606460754/i);
     expect(loadPlaceEntitlement('co_olive')).toBeNull();
-    expect(paymentScreenState({ payment_method_ok: false }).payment_method_ok).toBe(false);
   });
 });

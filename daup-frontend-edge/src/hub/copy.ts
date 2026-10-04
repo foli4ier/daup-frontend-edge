@@ -78,13 +78,10 @@ export const PLAN_HOSTED_SEED_LABEL = 'Hosted seed.';
 export const PLAN_BOTH_LABEL = 'Both.';
 export const PLAN_MONTHLY_LABEL = 'Monthly.';
 export const PLAN_ANNUAL_LABEL = 'Annual.';
-export const PAY_BY_EFT_LABEL = 'Pay by EFT.';
-export const EFT_BANK_LABEL = 'Bank.';
-export const EFT_HOLDER_LABEL = 'Account holder.';
-export const EFT_TYPE_LABEL = 'Account type.';
-export const EFT_NUMBER_LABEL = 'Account number.';
-export const EFT_BRANCH_LABEL = 'Branch code.';
-export const EFT_REFERENCE_LABEL = 'Reference.';
+export const PAY_WITH_PAYSTACK_LABEL = 'Pay with Paystack.';
+export const PAYSTACK_CHANNELS_LABEL = 'Card, Ozow, or Capitec Pay.';
+export const PAYSTACK_NOT_READY_LABEL = 'Paystack is not ready.';
+export const PAYSTACK_NEED_EMAIL_LABEL = 'Add an email to pay.';
 export const ADD_APPS_LABEL = 'Add apps.';
 export const ALREADY_ON_PLACE_LABEL = 'Already on this place.';
 
@@ -327,13 +324,10 @@ export const HUB_HOME_COPY = [
   PLAN_BOTH_LABEL,
   PLAN_MONTHLY_LABEL,
   PLAN_ANNUAL_LABEL,
-  PAY_BY_EFT_LABEL,
-  EFT_BANK_LABEL,
-  EFT_HOLDER_LABEL,
-  EFT_TYPE_LABEL,
-  EFT_NUMBER_LABEL,
-  EFT_BRANCH_LABEL,
-  EFT_REFERENCE_LABEL,
+  PAY_WITH_PAYSTACK_LABEL,
+  PAYSTACK_CHANNELS_LABEL,
+  PAYSTACK_NOT_READY_LABEL,
+  PAYSTACK_NEED_EMAIL_LABEL,
   ADD_APPS_LABEL,
   ALREADY_ON_PLACE_LABEL,
   daysLeftOnTrialLabel(12),

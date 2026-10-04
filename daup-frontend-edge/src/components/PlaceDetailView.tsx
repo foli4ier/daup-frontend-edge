@@ -8,8 +8,10 @@ import {
   DOWNLOAD_SEED_SETUP_LABEL,
   LIVE_STATUS_LABEL,
   ON_PREM_SEED_NEXT,
-  PAY_BY_EFT_LABEL,
+  PAY_WITH_PAYSTACK_LABEL,
   PAYMENT_DUE_LABEL,
+  PAYSTACK_CHANNELS_LABEL,
+  PAYSTACK_NOT_READY_LABEL,
   PLACE_ACTIVE_STATUS,
   PLACE_APPS_KICKER,
   PLACE_PAUSED,
@@ -64,8 +66,8 @@ import {
 import { formatTrialEndsOn } from '../hub/zaFormat';
 import type { ProjectOpenHandshake } from '../hub/projectUrls';
 import type { PlatformPlaceRecord } from '../stores/identityStore';
+import { openPaystackCheckout, startPaystackCheckout } from '../hub/paystackEntitlement';
 import { AppShelfTile } from './AppShelfTile';
-import { EftDetails } from './EftDetails';
 
 function kitchenStatus(status: ReturnType<typeof resolvePlaceSubscriptionStatus> | null): string {
   if (status === 'trial') return PLACE_TRIAL_STATUS;
@@ -114,7 +116,8 @@ export function PlaceDetailView({
   const [checkingSeed, setCheckingSeed] = useState(false);
   const [picking, setPicking] = useState<string[]>([]);
   const [planOverride, setPlanOverride] = useState<PlacePlanChoice | null>(null);
-  const [showEft, setShowEft] = useState(false);
+  const [payNote, setPayNote] = useState('');
+  const [paying, setPaying] = useState(false);
   const status = entitlement ? resolvePlaceSubscriptionStatus(entitlement) : (trialEndsAt ? 'trial' : null);
   const mode: SeednodeMode = seedConfig?.mode || 'hosted';
   const host = seednodeDoorHost(seedConfig);
@@ -144,6 +147,29 @@ export function PlaceDetailView({
   const paymentDue = status === 'past_due' || status === 'suspended';
   const apps = SHELF_SHOP_APPS.filter(app => app.id !== 'eatout' && enabledApps.includes(app.id));
   const heldApps = new Set(enabledApps);
+
+  const payWithPaystack = () => {
+    if (paying) return;
+    const placeId = licensedId || openedPlaceId;
+    setPaying(true);
+    setPayNote('');
+    void startPaystackCheckout({
+      email,
+      placeId,
+      bundle: plan.bundle,
+      cadence: plan.cadence
+    }).then(result => {
+      if (result.authorizationUrl) {
+        openPaystackCheckout(result.authorizationUrl);
+        return;
+      }
+      setPayNote(result.message || PAYSTACK_NOT_READY_LABEL);
+    }).catch(() => {
+      setPayNote(PAYSTACK_NOT_READY_LABEL);
+    }).finally(() => {
+      setPaying(false);
+    });
+  };
 
   const choosePlan = (patch: Partial<PlacePlanChoice>) => {
     const id = licensedId || openedPlaceId;
@@ -437,14 +463,17 @@ export function PlaceDetailView({
           <button
             type="button"
             className="btn btn-primary place-pay"
-            data-testid="pay-by-eft"
-            onClick={() => setShowEft(true)}
+            data-testid="pay-with-paystack"
+            aria-busy={paying}
+            disabled={paying}
+            onClick={payWithPaystack}
           >
-            {PAY_BY_EFT_LABEL}
+            {PAY_WITH_PAYSTACK_LABEL}
           </button>
         </div>
-        {showEft || paymentDue ? (
-          <EftDetails amountLine={quote.line} reference={place.placeName} />
+        <p className="caption place-pay-note" data-testid="paystack-channels">{PAYSTACK_CHANNELS_LABEL}</p>
+        {payNote ? (
+          <p className="caption place-pay-note" data-testid="paystack-note">{payNote}</p>
         ) : null}
       </article>
     </section>
