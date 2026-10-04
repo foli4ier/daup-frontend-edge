@@ -47,6 +47,8 @@ export interface UserDemographics {
   contactNumber: string;
   /** WhatsApp in E.164 (`+27829261373`). House OTP uses this number for every app. */
   whatsappNumber: string;
+  /** Owner's name on You. Empty until he types it. */
+  name?: string;
   language: string;
   sex: SexType;
   birthdate: string; // YYYY-MM-DD

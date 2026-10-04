@@ -233,6 +233,33 @@ export function shopAppIsHeld(app: ShopApp, held: {
   return Boolean(held.installed?.[app.moduleKey]);
 }
 
+/** Apps he already has, shelf order. Includes a coming app once it is on a place. */
+export function heldShopApps(args: {
+  hasHouse?: boolean;
+  installed?: Record<string, boolean>;
+  enabledApps?: readonly string[];
+  extraEnabled?: readonly (readonly string[])[];
+}): ShopApp[] {
+  const enabled = new Set<string>();
+  for (const id of args.enabledApps || []) {
+    if (id) enabled.add(id);
+  }
+  for (const list of args.extraEnabled || []) {
+    for (const id of list || []) {
+      if (id) enabled.add(id);
+    }
+  }
+  const enabledList = [...enabled];
+  return SHELF_SHOP_APPS.filter(app => {
+    if (enabled.has(app.id)) return true;
+    return shopAppIsHeld(app, {
+      hasHouse: args.hasHouse,
+      installed: args.installed,
+      enabledApps: enabledList
+    });
+  });
+}
+
 /**
  * EatOut Open. is search home. Chat Open. is the chat host with no redeem.
  * Finance, Trade, Vault, Project, Property, and Eatery use house Open URLs

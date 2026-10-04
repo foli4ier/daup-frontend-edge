@@ -215,6 +215,20 @@ export const CHAIN_APP_LABELS = {
 export const ASK_FOR_ENHANCEMENT_LABEL = 'Ask for an enhancement.';
 export const ASK_WHICH_APP_LABEL = 'Which app?';
 export const ASK_PICK_AN_APP = 'Pick an app first.';
+export const ASK_ASK_LABEL = 'Ask.';
+export const ASKED_LABEL = 'Asked.';
+export const NO_APPS_YET = 'No apps yet.';
+export const ADD_YOUR_NAME = 'Add your name.';
+export const ADD_YOUR_WHATSAPP = 'Add your WhatsApp.';
+export const ADD_YOUR_BIRTHDATE = 'Add your date of birth.';
+export const ADD_YOUR_ADDRESS = 'Add your address.';
+export const YOU_EMAIL_LINE = 'Email';
+export const YOU_WHATSAPP_LINE = 'WhatsApp';
+export const YOU_LANGUAGE_LINE = 'Language';
+export const YOU_BIRTHDATE_LINE = 'Date of birth';
+export const YOU_ADDRESS_LINE = 'Address';
+export const USE_THIS_EMAIL = 'Use this email?';
+export const USE_THIS_WHATSAPP = 'Use this WhatsApp number?';
 export const ASK_KIND_ENHANCEMENT = 'Enhancement';
 export const ASK_KIND_WRONG = "Something's wrong";
 export const ASK_KIND_HELP = 'Need help';
@@ -372,20 +386,32 @@ export const HUB_HOME_COPY = [
 
 export const ASK_PAGE_COPY = [
   ASK_FOR_ENHANCEMENT_LABEL,
-  ASK_WHICH_APP_LABEL,
-  ASK_PICK_AN_APP,
-  ASK_KIND_ENHANCEMENT,
-  ASK_KIND_WRONG,
-  ASK_KIND_HELP,
   ASK_BODY_LABEL,
-  ASK_SEND_LABEL,
-  ASK_EMPTY,
-  ASK_BACK_LABEL,
-  ASK_ALL_APPS,
+  ASK_ASK_LABEL,
+  ASKED_LABEL,
+  NO_APPS_YET,
+  CHAIN_BACK_LABEL,
   CHAIN_APP_EATERY,
-  CHAIN_APP_FARM,
-  CHAIN_APP_RESELLER,
-  CHAIN_APP_MAKER
+  'Services',
+  'Roster'
+];
+
+export const YOU_PAGE_COPY = [
+  ADD_YOUR_NAME,
+  YOU_EMAIL_LINE,
+  YOU_WHATSAPP_LINE,
+  ADD_YOUR_WHATSAPP,
+  YOU_LANGUAGE_LINE,
+  YOU_BIRTHDATE_LINE,
+  ADD_YOUR_BIRTHDATE,
+  YOU_ADDRESS_LINE,
+  ADD_YOUR_ADDRESS,
+  EDIT_LABEL,
+  SAVE_LABEL,
+  CANCEL_LABEL,
+  USE_THIS_EMAIL,
+  USE_THIS_WHATSAPP,
+  LOG_OFF_LABEL
 ];
 
 export const HUB_WIZARD_COPY = [

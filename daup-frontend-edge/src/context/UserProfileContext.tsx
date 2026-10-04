@@ -44,7 +44,9 @@ import {
   clearHouseCompanionCookie,
   clearOwnerSession,
   hasNamedHouse,
+  isRegisteredOwnerEmail,
   loadOwnerSession,
+  normalizeOwnerEmail,
   retireOwnerArrivalCookie,
   saveOwnerSession
 } from '../hub/ownerSession';
@@ -76,6 +78,7 @@ export interface UserProfileContextType {
   hasHouse: boolean;
   ownerSession: OwnerSession | null;
   openHubWithEmail: (session: OwnerSession) => Promise<void>;
+  updateSignedInEmail: (email: string) => void;
   logOffHub: () => void;
   isNamingPlace: boolean;
   beginNamingPlace: () => void;
@@ -252,6 +255,26 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
       setIsHydrating(false);
     }
   }, [applyListedHousePlaces]);
+
+  const updateSignedInEmail = useCallback((email: string) => {
+    const next = normalizeOwnerEmail(email);
+    if (!isRegisteredOwnerEmail(next)) return;
+    const session: OwnerSession = {
+      email: next,
+      signedInAt: ownerSession?.signedInAt || Date.now()
+    };
+    saveOwnerSession(session);
+    setOwnerSession(session);
+    commitVault(prev => ({
+      ...prev,
+      profile: {
+        ...prev.profile,
+        demographics: { ...prev.profile.demographics, email: next },
+        updatedAt: Date.now()
+      },
+      updatedAt: Date.now()
+    }));
+  }, [commitVault, ownerSession?.signedInAt]);
 
   const logOffHub = useCallback(() => {
     clearHubBrowserStorage();
@@ -1055,6 +1078,7 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
         hasHouse,
         ownerSession,
         openHubWithEmail,
+        updateSignedInEmail,
         logOffHub,
         isNamingPlace,
         beginNamingPlace,

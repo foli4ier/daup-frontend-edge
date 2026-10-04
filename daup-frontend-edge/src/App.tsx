@@ -11,7 +11,6 @@ import { DHTRouterView } from './components/DHTRouterView';
 import { DcdnResolverView } from './components/DcdnResolverView';
 import { McpConsole } from './components/McpConsole';
 import { SubscribedAppsView } from './components/SubscribedAppsView';
-import { AskForEnhancementView } from './components/AskForEnhancementView';
 import { LicenseManagementView } from './components/LicenseManagementView';
 import { McpProvider, getSubscriptionForDidAndModule } from './hooks/useMcpClient';
 import { FarmerWorkspace, ResellerWorkspace, ManufacturingWorkspace } from './components/VerticalAppWorkspaces';
@@ -45,7 +44,7 @@ const DashboardContent: React.FC = () => {
   const [launchedApp, setLaunchedApp] = useState<string | null>(null);
   const [isAdvanced, setIsAdvanced] = useState(false);
   const [hubPage, setHubPage] = useState<'home' | 'ask'>(() => readHubPage());
-  const [hubPane, setHubPane] = useState<HubPane>(DEFAULT_HUB_PANE);
+  const [hubPane, setHubPane] = useState<HubPane>(() => (readHubPage() === 'ask' ? 'apps' : DEFAULT_HUB_PANE));
   const [openPlaceKey, setOpenPlaceKey] = useState<string | null>(null);
 
   const [installedApps, setInstalledApps] = useState<Record<string, boolean>>(() => {
@@ -74,7 +73,11 @@ const DashboardContent: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const onPop = () => setHubPage(readHubPage());
+    const onPop = () => {
+      const page = readHubPage();
+      setHubPage(page);
+      if (page === 'ask') setHubPane('apps');
+    };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
   }, []);
@@ -104,7 +107,14 @@ const DashboardContent: React.FC = () => {
     setHubPage('ask');
     setActiveTab('home');
     setLaunchedApp(null);
-    setHubPane('you');
+    setHubPane('apps');
+    setOpenPlaceKey(null);
+  };
+
+  const closeAskTab = () => {
+    goToHubHome();
+    setHubPage('home');
+    setHubPane('apps');
   };
 
   const loadSubscriptions = useCallback(() => {
@@ -179,7 +189,6 @@ const DashboardContent: React.FC = () => {
 
   const showProtocol = isAdvanced && !launchedApp && activeTab !== 'home';
   const showThumb = !launchedApp;
-  const thumbPane: HubPane = hubPage === 'ask' ? 'you' : hubPane;
 
   return (
     <div className={showThumb ? 'owner-shell has-thumb' : 'owner-shell'}>
@@ -241,13 +250,9 @@ const DashboardContent: React.FC = () => {
         ) : (
           <>
             {(!isAdvanced || activeTab === 'home') && (
-              hubPage === 'ask' ? (
-                <AskForEnhancementView onBack={openHome} />
-              ) : hubPane === 'you' ? (
+              hubPane === 'you' ? (
                 <HubYouView
-                  onOpenAsk={openAsks}
                   isAdvanced={isAdvanced}
-                  onHouseCleared={openHome}
                   onToggleAdvanced={() => {
                     const next = !isAdvanced;
                     setIsAdvanced(next);
@@ -259,7 +264,11 @@ const DashboardContent: React.FC = () => {
               ) : (
                 <SubscribedAppsView
                   pane={hubPane}
-                  onOpenAsk={openAsks}
+                  appsTab={hubPane === 'apps' && hubPage === 'ask' ? 'ask' : 'shelf'}
+                  onAppsTab={tab => {
+                    if (tab === 'ask') openAsks();
+                    else closeAskTab();
+                  }}
                   installedApps={installedApps}
                   onSubscribeApp={handleInstallApp}
                   onLaunchApp={handleLaunchApp}
@@ -287,7 +296,7 @@ const DashboardContent: React.FC = () => {
       </main>
 
       {showThumb ? (
-        <HubThumbNav pane={thumbPane} onPane={openPane} />
+        <HubThumbNav pane={hubPane} onPane={openPane} />
       ) : null}
     </div>
   );

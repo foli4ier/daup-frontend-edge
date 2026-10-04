@@ -1,211 +1,306 @@
 import React, { useEffect, useState } from 'react';
 import { useUserProfile } from '../context/UserProfileContext';
 import {
-  ASK_FOR_ENHANCEMENT_LABEL,
-  CHAIN_BACK_LABEL,
-  CHANGE_WHATSAPP_LABEL,
-  DELETE_THE_HOUSE_LABEL,
+  ADD_YOUR_ADDRESS,
+  ADD_YOUR_BIRTHDATE,
+  ADD_YOUR_NAME,
+  ADD_YOUR_WHATSAPP,
+  CANCEL_LABEL,
+  EDIT_LABEL,
   HOUSE_OTP_BAD_PHONE,
+  INVALID_EMAIL_MESSAGE,
   LOG_OFF_LABEL,
-  MONEY_IN_R_LABEL,
-  PLACE_PAUSED,
-  PLACE_PAYMENT_DUE,
-  REGISTER_A_NEW_HOUSE_LABEL,
-  SAVE_WHATSAPP_LABEL,
-  SETTINGS_KICKER,
-  WHATSAPP_ONE_CODE_HINT,
-  YOU_KICKER,
-  YOUR_WHATSAPP_LABEL
+  SAVE_LABEL,
+  USE_THIS_EMAIL,
+  USE_THIS_WHATSAPP,
+  YOU_ADDRESS_LINE,
+  YOU_BIRTHDATE_LINE,
+  YOU_EMAIL_LINE,
+  YOU_LANGUAGE_LINE,
+  YOU_WHATSAPP_LINE
 } from '../hub/copy';
+import { isRegisteredOwnerEmail } from '../hub/ownerSession';
 import { toWhatsappE164 } from '../hub/whatsappE164';
-import { ASKS_PATH } from '../hub/asksPath';
-import { formatTrialEndsOn } from '../hub/zaFormat';
-import { resolveNodeSubscriptionStatus } from '../hub/entitlements';
-import { DeleteHouseModal } from './DeleteHouseModal';
+import { formatBirthdate } from '../hub/zaFormat';
+import { youLanguageChoices, youLanguageLabel } from '../hub/youLanguages';
 
 export const HubYouView: React.FC<{
-  onOpenAsk?: () => void;
   onToggleAdvanced?: () => void;
-  onHouseCleared?: () => void;
   isAdvanced?: boolean;
-}> = ({ onOpenAsk, onToggleAdvanced, onHouseCleared, isAdvanced }) => {
+}> = ({ onToggleAdvanced, isAdvanced }) => {
   const {
-    activeWallet,
-    hasHouse,
     ownerSession,
-    beginNamingPlace,
-    clearHouse,
     logOffHub,
-    trialState,
-    currency,
-    nodeEntitlement,
     profile,
-    updateDemographics
+    updateDemographics,
+    updateLocation,
+    updateSignedInEmail
   } = useUserProfile();
-  const houseName = (activeWallet?.legalName || '').trim();
-  const email = ownerSession?.email || '';
+  const email = ownerSession?.email || profile.demographics.email || '';
+  const name = (profile.demographics.name || '').trim();
   const whatsapp = toWhatsappE164(profile.demographics.whatsappNumber);
-  const suggested = whatsapp || toWhatsappE164(profile.demographics.contactNumber);
-  const [editingWhatsapp, setEditingWhatsapp] = useState(false);
-  const [whatsappDraft, setWhatsappDraft] = useState(suggested);
-  const [whatsappError, setWhatsappError] = useState('');
-  const showWhatsappEditor = editingWhatsapp || !whatsapp;
+  const language = profile.demographics.language || 'en';
+  const birthdate = (profile.demographics.birthdate || '').trim();
+  const birthLine = formatBirthdate(birthdate);
+  const address = (profile.location?.address || '').trim();
+
+  const [editing, setEditing] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [error, setError] = useState('');
+  const [nameDraft, setNameDraft] = useState(name);
+  const [emailDraft, setEmailDraft] = useState(email);
+  const [whatsappDraft, setWhatsappDraft] = useState(whatsapp);
+  const [languageDraft, setLanguageDraft] = useState(language);
+  const [birthDraft, setBirthDraft] = useState(birthdate);
+  const [addressDraft, setAddressDraft] = useState(address);
 
   useEffect(() => {
-    if (!editingWhatsapp) setWhatsappDraft(suggested);
-  }, [editingWhatsapp, suggested]);
-  const [deleteOpen, setDeleteOpen] = useState(false);
-  const nodeStatus = nodeEntitlement
-    ? resolveNodeSubscriptionStatus(nodeEntitlement)
-    : null;
-  const trialEnds = (nodeStatus === 'trial' && nodeEntitlement?.trial_ends_at)
-    ? formatTrialEndsOn(nodeEntitlement.trial_ends_at)
-    : (!nodeEntitlement && trialState.isTrialActive && trialState.trialExpiresAt
-      ? formatTrialEndsOn(trialState.trialExpiresAt)
-      : '');
-  const placeStatus = nodeStatus === 'past_due'
-    ? PLACE_PAYMENT_DUE
-    : nodeStatus === 'suspended'
-      ? PLACE_PAUSED
-      : '';
+    if (editing) return;
+    setNameDraft(name);
+    setEmailDraft(email);
+    setWhatsappDraft(whatsapp);
+    setLanguageDraft(language);
+    setBirthDraft(birthdate);
+    setAddressDraft(address);
+  }, [editing, name, email, whatsapp, language, birthdate, address]);
 
-  const saveWhatsapp = (event: React.FormEvent) => {
+  const nextEmail = emailDraft.trim().toLowerCase();
+  const typedWhatsapp = whatsappDraft.trim();
+  const nextWhatsapp = typedWhatsapp ? toWhatsappE164(typedWhatsapp) : '';
+  const emailChanged = nextEmail !== email;
+  const whatsappChanged = nextWhatsapp !== whatsapp;
+
+  const beginEdit = () => {
+    setNameDraft(name);
+    setEmailDraft(email);
+    setWhatsappDraft(whatsapp);
+    setLanguageDraft(language);
+    setBirthDraft(birthdate);
+    setAddressDraft(address);
+    setError('');
+    setConfirming(false);
+    setEditing(true);
+  };
+
+  const cancel = () => {
+    setError('');
+    setConfirming(false);
+    setEditing(false);
+  };
+
+  const touch = () => {
+    if (confirming) setConfirming(false);
+    if (error) setError('');
+  };
+
+  const save = (event: React.FormEvent) => {
     event.preventDefault();
-    const next = toWhatsappE164(whatsappDraft);
-    if (!next) {
-      setWhatsappError(HOUSE_OTP_BAD_PHONE);
+    if (!isRegisteredOwnerEmail(nextEmail)) {
+      setError(INVALID_EMAIL_MESSAGE);
+      setConfirming(false);
       return;
     }
-    setWhatsappError('');
-    updateDemographics({ whatsappNumber: next });
-    setEditingWhatsapp(false);
+    if (typedWhatsapp && !nextWhatsapp) {
+      setError(HOUSE_OTP_BAD_PHONE);
+      setConfirming(false);
+      return;
+    }
+    setError('');
+    if ((emailChanged || whatsappChanged) && !confirming) {
+      setConfirming(true);
+      return;
+    }
+    updateDemographics({
+      name: nameDraft.trim(),
+      language: languageDraft || 'en',
+      birthdate: birthDraft.trim(),
+      ...(whatsappChanged ? { whatsappNumber: nextWhatsapp } : {})
+    });
+    updateLocation({ address: addressDraft.trim() });
+    if (emailChanged) updateSignedInEmail(nextEmail);
+    setConfirming(false);
+    setEditing(false);
   };
 
   return (
     <section className="hub-you" data-testid="hub-you">
-      <div className="section-head">
-        <span className="kicker">{YOU_KICKER}</span>
-        <span className="rule" />
-      </div>
-
-      <article className="card hub-you-card">
-        <div className="hub-you-identity" data-testid="hub-you-identity">
-          {email ? <p className="hub-you-email" data-testid="hub-you-email">{email}</p> : null}
-          {whatsapp && !editingWhatsapp ? (
-            <p className="hub-you-whatsapp">
-              <span data-testid="hub-you-whatsapp">{whatsapp}</span>
-              <button
-                type="button"
-                className="owner-quiet hub-you-whatsapp-change"
-                data-testid="hub-you-whatsapp-change"
-                onClick={() => {
-                  setWhatsappDraft(whatsapp);
-                  setWhatsappError('');
-                  setEditingWhatsapp(true);
-                }}
-              >
-                {CHANGE_WHATSAPP_LABEL}
-              </button>
-            </p>
-          ) : null}
+      <form className="hub-you-card" data-testid="hub-you-form" onSubmit={save}>
+        <div className="hub-you-title place-card-name">
+          {editing ? (
+            <input
+              className="place-rename-field"
+              data-testid="hub-you-name-input"
+              aria-label={ADD_YOUR_NAME}
+              value={nameDraft}
+              placeholder={ADD_YOUR_NAME}
+              onChange={event => {
+                setNameDraft(event.target.value);
+                touch();
+              }}
+            />
+          ) : (
+            <h1
+              className={name ? 'hub-you-name' : 'hub-you-name is-prompt'}
+              data-testid="hub-you-name"
+              data-prompt={name ? undefined : 'true'}
+            >
+              {name || ADD_YOUR_NAME}
+            </h1>
+          )}
+          {editing ? null : (
+            <button
+              type="button"
+              className="place-text-action"
+              data-testid="hub-you-edit"
+              onClick={beginEdit}
+            >
+              {EDIT_LABEL}
+            </button>
+          )}
         </div>
-        {whatsapp && !showWhatsappEditor ? (
-          <p className="caption" data-testid="hub-you-whatsapp-hint">{WHATSAPP_ONE_CODE_HINT}</p>
-        ) : null}
-        {showWhatsappEditor ? (
-          <form className="hub-you-whatsapp-form" data-testid="hub-you-whatsapp-form" onSubmit={saveWhatsapp}>
-            <div className="owner-field">
-              <label htmlFor="hub-you-whatsapp-input">{YOUR_WHATSAPP_LABEL}</label>
+
+        <div className="hub-you-lines">
+          <div className="hub-you-line" data-testid="hub-you-email-line">
+            <span className="hub-you-key">{YOU_EMAIL_LINE}</span>
+            {editing ? (
               <input
-                id="hub-you-whatsapp-input"
+                data-testid="hub-you-email-input"
+                type="email"
+                autoComplete="email"
+                value={emailDraft}
+                onChange={event => {
+                  setEmailDraft(event.target.value);
+                  touch();
+                }}
+              />
+            ) : (
+              <span className="hub-you-value" data-testid="hub-you-email">{email}</span>
+            )}
+          </div>
+
+          <div className="hub-you-line" data-testid="hub-you-whatsapp-line">
+            <span className="hub-you-key">{YOU_WHATSAPP_LINE}</span>
+            {editing ? (
+              <input
                 data-testid="hub-you-whatsapp-input"
                 type="tel"
                 autoComplete="tel"
                 inputMode="tel"
                 value={whatsappDraft}
+                placeholder={ADD_YOUR_WHATSAPP}
                 onChange={event => {
                   setWhatsappDraft(event.target.value);
-                  if (whatsappError) setWhatsappError('');
+                  touch();
                 }}
               />
-            </div>
-            <p className="caption" data-testid="hub-you-whatsapp-hint">{WHATSAPP_ONE_CODE_HINT}</p>
-            {whatsappError ? (
-              <p className="wizard-error" role="alert" data-testid="hub-you-whatsapp-error">{whatsappError}</p>
-            ) : null}
-            <div className="hub-you-whatsapp-actions">
-              <button type="submit" className="btn btn-primary" data-testid="hub-you-whatsapp-save">
-                {SAVE_WHATSAPP_LABEL}
-              </button>
-              {whatsapp ? (
-                <button
-                  type="button"
-                  className="owner-quiet hub-you-whatsapp-back"
-                  data-testid="hub-you-whatsapp-back"
-                  onClick={() => {
-                    setWhatsappError('');
-                    setEditingWhatsapp(false);
-                  }}
-                >
-                  {CHAIN_BACK_LABEL}
-                </button>
-              ) : null}
-            </div>
-          </form>
-        ) : null}
-        {houseName ? <p className="hub-you-house">{houseName}</p> : null}
-        {trialEnds ? (
-          <p className="caption" data-testid="hub-you-date">{trialEnds}</p>
-        ) : null}
-        {placeStatus ? (
-          <p className="caption" data-testid="hub-you-place-status">{placeStatus}</p>
-        ) : null}
-        {currency.symbol === 'R' ? (
-          <p className="caption" data-testid="hub-you-money">{MONEY_IN_R_LABEL}</p>
-        ) : null}
-      </article>
+            ) : (
+              <span
+                className={whatsapp ? 'hub-you-value' : 'hub-you-value is-prompt'}
+                data-testid="hub-you-whatsapp"
+                data-prompt={whatsapp ? undefined : 'true'}
+              >
+                {whatsapp || ADD_YOUR_WHATSAPP}
+              </span>
+            )}
+          </div>
 
-      <section className="hub-settings" data-testid="hub-settings">
-        <div className="section-head">
-          <span className="kicker">{SETTINGS_KICKER}</span>
-          <span className="rule" />
+          <div className="hub-you-line" data-testid="hub-you-language-line">
+            <span className="hub-you-key">{YOU_LANGUAGE_LINE}</span>
+            {editing ? (
+              <select
+                data-testid="hub-you-language-input"
+                aria-label={YOU_LANGUAGE_LINE}
+                value={youLanguageChoices(languageDraft).some(row => row.code === languageDraft) ? languageDraft : 'en'}
+                onChange={event => {
+                  setLanguageDraft(event.target.value);
+                  touch();
+                }}
+              >
+                {youLanguageChoices(languageDraft).map(row => (
+                  <option key={row.code} value={row.code}>{row.label}</option>
+                ))}
+              </select>
+            ) : (
+              <span className="hub-you-value" data-testid="hub-you-language">{youLanguageLabel(language)}</span>
+            )}
+          </div>
+
+          <div className="hub-you-line" data-testid="hub-you-birthdate-line">
+            <span className="hub-you-key">{YOU_BIRTHDATE_LINE}</span>
+            {editing ? (
+              <input
+                data-testid="hub-you-birthdate-input"
+                type="date"
+                value={birthDraft}
+                aria-label={YOU_BIRTHDATE_LINE}
+                onChange={event => {
+                  setBirthDraft(event.target.value);
+                  touch();
+                }}
+              />
+            ) : (
+              <span
+                className={birthLine ? 'hub-you-value' : 'hub-you-value is-prompt'}
+                data-testid="hub-you-birthdate"
+                data-prompt={birthLine ? undefined : 'true'}
+              >
+                {birthLine || ADD_YOUR_BIRTHDATE}
+              </span>
+            )}
+          </div>
+
+          <div className="hub-you-line" data-testid="hub-you-address-line">
+            <span className="hub-you-key">{YOU_ADDRESS_LINE}</span>
+            {editing ? (
+              <input
+                data-testid="hub-you-address-input"
+                type="text"
+                autoComplete="street-address"
+                value={addressDraft}
+                placeholder={ADD_YOUR_ADDRESS}
+                onChange={event => {
+                  setAddressDraft(event.target.value);
+                  touch();
+                }}
+              />
+            ) : (
+              <span
+                className={address ? 'hub-you-value' : 'hub-you-value is-prompt'}
+                data-testid="hub-you-address"
+                data-prompt={address ? undefined : 'true'}
+              >
+                {address || ADD_YOUR_ADDRESS}
+              </span>
+            )}
+          </div>
         </div>
-        <div className="hub-settings-list">
-          <button
-            type="button"
-            className="hub-settings-row"
-            data-testid="register-new-house"
-            onClick={beginNamingPlace}
-          >
-            {REGISTER_A_NEW_HOUSE_LABEL}
-          </button>
-          {hasHouse ? (
-            <button
-              type="button"
-              className="hub-settings-row"
-              data-testid="delete-the-house"
-              onClick={() => setDeleteOpen(true)}
-            >
-              {DELETE_THE_HOUSE_LABEL}
+
+        {error ? (
+          <p className="wizard-error" role="alert" data-testid="hub-you-error">{error}</p>
+        ) : null}
+
+        {confirming ? (
+          <div data-testid="hub-you-confirm">
+            {emailChanged ? <p data-testid="hub-you-confirm-email">{USE_THIS_EMAIL}</p> : null}
+            {whatsappChanged ? <p data-testid="hub-you-confirm-whatsapp">{USE_THIS_WHATSAPP}</p> : null}
+          </div>
+        ) : null}
+
+        {editing ? (
+          <div className="hub-you-actions">
+            <button type="submit" className="btn btn-primary" data-testid="hub-you-save">
+              {SAVE_LABEL}
             </button>
-          ) : null}
-          <a
-            className="hub-settings-row"
-            href={ASKS_PATH}
-            data-testid="ask-for-enhancement"
-            onClick={(event) => {
-              event.preventDefault();
-              onOpenAsk?.();
-            }}
-          >
-            {ASK_FOR_ENHANCEMENT_LABEL}
-          </a>
-        </div>
-      </section>
+            <button type="button" className="btn btn-outline" data-testid="hub-you-cancel" onClick={cancel}>
+              {CANCEL_LABEL}
+            </button>
+          </div>
+        ) : null}
+      </form>
 
       <button
         type="button"
-        className="btn btn-outline btn-wide"
+        className="owner-quiet hub-you-log-off"
         data-testid="hub-log-off"
         onClick={logOffHub}
       >
@@ -222,17 +317,6 @@ export const HubYouView: React.FC<{
       >
         Advanced
       </button>
-
-      <DeleteHouseModal
-        isOpen={deleteOpen}
-        houseName={houseName}
-        onClose={() => setDeleteOpen(false)}
-        onConfirm={() => {
-          setDeleteOpen(false);
-          clearHouse();
-          onHouseCleared?.();
-        }}
-      />
     </section>
   );
 };

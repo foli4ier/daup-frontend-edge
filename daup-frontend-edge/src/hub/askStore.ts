@@ -4,11 +4,11 @@ import {
   ASK_KIND_WRONG,
   CHAIN_APP_LABELS
 } from './copy';
-import { PLATFORM_APP_IDS, type PlatformAppId } from '../stores/identityStore';
+import { SHOP_APPS, type ShopAppId } from './places';
 
 export const ASK_STORAGE_KEY = 'daup:hub:ask_requests';
 
-export type AskAppId = PlatformAppId;
+export type AskAppId = ShopAppId;
 export type AskKind = typeof ASK_KIND_ENHANCEMENT | typeof ASK_KIND_WRONG | typeof ASK_KIND_HELP;
 export type AskAppFilter = AskAppId | 'all';
 
@@ -18,6 +18,9 @@ export interface AskRequest {
   kind: AskKind;
   title: string;
   createdAt: number;
+  /** Page he was asking about. The ask is not tied to a place. */
+  pageId?: string;
+  pageLabel?: string;
   houseName?: string;
 }
 
@@ -27,10 +30,10 @@ export const ASK_KINDS: AskKind[] = [
   ASK_KIND_HELP
 ];
 
-export const ASK_APP_CHOICES: { id: AskAppId; label: string; coming: boolean }[] = PLATFORM_APP_IDS.map(id => ({
-  id,
-  label: CHAIN_APP_LABELS[id],
-  coming: id !== 'eatery'
+export const ASK_APP_CHOICES: { id: AskAppId; label: string; coming: boolean }[] = SHOP_APPS.map(app => ({
+  id: app.id,
+  label: app.title,
+  coming: !app.live
 }));
 
 const LEGACY_KINDS: Record<string, AskKind> = {
@@ -40,7 +43,7 @@ const LEGACY_KINDS: Record<string, AskKind> = {
 };
 
 export function isAskAppId(value: string): value is AskAppId {
-  return (PLATFORM_APP_IDS as readonly string[]).includes(value);
+  return SHOP_APPS.some(app => app.id === value);
 }
 
 export function isAskKind(value: string): value is AskKind {
@@ -96,6 +99,8 @@ function asRequest(value: unknown): AskRequest | null {
     kind,
     title: body,
     createdAt: typeof row.createdAt === 'number' ? row.createdAt : 0,
+    pageId: typeof row.pageId === 'string' && row.pageId.trim() ? row.pageId.trim() : undefined,
+    pageLabel: typeof row.pageLabel === 'string' && row.pageLabel.trim() ? row.pageLabel.trim() : undefined,
     houseName: typeof row.houseName === 'string' ? row.houseName : undefined
   };
 }
@@ -119,6 +124,8 @@ export function raiseAskRequest(input: {
   app: string;
   kind?: string;
   title: string;
+  pageId?: string;
+  pageLabel?: string;
   houseName?: string;
   now?: number;
 }): { ok: true; request: AskRequest } | { ok: false; reason: 'app' | 'title' } {
@@ -130,12 +137,16 @@ export function raiseAskRequest(input: {
     return { ok: false, reason: 'title' };
   }
   const kind: AskKind = normalizeAskKind(String(input.kind || '')) || ASK_KIND_ENHANCEMENT;
+  const pageId = (input.pageId || '').trim();
+  const pageLabel = (input.pageLabel || '').trim();
   const request: AskRequest = {
     id: `ask-${input.now || Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     app: input.app,
     kind,
     title,
     createdAt: input.now || Date.now(),
+    pageId: pageId || undefined,
+    pageLabel: pageLabel || undefined,
     houseName: (input.houseName || '').trim() || undefined
   };
   const next = [request, ...loadAskRequests()];

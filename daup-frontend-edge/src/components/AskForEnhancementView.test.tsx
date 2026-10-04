@@ -3,92 +3,27 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { act } from 'react';
 import { Simulate } from 'react-dom/test-utils';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { AskForEnhancementView } from './AskForEnhancementView';
 import { UserProfileProvider } from '../context/UserProfileContext';
-import {
-  saveIdentityVault,
-  resetIdentityVault,
-  UserIdentityVault
-} from '../stores/identityStore';
-import { OWNER_SESSION_STORAGE_KEY } from '../hub/ownerSession';
-import { ASK_STORAGE_KEY, clearAskRequests, raiseAskRequest } from '../hub/askStore';
-import {
-  ASK_BODY_LABEL,
-  ASK_EMPTY,
-  ASK_FOR_ENHANCEMENT_LABEL,
-  ASK_KIND_HELP,
-  ASK_KIND_WRONG,
-  ASK_PICK_AN_APP,
-  ASK_SEND_LABEL,
-  ASK_WHICH_APP_LABEL,
-  BANNED_DOOR_WORDS
-} from '../hub/copy';
+import { ASK_STORAGE_KEY, clearAskRequests } from '../hub/askStore';
+import { ASK_ASK_LABEL, ASK_BODY_LABEL, BANNED_DOOR_WORDS, NO_APPS_YET } from '../hub/copy';
+import { SHOP_APPS, type ShopApp } from '../hub/places';
+import type { AskPageNode } from '../hub/askPages';
 
-const houseVault: UserIdentityVault = {
-  version: 1,
-  hasCompletedOnboarding: true,
-  registeredAt: 1700000000000,
-  updatedAt: 1700000000000,
-  profile: {
-    demographics: {
-      email: 'owner@theolive.co.za',
-      contactNumber: '+27820000000',
-      whatsappNumber: '',
-      language: 'en',
-      sex: 'prefer_not_to_say',
-      birthdate: ''
-    },
-    location: {
-      country: 'South Africa',
-      provinceState: 'Western Cape',
-      city: 'Stellenbosch',
-      address: '12 Church Street'
-    },
-    socials: { website: '', instagram: '', facebook: '' },
-    wallets: [{
-      id: 'w-olive',
-      type: 'bank',
-      legalName: 'The Olive',
-      bankName: '',
-      accountNumber: '',
-      routingCode: '',
-      isPrimary: true,
-      createdAt: 1700000000000
-    }],
-    primaryWalletId: 'w-olive',
-    isOnboarded: true,
-    createdAt: 1700000000000,
-    updatedAt: 1700000000000
-  },
-  registeredWallets: [{
-    id: 'w-olive',
-    type: 'bank',
-    legalName: 'The Olive',
-    bankName: '',
-    accountNumber: '',
-    routingCode: '',
-    isPrimary: true,
-    createdAt: 1700000000000
-  }],
-  activeWallet: {
-    id: 'w-olive',
-    type: 'bank',
-    legalName: 'The Olive',
-    bankName: '',
-    accountNumber: '',
-    routingCode: '',
-    isPrimary: true,
-    createdAt: 1700000000000
-  },
-  identityKeySeedNode: 'the-olive-seed',
-  trialState: {
-    hasStartedTrial: true,
-    trialStartedAt: 1700000000000,
-    trialExpiresAt: 1702592000000,
-    isTrialActive: true,
-    tier: 'Trial',
-    isSubscribed: true
-  }
+const eatery = SHOP_APPS.find(app => app.id === 'eatery') as ShopApp;
+const project = SHOP_APPS.find(app => app.id === 'project') as ShopApp;
+
+const pages: Record<string, AskPageNode[] | undefined> = {
+  eatery: [
+    {
+      id: 'services',
+      label: 'Services',
+      children: [{ id: 'roster', label: 'Roster', still: '/stills/roster.png' }]
+    }
+  ]
 };
 
 function render(ui: React.ReactElement) {
@@ -107,107 +42,110 @@ function render(ui: React.ReactElement) {
   };
 }
 
-function typeInto(input: HTMLInputElement | HTMLTextAreaElement, value: string) {
-  act(() => {
-    input.focus();
-    input.value = value;
-    Simulate.change(input);
-  });
-}
-
-function click(el: Element | null) {
-  act(() => {
-    (el as HTMLButtonElement | null)?.click();
-  });
-}
-
-describe('Ask for an enhancement. page', () => {
+describe('Ask for an enhancement. tab', () => {
   beforeEach(() => {
-    resetIdentityVault();
     localStorage.clear();
     clearAskRequests();
-    saveIdentityVault(houseVault);
-    localStorage.setItem(OWNER_SESSION_STORAGE_KEY, JSON.stringify({
-      email: 'owner@theolive.co.za',
-      signedInAt: Date.now()
-    }));
   });
 
-  it('shows the empty cream page and refuses submit without Which app?', async () => {
+  it('keeps the ask grid at three across and choice rows at 48px', () => {
+    const css = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../owner.css'), 'utf8');
+    expect(css).toMatch(/\.ask-app-grid\s*\{[^}]*grid-template-columns:\s*repeat\(3,/s);
+    expect(css).toMatch(/\.ask-choice\s*\{[^}]*min-height:\s*48px/s);
+    expect(css).toMatch(/\.hub-you-actions \.btn\s*\{[^}]*min-height:\s*48px/s);
+    expect(css).toMatch(/\.hub-you-actions \.btn-primary\s*\{[^}]*var\(--terracotta\)/s);
+    expect(css).toMatch(/\.hub-you-actions \.btn-outline\s*\{[^}]*background:\s*transparent/s);
+  });
+
+  it('walks Eatery, then Services, then Roster, and asks without a place', async () => {
     const { container, unmount } = render(
       <UserProfileProvider>
-        <AskForEnhancementView onBack={() => {}} />
+        <AskForEnhancementView apps={[eatery, project]} pages={pages} />
       </UserProfileProvider>
     );
 
-    await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 40));
-    });
+    const tiles = Array.from(container.querySelectorAll('[data-testid^="ask-app-"][data-app-id]'));
+    expect(tiles.map(tile => tile.getAttribute('data-app-id'))).toEqual(['eatery', 'project']);
+    expect(container.textContent).not.toContain('Get.');
+    expect(container.textContent).not.toContain('Soon.');
+    expect(container.querySelector('[data-testid="ask-choice-roster"]')).toBeNull();
 
-    expect(container.querySelector('[data-testid="ask-page"]')).toBeTruthy();
-    expect(container.textContent).toContain(ASK_FOR_ENHANCEMENT_LABEL);
-    expect(container.querySelector('[data-testid="ask-which-app"] legend')?.textContent).toBe(ASK_WHICH_APP_LABEL);
-    expect(container.querySelector('[data-testid="ask-empty"]')?.textContent).toBe(ASK_EMPTY);
+    act(() => {
+      (container.querySelector('[data-testid="ask-app-eatery"]') as HTMLButtonElement).click();
+    });
+    expect(container.querySelector('[data-testid="ask-choice-services"]')?.textContent).toBe('Services');
+    expect(container.querySelector('[data-testid="ask-choice-roster"]')).toBeNull();
+    expect(container.querySelector('[data-testid="ask-back"]')?.textContent).toBe('Back.');
+
+    act(() => {
+      (container.querySelector('[data-testid="ask-choice-services"]') as HTMLButtonElement).click();
+    });
+    expect(container.querySelector('[data-testid="ask-choice-roster"]')?.textContent).toBe('Roster');
+    expect(container.querySelector('.ask-app-grid')).toBeNull();
+
+    act(() => {
+      (container.querySelector('[data-testid="ask-choice-roster"]') as HTMLButtonElement).click();
+    });
+    const still = container.querySelector('[data-testid="ask-still"]') as HTMLImageElement;
+    expect(still?.getAttribute('src')).toBe('/stills/roster.png');
+    expect(container.querySelector('input[type="file"]')).toBeNull();
     expect(container.querySelector('label[for="ask-body"]')?.textContent).toBe(ASK_BODY_LABEL);
-    expect(container.querySelector('[data-testid="ask-send"]')?.textContent).toBe(ASK_SEND_LABEL);
-    expect(container.textContent).toContain(ASK_KIND_WRONG);
-    expect(container.textContent).toContain(ASK_KIND_HELP);
-    expect(container.textContent).not.toMatch(/\b(Defect|Support|gossipsub|crdt|mesh|neon|hydrate)\b/i);
+    expect(container.querySelector('[data-testid="ask-ask"]')?.textContent).toBe(ASK_ASK_LABEL);
     for (const word of BANNED_DOOR_WORDS) {
       expect(new RegExp(`\\b${word}\\b`, 'i').test(container.textContent || ''), `banned "${word}"`).toBe(false);
     }
 
-    typeInto(container.querySelector('[data-testid="ask-body"]') as HTMLTextAreaElement, 'Bigger Friday book');
-
+    const body = container.querySelector('[data-testid="ask-body"]') as HTMLInputElement;
+    act(() => {
+      body.value = 'Show who is on tonight';
+      Simulate.change(body);
+    });
     act(() => {
       Simulate.submit(container.querySelector('[data-testid="ask-raise-form"]') as HTMLFormElement);
     });
-
-    expect(container.querySelector('[data-testid="ask-app-error"]')?.textContent).toBe(ASK_PICK_AN_APP);
-    expect(container.querySelector('[data-testid="ask-request"]')).toBeNull();
-    expect(localStorage.getItem(ASK_STORAGE_KEY)).toBeNull();
+    const stored = JSON.parse(localStorage.getItem(ASK_STORAGE_KEY) || '[]');
+    expect(stored).toHaveLength(1);
+    expect(stored[0].app).toBe('eatery');
+    expect(stored[0].pageId).toBe('roster');
+    expect(stored[0].title).toBe('Show who is on tonight');
+    expect(stored[0].houseName).toBeUndefined();
+    expect(container.querySelector('[data-testid="ask-asked"]')?.textContent).toBe('Asked.');
     unmount();
   });
 
-  it('raises a request tagged to an app and filters the list', async () => {
-    raiseAskRequest({
-      app: 'farm',
-      kind: 'Need help',
-      title: 'Field list on the phone',
-      now: 1
-    });
-
+  it('still asks when the page has no still', () => {
     const { container, unmount } = render(
       <UserProfileProvider>
-        <AskForEnhancementView onBack={() => {}} />
+        <AskForEnhancementView apps={[project]} pages={{}} />
       </UserProfileProvider>
     );
-
-    await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 40));
+    act(() => {
+      (container.querySelector('[data-testid="ask-app-project"]') as HTMLButtonElement).click();
     });
-
-    click(container.querySelector('[data-testid="ask-app-eatery"]'));
-    typeInto(container.querySelector('[data-testid="ask-body"]') as HTMLTextAreaElement, 'Ticket printer stays quiet');
-
+    expect(container.querySelector('[data-testid="ask-still"]')).toBeNull();
+    expect(container.querySelector('[data-testid="ask-page-title"]')?.textContent).toBe('Project');
+    const body = container.querySelector('[data-testid="ask-body"]') as HTMLInputElement;
+    act(() => {
+      body.value = 'A shorter list';
+      Simulate.change(body);
+    });
     act(() => {
       Simulate.submit(container.querySelector('[data-testid="ask-raise-form"]') as HTMLFormElement);
     });
+    const stored = JSON.parse(localStorage.getItem(ASK_STORAGE_KEY) || '[]');
+    expect(stored[0].pageId).toBe('project');
+    expect(stored[0].houseName).toBeUndefined();
+    unmount();
+  });
 
-    const rows = Array.from(container.querySelectorAll('[data-testid="ask-request"]'));
-    expect(rows).toHaveLength(2);
-    expect(rows[0].getAttribute('data-app')).toBe('eatery');
-    expect(rows.some(row => row.getAttribute('data-app') === 'farm')).toBe(true);
-    expect(container.textContent).not.toContain('Defect');
-    expect(container.textContent).not.toContain('Support');
-
-    click(container.querySelector('[data-testid="ask-filter-eatery"]'));
-    const filtered = Array.from(container.querySelectorAll('[data-testid="ask-request"]'));
-    expect(filtered).toHaveLength(1);
-    expect(filtered[0].getAttribute('data-app')).toBe('eatery');
-    expect(filtered[0].textContent).toContain('Eatery');
-    expect(filtered[0].textContent).toContain('Ticket printer stays quiet');
-    expect(container.querySelector('[data-testid="ask-empty"]')).toBeNull();
+  it('says there are no apps yet when he has none', () => {
+    const { container, unmount } = render(
+      <UserProfileProvider>
+        <AskForEnhancementView apps={[]} />
+      </UserProfileProvider>
+    );
+    expect(container.querySelector('[data-testid="ask-no-apps"]')?.textContent).toBe(NO_APPS_YET);
+    expect(container.querySelector('[data-testid="ask-app-grid"]')).toBeNull();
     unmount();
   });
 });

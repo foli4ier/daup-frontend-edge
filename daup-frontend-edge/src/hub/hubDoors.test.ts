@@ -9,6 +9,7 @@ import {
   ASK_FOR_ENHANCEMENT_LABEL,
   ASK_PAGE_COPY,
   ASK_PATH_LABEL,
+  YOU_PAGE_COPY,
   ASK_PICK_AN_APP,
   ASK_WHICH_APP_LABEL,
   GET_APPS_KICKER,
@@ -142,14 +143,27 @@ describe('hub email door copy', () => {
     expect(ASK_PATH_LABEL).toBe('/asks');
     expect(ASK_WHICH_APP_LABEL).toBe('Which app?');
     expect(ASK_PICK_AN_APP).toBe('Pick an app first.');
-    expect(ASK_PAGE_COPY).toContain('Enhancement');
-    expect(ASK_PAGE_COPY).toContain("Something's wrong");
-    expect(ASK_PAGE_COPY).toContain('Need help');
     expect(ASK_PAGE_COPY).toContain('What do you need?');
-    expect(ASK_PAGE_COPY).toContain('Send.');
-    expect(ASK_PAGE_COPY).toContain('No asks yet.');
+    expect(ASK_PAGE_COPY).toContain('Ask.');
+    expect(ASK_PAGE_COPY).toContain('Services');
+    expect(ASK_PAGE_COPY).toContain('Roster');
+    expect(ASK_PAGE_COPY).toContain('Back.');
+    expect(ASK_PAGE_COPY).not.toContain('Get.');
+    expect(ASK_PAGE_COPY).not.toContain('Soon.');
+    expect(ASK_PAGE_COPY).not.toContain('Send.');
     expect(ASK_PAGE_COPY).not.toContain('Defect');
     expect(ASK_PAGE_COPY).not.toContain('Support');
+    const you = YOU_PAGE_COPY.join('\n');
+    for (const word of BANNED_DOOR_WORDS) {
+      expect(hasBannedDoorCopy(you), `banned "${word}" on You`).toBe(false);
+    }
+    expect(YOU_PAGE_COPY).toContain('Add your WhatsApp.');
+    expect(YOU_PAGE_COPY).toContain('Add your date of birth.');
+    expect(YOU_PAGE_COPY).toContain('Add your address.');
+    expect(YOU_PAGE_COPY).toContain('Save.');
+    expect(YOU_PAGE_COPY).toContain('Cancel.');
+    expect(YOU_PAGE_COPY).toContain('Use this email?');
+    expect(YOU_PAGE_COPY).not.toContain('Settings.');
   });
 });
 

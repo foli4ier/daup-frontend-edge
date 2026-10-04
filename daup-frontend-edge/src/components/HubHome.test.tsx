@@ -41,12 +41,10 @@ import {
   SOON_LABEL,
   YOUR_PLACES_EMPTY,
   YOUR_PLACES_KICKER,
-  SETTINGS_KICKER,
   WHERE_IS_THE_EATERY,
   PLACE_PAYMENT_DUE,
   PLACE_PAUSED,
   HOUSE_OTP_BAD_PHONE,
-  WHATSAPP_ONE_CODE_HINT,
   COMING_DOT_LABEL,
   SAMPLE_SOURCE_LABEL,
   subscribedCountLabel
@@ -237,22 +235,38 @@ describe('hub home after email', () => {
     expect(apps?.querySelector('[data-testid="other-places"]')).toBeNull();
 
     openYou(container);
-    expect(container.querySelector('[data-testid="hub-you-money"]')?.textContent).toBe('Prices in R.');
-    expect(container.querySelector('[data-testid="hub-you-date"]')?.textContent).toMatch(/^Ends \d{1,2} Dec 2023\.$/);
-    const settings = container.querySelector('[data-testid="hub-settings"]');
-    expect(settings?.querySelector('.kicker')?.textContent).toBe(SETTINGS_KICKER);
-    expect(settings?.querySelector('[data-testid="register-new-house"]')?.textContent).toBe(REGISTER_A_NEW_HOUSE_LABEL);
-    expect(settings?.querySelector('[data-testid="delete-the-house"]')?.textContent).toBe(DELETE_THE_HOUSE_LABEL);
-    expect(settings?.querySelector('[data-testid="ask-for-enhancement"]')?.textContent).toBe('Ask for an enhancement.');
+    const you = container.querySelector('[data-testid="hub-you"]');
+    expect(you?.querySelector('[data-testid="hub-you-name"]')?.textContent).toBe('Add your name.');
+    expect(you?.querySelector('[data-testid="hub-you-edit"]')?.textContent).toBe('Edit.');
+    expect(you?.querySelector('[data-testid="hub-you-email"]')?.textContent).toBe('owner@theolive.co.za');
+    expect(you?.querySelector('[data-testid="hub-you-whatsapp"]')?.textContent).toBe('Add your WhatsApp.');
+    expect(you?.querySelector('[data-testid="hub-you-language"]')?.textContent).toBe('English');
+    expect(you?.querySelector('[data-testid="hub-you-birthdate"]')?.textContent).toBe('Add your date of birth.');
+    expect(you?.querySelector('[data-testid="hub-you-address"]')?.textContent).toBe('12 Church Street');
+    expect(you?.querySelector('[data-testid="hub-settings"]')).toBeNull();
+    expect(you?.querySelector('[data-testid="hub-you-money"]')).toBeNull();
+    expect(you?.querySelector('[data-testid="hub-you-date"]')).toBeNull();
+    expect(you?.textContent).not.toContain('Ask for an enhancement.');
+    expect(you?.textContent).not.toContain('Settings.');
+    expect(you?.textContent).not.toContain(DELETE_THE_HOUSE_LABEL);
+    expect(you?.textContent).not.toContain(REGISTER_A_NEW_HOUSE_LABEL);
+    expect(you?.textContent).not.toContain('Prices in R.');
+    expect(you?.textContent).not.toContain('The Olive');
+    expect(you?.textContent).not.toContain('Delete account');
+    expect(you?.textContent).not.toContain('Theme');
+    expect(you?.textContent).not.toContain('Notifications');
     expect(container.querySelector('[data-testid="hub-log-off"]')?.textContent).toBe('Log off.');
+    expect(container.querySelector('[data-testid="hub-log-off"]')?.className).toContain('owner-quiet');
     expect(container.querySelector('[data-testid="hub-you-profile"]')).toBeNull();
     expect(container.textContent).not.toContain('Profile');
     expect(container.textContent).not.toContain('Account');
     expect(container.textContent).not.toContain('Admin');
+    const lines = you?.querySelector('[data-testid="hub-you-address-line"]') as HTMLElement;
     const logOff = container.querySelector('[data-testid="hub-log-off"]') as HTMLElement;
     const advanced = container.querySelector('[data-testid="hub-advanced"]') as HTMLElement;
-    expect(settings && settings.compareDocumentPosition(logOff) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(lines && lines.compareDocumentPosition(logOff) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(logOff.compareDocumentPosition(advanced) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(advanced?.getAttribute('aria-pressed')).not.toBe('true');
 
     openOther(container);
     const otherPane = container.querySelector('[data-testid="hub-home"]');
@@ -267,43 +281,48 @@ describe('hub home after email', () => {
     unmount();
   });
 
-  it('keeps Delete the house. / Register a new house. / Ask for an enhancement. on You. Settings. only', async () => {
+  it('keeps register and delete on My places, and Ask on the Apps tab', async () => {
     const { container, unmount } = render(<App />);
     await act(async () => {
       await new Promise(resolve => setTimeout(resolve, 80));
     });
 
-    const assertNoHouseAdminDoors = (root: Element | null) => {
-      expect(root?.querySelector('[data-testid="delete-the-house"]')).toBeNull();
-      expect(root?.querySelector('[data-testid="ask-for-enhancement"]')).toBeNull();
-      expect(root?.textContent).not.toContain(REGISTER_A_NEW_HOUSE_LABEL);
-      expect(root?.textContent).not.toContain(DELETE_THE_HOUSE_LABEL);
-      expect(root?.textContent).not.toContain(ASK_FOR_ENHANCEMENT_LABEL);
-    };
-
     const places = container.querySelector('[data-testid="hub-home"]');
     expect(places?.getAttribute('data-pane')).toBe('places');
-    assertNoHouseAdminDoors(places);
+    expect(places?.querySelector('[data-testid="register-another-place"]')?.textContent).toBe(PLUS_REGISTER_LABEL);
+    expect(places?.querySelector('[data-testid="delete-the-house"]')?.textContent).toBe(DELETE_THE_HOUSE_LABEL);
+    expect(places?.textContent).not.toContain(ASK_FOR_ENHANCEMENT_LABEL);
+    expect(places?.textContent).not.toContain('Settings.');
+    expect(places?.querySelector('[data-testid="eatery-place-name"]')?.textContent).toContain('The Olive');
 
     openApps(container);
     const apps = container.querySelector('[data-testid="hub-home"]');
     expect(apps?.getAttribute('data-pane')).toBe('apps');
-    assertNoHouseAdminDoors(apps);
+    expect(apps?.querySelector('[data-testid="apps-tab-shelf"]')?.textContent).toBe(APPS_SHELF_TITLE);
+    expect(apps?.querySelector('[data-testid="apps-tab-ask"]')?.textContent).toBe(ASK_FOR_ENHANCEMENT_LABEL);
+    expect(apps?.querySelector('[data-testid="get-apps"]')).toBeTruthy();
+    expect(apps?.querySelector('[data-testid="delete-the-house"]')).toBeNull();
+    expect(apps?.querySelector('[data-testid="register-new-house"]')).toBeNull();
+    expect(apps?.textContent).not.toContain(DELETE_THE_HOUSE_LABEL);
 
     openOther(container);
     const other = container.querySelector('[data-testid="hub-home"]');
     expect(other?.getAttribute('data-pane')).toBe('other');
-    assertNoHouseAdminDoors(other);
+    expect(other?.querySelector('[data-testid="delete-the-house"]')).toBeNull();
+    expect(other?.querySelector('[data-testid="apps-tab-ask"]')).toBeNull();
+    expect(other?.textContent).not.toContain(ASK_FOR_ENHANCEMENT_LABEL);
+    expect(other?.textContent).not.toContain(DELETE_THE_HOUSE_LABEL);
 
     openYou(container);
-    expect(container.querySelector('[data-testid="hub-you"]')).toBeTruthy();
+    const you = container.querySelector('[data-testid="hub-you"]');
+    expect(you).toBeTruthy();
     expect(container.querySelector('[data-testid="hub-advanced"]')?.getAttribute('aria-pressed')).not.toBe('true');
-    const settings = container.querySelector('[data-testid="hub-settings"]');
-    expect(settings?.querySelector('.kicker')?.textContent).toBe(SETTINGS_KICKER);
-    expect(settings?.querySelector('[data-testid="register-new-house"]')?.textContent).toBe(REGISTER_A_NEW_HOUSE_LABEL);
-    expect(settings?.querySelector('[data-testid="delete-the-house"]')?.textContent).toBe(DELETE_THE_HOUSE_LABEL);
-    expect(settings?.querySelector('[data-testid="ask-for-enhancement"]')?.textContent).toBe(ASK_FOR_ENHANCEMENT_LABEL);
-    expect(settings?.textContent).not.toMatch(/\b(peer|DID|MCP|node|co_)\b/i);
+    expect(you?.querySelector('[data-testid="hub-settings"]')).toBeNull();
+    expect(you?.querySelector('[data-testid="delete-the-house"]')).toBeNull();
+    expect(you?.querySelector('[data-testid="apps-tab-ask"]')).toBeNull();
+    expect(you?.textContent).not.toContain(ASK_FOR_ENHANCEMENT_LABEL);
+    expect(you?.textContent).not.toContain(DELETE_THE_HOUSE_LABEL);
+    expect(you?.textContent).not.toMatch(/\b(peer|DID|MCP|node|co_)\b/i);
     unmount();
   });
 
@@ -335,9 +354,14 @@ describe('hub home after email', () => {
     await act(async () => {
       await new Promise(resolve => setTimeout(resolve, 80));
     });
+    expect(container.querySelector('[data-testid="eatery-place-name"]')?.textContent).toContain('The Olive');
+    expect(container.querySelector('[data-testid="eatery-place-status"]')?.textContent).toBe('Payment due.');
     openYou(container);
-    expect(container.querySelector('[data-testid="hub-you-place-status"]')?.textContent).toBe(PLACE_PAYMENT_DUE);
-    expect(container.querySelector('[data-testid="hub-you-date"]')).toBeNull();
+    const you = container.querySelector('[data-testid="hub-you"]');
+    expect(you?.querySelector('[data-testid="hub-you-place-status"]')).toBeNull();
+    expect(you?.querySelector('[data-testid="hub-you-date"]')).toBeNull();
+    expect(you?.textContent).not.toContain(PLACE_PAYMENT_DUE);
+    expect(you?.textContent).not.toContain('Prices in R.');
     expect(container.textContent).not.toMatch(/\b(peer|node|DID|DHT|wallet|MCP|npm|hydrate|neon)\b/i);
     expect(container.textContent).not.toContain('co_');
     unmount();
@@ -355,14 +379,15 @@ describe('hub home after email', () => {
     await act(async () => {
       await new Promise(resolve => setTimeout(resolve, 80));
     });
+    expect(second.container.querySelector('[data-testid="eatery-place-status"]')?.textContent).toBe('Payment due.');
     openYou(second.container);
-    expect(second.container.querySelector('[data-testid="hub-you-place-status"]')?.textContent).toBe(PLACE_PAUSED);
+    expect(second.container.querySelector('[data-testid="hub-you"]')?.textContent).not.toContain(PLACE_PAUSED);
     expect(second.container.textContent).not.toMatch(/\b(peer|node|DID|DHT|wallet|MCP|npm|hydrate|neon)\b/i);
     expect(second.container.textContent).not.toContain('co_');
     second.unmount();
   });
 
-  it('shows WhatsApp beside email and saves it as E.164', async () => {
+  it('edits You on one page and confirms email or WhatsApp before it sticks', async () => {
     const { container, unmount } = render(<App />);
     await act(async () => {
       await new Promise(resolve => setTimeout(resolve, 80));
@@ -371,27 +396,41 @@ describe('hub home after email', () => {
 
     const email = container.querySelector('[data-testid="hub-you-email"]');
     expect(email?.textContent).toBe('owner@theolive.co.za');
-    expect(container.querySelector('[data-testid="hub-you-whatsapp"]')).toBeNull();
-    const hint = container.querySelector('[data-testid="hub-you-whatsapp-hint"]');
+    expect(container.querySelector('[data-testid="hub-you-whatsapp"]')?.textContent).toBe('Add your WhatsApp.');
+    expect(container.querySelector('[data-testid="hub-you-whatsapp-input"]')).toBeNull();
+
+    clickTestId(container, 'hub-you-edit');
     const input = container.querySelector('[data-testid="hub-you-whatsapp-input"]') as HTMLInputElement;
-    const save = container.querySelector('[data-testid="hub-you-whatsapp-save"]');
-    expect(hint?.textContent).toBe(WHATSAPP_ONE_CODE_HINT);
-    expect(input.value).toBe('+27820000000');
+    const save = container.querySelector('[data-testid="hub-you-save"]') as HTMLButtonElement;
+    const cancel = container.querySelector('[data-testid="hub-you-cancel"]') as HTMLButtonElement;
+    expect(input.value).toBe('');
+    expect(input.getAttribute('placeholder')).toBe('Add your WhatsApp.');
+    expect(save?.textContent).toBe('Save.');
+    expect(cancel?.textContent).toBe('Cancel.');
+    expect(save.className).toContain('btn-primary');
+    expect(cancel.className).toContain('btn-outline');
+    expect(cancel.className).not.toContain('btn-primary');
     expect(email && input && (email.compareDocumentPosition(input) & Node.DOCUMENT_POSITION_FOLLOWING)).toBeTruthy();
-    expect(input && hint && (input.compareDocumentPosition(hint) & Node.DOCUMENT_POSITION_FOLLOWING)).toBeTruthy();
-    expect(hint && save && (hint.compareDocumentPosition(save) & Node.DOCUMENT_POSITION_FOLLOWING)).toBeTruthy();
+    expect(input && save && (input.compareDocumentPosition(save) & Node.DOCUMENT_POSITION_FOLLOWING)).toBeTruthy();
 
     typeInto(input, '123');
     await act(async () => {
-      (container.querySelector('[data-testid="hub-you-whatsapp-form"]') as HTMLFormElement).requestSubmit();
+      (container.querySelector('[data-testid="hub-you-form"]') as HTMLFormElement).requestSubmit();
     });
-    expect(container.querySelector('[data-testid="hub-you-whatsapp-error"]')?.textContent).toBe(HOUSE_OTP_BAD_PHONE);
+    expect(container.querySelector('[data-testid="hub-you-error"]')?.textContent).toBe(HOUSE_OTP_BAD_PHONE);
     expect(loadIdentityVault().profile.demographics.whatsappNumber).toBe('');
+    expect(container.querySelector('[data-testid="hub-you-confirm"]')).toBeNull();
 
     rememberPlaceSession({ placeId: 'co_olive', bearer: 'sess-you', expiresAt: null });
     typeInto(container.querySelector('[data-testid="hub-you-whatsapp-input"]') as HTMLInputElement, '0829261373');
     await act(async () => {
-      (container.querySelector('[data-testid="hub-you-whatsapp-form"]') as HTMLFormElement).requestSubmit();
+      (container.querySelector('[data-testid="hub-you-form"]') as HTMLFormElement).requestSubmit();
+    });
+    expect(container.querySelector('[data-testid="hub-you-confirm-whatsapp"]')?.textContent).toBe('Use this WhatsApp number?');
+    expect(loadIdentityVault().profile.demographics.whatsappNumber).toBe('');
+    expect(readPlaceSession('co_olive')?.bearer).toBe('sess-you');
+    await act(async () => {
+      (container.querySelector('[data-testid="hub-you-form"]') as HTMLFormElement).requestSubmit();
     });
     const shown = container.querySelector('[data-testid="hub-you-whatsapp"]');
     expect(shown?.textContent).toBe('+27829261373');
@@ -399,19 +438,48 @@ describe('hub home after email', () => {
     expect(loadIdentityVault().profile.demographics.whatsappNumber).toBe('+27829261373');
     expect(readPlaceSession('co_olive')?.bearer).toBe('sess-you');
 
-    clickTestId(container, 'hub-you-whatsapp-change');
+    clickTestId(container, 'hub-you-edit');
     const edit = container.querySelector('[data-testid="hub-you-whatsapp-input"]') as HTMLInputElement;
-    const editHint = container.querySelector('[data-testid="hub-you-whatsapp-hint"]');
     expect(edit.value).toBe('+27829261373');
-    expect(edit && editHint && (edit.compareDocumentPosition(editHint) & Node.DOCUMENT_POSITION_FOLLOWING)).toBeTruthy();
-    expect(container.querySelector('[data-testid="hub-you-whatsapp-back"]')).toBeTruthy();
     typeInto(edit, '+27820000000');
     await act(async () => {
-      (container.querySelector('[data-testid="hub-you-whatsapp-form"]') as HTMLFormElement).requestSubmit();
+      (container.querySelector('[data-testid="hub-you-form"]') as HTMLFormElement).requestSubmit();
+    });
+    expect(loadIdentityVault().profile.demographics.whatsappNumber).toBe('+27829261373');
+    await act(async () => {
+      (container.querySelector('[data-testid="hub-you-form"]') as HTMLFormElement).requestSubmit();
     });
     expect(container.querySelector('[data-testid="hub-you-whatsapp"]')?.textContent).toBe('+27820000000');
     expect(loadIdentityVault().profile.demographics.whatsappNumber).toBe('+27820000000');
     expect(readPlaceSession('co_olive')).toBeNull();
+
+    clickTestId(container, 'hub-you-edit');
+    const emailInput = container.querySelector('[data-testid="hub-you-email-input"]') as HTMLInputElement;
+    typeInto(emailInput, 'frans@theolive.co.za');
+    await act(async () => {
+      (container.querySelector('[data-testid="hub-you-form"]') as HTMLFormElement).requestSubmit();
+    });
+    expect(container.querySelector('[data-testid="hub-you-confirm-email"]')?.textContent).toBe('Use this email?');
+    expect(JSON.parse(localStorage.getItem(OWNER_SESSION_STORAGE_KEY) || '{}').email).toBe('owner@theolive.co.za');
+    await act(async () => {
+      (container.querySelector('[data-testid="hub-you-form"]') as HTMLFormElement).requestSubmit();
+    });
+    expect(container.querySelector('[data-testid="hub-you-email"]')?.textContent).toBe('frans@theolive.co.za');
+    expect(JSON.parse(localStorage.getItem(OWNER_SESSION_STORAGE_KEY) || '{}').email).toBe('frans@theolive.co.za');
+
+    clickTestId(container, 'hub-you-edit');
+    const lang = container.querySelector('[data-testid="hub-you-language-input"]') as HTMLSelectElement;
+    expect(lang.tagName).toBe('SELECT');
+    act(() => {
+      lang.value = 'af';
+      Simulate.change(lang);
+    });
+    await act(async () => {
+      (container.querySelector('[data-testid="hub-you-form"]') as HTMLFormElement).requestSubmit();
+    });
+    expect(container.querySelector('[data-testid="hub-you-confirm"]')).toBeNull();
+    expect(container.querySelector('[data-testid="hub-you-language"]')?.textContent).toBe('Afrikaans');
+    expect(loadIdentityVault().profile.demographics.language).toBe('af');
     expect(container.textContent).not.toMatch(/\b(peer|node|DID|DHT|wallet|MCP|npm|hydrate|neon)\b/i);
     unmount();
   });
@@ -567,7 +635,9 @@ describe('hub home after email', () => {
     expect(appsContainer.querySelector('[data-testid="same-chain-caption"]')).toBeNull();
     expect(appsContainer.textContent).not.toContain('Decentralized Edge App Registry');
     expect(appsContainer.textContent).not.toContain('Marketplace');
-    expect(container.querySelector('[data-testid="delete-the-house"]')).toBeNull();
+    expect(container.querySelector('[data-testid="delete-the-house"]')?.textContent).toBe(DELETE_THE_HOUSE_LABEL);
+    expect(appsContainer.querySelector('[data-testid="delete-the-house"]')).toBeNull();
+    expect(appsContainer.querySelector('[data-testid="ask-page"]')).toBeNull();
     expect(container.querySelector('[data-testid="register-new-house"]')).toBeNull();
     expect(container.querySelector('[data-testid="ask-for-enhancement"]')).toBeNull();
     expect(container.querySelector('[data-testid="on-the-chain"]')).toBeNull();
@@ -1180,7 +1250,7 @@ describe('hub home after email', () => {
     unmount();
   });
 
-  it('opens Ask for an enhancement. as its own page, not a home section', async () => {
+  it('opens Ask for an enhancement. as a tab beside the Apps shelf', async () => {
     const { container, unmount } = render(<App />);
 
     await act(async () => {
@@ -1188,41 +1258,67 @@ describe('hub home after email', () => {
     });
 
     expect(container.querySelector('[data-testid="hub-home"]')).toBeTruthy();
-    expect(container.querySelector('[data-testid="ask-for-enhancement"]')).toBeNull();
+    expect(container.querySelector('[data-testid="apps-tab-ask"]')).toBeNull();
     openYou(container);
-    const door = container.querySelector('[data-testid="ask-for-enhancement"]') as HTMLAnchorElement;
-    expect(door).toBeTruthy();
-    expect(door.getAttribute('href')).toBe('/asks');
+    expect(container.querySelector('[data-testid="apps-tab-ask"]')).toBeNull();
+    openApps(container);
+    const shelf = container.querySelector('[data-testid="apps-tab-shelf"]') as HTMLButtonElement;
+    const askTab = container.querySelector('[data-testid="apps-tab-ask"]') as HTMLButtonElement;
+    expect(shelf?.textContent).toBe(APPS_SHELF_TITLE);
+    expect(askTab?.textContent).toBe('Ask for an enhancement.');
+    expect(container.querySelector('[data-testid="get-apps"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="ask-page"]')).toBeNull();
 
     act(() => {
-      door.click();
+      askTab.click();
     });
 
     expect(window.location.pathname).toBe('/asks');
+    expect(container.querySelector('[data-testid="hub-home"]')?.getAttribute('data-pane')).toBe('apps');
+    expect(container.querySelector('[data-testid="hub-nav-apps"]')?.getAttribute('aria-current')).toBe('page');
     expect(container.querySelector('[data-testid="ask-page"]')).toBeTruthy();
-    expect(container.querySelector('[data-testid="ask-which-app"]')).toBeTruthy();
-    expect(container.querySelector('[data-testid="hub-home"]')).toBeNull();
+    expect(container.querySelector('[data-testid="get-apps"]')).toBeNull();
+    expect(container.querySelector('[data-testid="ask-app-eatery"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="ask-app-grid"]')?.textContent).not.toContain(GET_LABEL);
+    expect(container.querySelector('[data-testid="ask-app-grid"]')?.textContent).not.toContain(SOON_LABEL);
     expect(container.querySelector('[data-testid="eatery-place-row"]')).toBeNull();
-    expect(container.querySelector('[data-testid="other-apps"]')).toBeNull();
-    expect(container.textContent).toContain('Ask for an enhancement.');
     expect(container.textContent).not.toMatch(/\b(peer|node|DID|DHT|wallet|MCP|npm|GossipSub|CRDT|mesh|hydrate|neon|Defect|Support)\b/i);
-    expect(container.textContent).toContain("Something's wrong");
-    expect(container.textContent).toContain('Need help');
-    expect(container.textContent).toContain('What do you need?');
-    expect(container.textContent).toContain('Send.');
-    expect(container.textContent).toContain('No asks yet.');
+    expect(container.textContent).not.toContain("Something's wrong");
+    expect(container.querySelector('input[type="file"]')).toBeNull();
 
     act(() => {
-      (container.querySelector('[data-testid="ask-back"]') as HTMLButtonElement).click();
+      (container.querySelector('[data-testid="ask-app-eatery"]') as HTMLButtonElement).click();
     });
+    expect(container.querySelector('[data-testid="ask-choice-roster"]')).toBeNull();
+    expect(container.querySelector('[data-testid="ask-choice-services"]')?.textContent).toBe('Services');
+    act(() => {
+      (container.querySelector('[data-testid="ask-choice-services"]') as HTMLButtonElement).click();
+    });
+    expect(container.querySelector('[data-testid="ask-choice-tables"]')).toBeNull();
+    expect(container.querySelector('[data-testid="ask-choice-roster"]')?.textContent).toBe('Roster');
+    act(() => {
+      (container.querySelector('[data-testid="ask-choice-roster"]') as HTMLButtonElement).click();
+    });
+    expect(container.querySelector('[data-testid="ask-still"]')).toBeNull();
+    expect(container.querySelector('[data-testid="ask-body"]')?.tagName).toBe('INPUT');
+    expect(container.querySelector('[data-testid="ask-ask"]')?.textContent).toBe('Ask.');
+    typeInto(container.querySelector('[data-testid="ask-body"]') as HTMLInputElement, 'A quieter Friday close');
+    await act(async () => {
+      (container.querySelector('[data-testid="ask-raise-form"]') as HTMLFormElement).requestSubmit();
+    });
+    expect(container.querySelector('[data-testid="ask-asked"]')?.textContent).toBe('Asked.');
+    const stored = JSON.parse(localStorage.getItem('daup:hub:ask_requests') || '[]');
+    expect(stored[0].app).toBe('eatery');
+    expect(stored[0].pageId).toBe('roster');
+    expect(stored[0].houseName).toBeUndefined();
 
+    act(() => {
+      (container.querySelector('[data-testid="apps-tab-shelf"]') as HTMLButtonElement).click();
+    });
     expect(window.location.pathname).toBe('/');
-    expect(container.querySelector('[data-testid="hub-home"]')).toBeTruthy();
-    expect(container.querySelector('[data-testid="hub-home"]')?.getAttribute('data-pane')).toBe('places');
+    expect(container.querySelector('[data-testid="get-apps"]')).toBeTruthy();
     expect(container.querySelector('[data-testid="ask-page"]')).toBeNull();
-    expect(container.querySelector('[data-testid="ask-for-enhancement"]')).toBeNull();
-    openYou(container);
-    expect(container.querySelector('[data-testid="ask-for-enhancement"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="hub-home"]')?.getAttribute('data-pane')).toBe('apps');
     unmount();
   });
 });
@@ -1278,8 +1374,9 @@ describe('signed-in hub does not assume eatery', () => {
     expect(container.querySelector('[data-testid="on-the-chain"]')).toBeNull();
     expect(container.querySelector('[data-testid="ask-for-enhancement"]')).toBeNull();
     expect(container.querySelector('[data-testid="delete-the-house"]')).toBeNull();
+    expect(container.querySelector('[data-testid="apps-tab-ask"]')?.textContent).toBe('Ask for an enhancement.');
     openYou(container);
-    expect(container.querySelector('[data-testid="ask-for-enhancement"]')?.textContent).toBe('Ask for an enhancement.');
+    expect(container.querySelector('[data-testid="apps-tab-ask"]')).toBeNull();
     expect(container.querySelector('[data-testid="delete-the-house"]')).toBeNull();
     expect(container.textContent).not.toContain(WHERE_IS_THE_EATERY);
     expect(container.textContent).not.toMatch(/\b(peer|node|DID|DHT|wallet|MCP|npm|hydrate|neon)\b/i);
@@ -1334,14 +1431,14 @@ describe('signed-in hub does not assume eatery', () => {
     expect(container.querySelector('[data-testid="hub-context-place"]')?.textContent).toContain('The Olive');
     expect(container.querySelector('[data-testid="hub-home-open"]')).toBeNull();
     expect(container.querySelector('[data-testid="register-new-house"]')).toBeNull();
-    expect(container.querySelector('[data-testid="delete-the-house"]')).toBeNull();
+    expect(container.querySelector('[data-testid="delete-the-house"]')?.textContent).toBe(DELETE_THE_HOUSE_LABEL);
     expect(container.querySelector('[data-testid="eatery-place-name"]')?.textContent).toContain('The Olive');
     expect(container.querySelector('[data-testid="eatery-place-city"]')?.textContent).toBe('Stellenbosch');
     expect(container.querySelector('[data-testid="open-the-house"]')?.textContent).toBe(OPEN_LABEL);
     openYou(container);
-    expect(container.querySelector('[data-testid="hub-settings"]')?.textContent).toContain(SETTINGS_KICKER);
-    expect(container.querySelector('[data-testid="register-new-house"]')?.textContent).toBe(REGISTER_A_NEW_HOUSE_LABEL);
-    expect(container.querySelector('[data-testid="delete-the-house"]')?.textContent).toBe(DELETE_THE_HOUSE_LABEL);
+    expect(container.querySelector('[data-testid="hub-settings"]')).toBeNull();
+    expect(container.querySelector('[data-testid="hub-you"]')?.textContent).not.toContain(DELETE_THE_HOUSE_LABEL);
+    expect(container.querySelector('[data-testid="delete-the-house"]')).toBeNull();
     expect(container.textContent).not.toContain(WHERE_IS_THE_EATERY);
     expect(container.textContent).not.toMatch(/\b(peer|node|DID|DHT|wallet|MCP|npm|hydrate|neon)\b/i);
     unmount();
@@ -1376,9 +1473,7 @@ describe('ask door only on signed home', () => {
       await new Promise(resolve => setTimeout(resolve, 80));
     });
     expect(container.querySelector('[data-testid="hub-home"]')).toBeTruthy();
-    expect(container.querySelector('[data-testid="ask-for-enhancement"]')).toBeNull();
-    openYou(container);
-    expect(container.querySelector('[data-testid="ask-for-enhancement"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="apps-tab-ask"]')).toBeNull();
     act(() => {
       (container.querySelector('[data-testid="register-new-house"]') as HTMLButtonElement).click();
     });
@@ -1408,9 +1503,11 @@ describe('asks route', () => {
       await new Promise(resolve => setTimeout(resolve, 80));
     });
     expect(window.location.pathname).toBe('/asks');
+    expect(container.querySelector('[data-testid="hub-home"]')?.getAttribute('data-pane')).toBe('apps');
+    expect(container.querySelector('[data-testid="apps-tab-ask"]')?.getAttribute('aria-selected')).toBe('true');
     expect(container.querySelector('[data-testid="ask-page"]')).toBeTruthy();
-    expect(container.querySelector('[data-testid="ask-back"]')?.getAttribute('href')).toBe('/');
-    expect(container.querySelector('[data-testid="hub-home"]')).toBeNull();
+    expect(container.querySelector('[data-testid="get-apps"]')).toBeNull();
+    expect(container.querySelector('[data-testid="ask-app-eatery"]')).toBeTruthy();
     unmount();
   });
 });
@@ -1449,7 +1546,6 @@ describe('delete and register a house from hub home', () => {
     });
 
     expect(container.querySelector('[data-testid="hub-home"]')).toBeTruthy();
-    openYou(container);
     const openDelete = container.querySelector('[data-testid="delete-the-house"]') as HTMLButtonElement;
     act(() => {
       openDelete.click();
@@ -1495,10 +1591,9 @@ describe('delete and register a house from hub home', () => {
     });
 
     expect(container.querySelector('[data-testid="hub-home"]')).toBeTruthy();
-    openYou(container);
-    const register = container.querySelector('[data-testid="register-new-house"]') as HTMLButtonElement;
+    const register = container.querySelector('[data-testid="register-another-place"]') as HTMLButtonElement;
     expect(register).toBeTruthy();
-    expect(register.textContent).toBe(REGISTER_A_NEW_HOUSE_LABEL);
+    expect(register.textContent).toBe(PLUS_REGISTER_LABEL);
 
     act(() => {
       register.click();
@@ -1720,7 +1815,6 @@ describe('My places stays owned-only after register and delete', () => {
     expect(container.querySelector('[data-testid="on-the-chain"]')).toBeNull();
     expect(listRegisteredPlaces()).toHaveLength(1);
 
-    openYou(container);
     act(() => {
       (container.querySelector('[data-testid="delete-the-house"]') as HTMLButtonElement).click();
     });
@@ -1978,7 +2072,6 @@ describe('Your places. from the house node', () => {
       await new Promise(resolve => setTimeout(resolve, 80));
     });
 
-    openYou(container);
     act(() => {
       (container.querySelector('[data-testid="delete-the-house"]') as HTMLButtonElement).click();
     });
