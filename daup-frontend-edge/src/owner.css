@@ -225,8 +225,7 @@ body {
 }
 
 .place-card-name input,
-.place-rename-field,
-.place-location-edit input {
+.place-rename-field {
   flex: 1 1 140px;
   min-width: 0;
   min-height: max(48px, var(--tap, 48px));
@@ -236,6 +235,22 @@ body {
   background: var(--white);
   color: var(--ink);
   font: inherit;
+}
+
+.place-location-edit input {
+  display: block;
+  width: 100%;
+  flex: none;
+  height: max(48px, var(--tap, 48px));
+  min-height: max(48px, var(--tap, 48px));
+  max-height: max(48px, var(--tap, 48px));
+  padding: 0 12px;
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  background: var(--white);
+  color: var(--ink);
+  font: inherit;
+  line-height: 1.2;
 }
 
 .place-rename-field {
