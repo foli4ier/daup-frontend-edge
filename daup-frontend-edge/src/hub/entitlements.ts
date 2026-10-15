@@ -511,7 +511,8 @@ export const MODULE_TO_ENABLED_APP: Record<string, EnableableAppId> = {
   'daup-trade': 'trade',
   'daup-chat': 'chat',
   'daup-vault': 'vault',
-  'daup-property': 'property'
+  'daup-property': 'property',
+  'daup-duidelik': 'duidelik'
 };
 
 export function enabledAppForModule(moduleName: string): EnableableAppId | null {

@@ -197,6 +197,7 @@ export const CHAIN_APP_EATERY = 'Eatery';
 export const CHAIN_APP_FARM = 'Farm';
 export const CHAIN_APP_RESELLER = 'Reseller';
 export const CHAIN_APP_MAKER = 'Maker';
+export const CHAIN_APP_DUIDELIK = 'Duidelik';
 export const CHAIN_APP_LABELS = {
   eatery: CHAIN_APP_EATERY,
   eatin: CHAIN_APP_EATIN,
@@ -209,7 +210,8 @@ export const CHAIN_APP_LABELS = {
   maker: CHAIN_APP_MAKER,
   chat: CHAIN_APP_CHAT,
   vault: CHAIN_APP_VAULT,
-  property: CHAIN_APP_PROPERTY
+  property: CHAIN_APP_PROPERTY,
+  duidelik: CHAIN_APP_DUIDELIK
 } as const;
 
 export const ASK_FOR_ENHANCEMENT_LABEL = 'Ask for an enhancement.';
@@ -302,6 +304,7 @@ export const HUB_HOME_COPY = [
   CHAIN_APP_FINANCE,
   CHAIN_APP_TRADE,
   CHAIN_APP_PROPERTY,
+  CHAIN_APP_DUIDELIK,
   YOUR_WHATSAPP_LABEL,
   SAVE_WHATSAPP_LABEL,
   CHANGE_WHATSAPP_LABEL,

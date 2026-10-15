@@ -17,7 +17,8 @@ export const ENABLEABLE_APP_IDS = [
   'farm',
   'reseller',
   'maker',
-  'chat'
+  'chat',
+  'duidelik'
 ] as const;
 
 export type EnableableAppId = (typeof ENABLEABLE_APP_IDS)[number];

@@ -1,6 +1,7 @@
 import { ENABLEABLE_APP_IDS } from './companyNode';
 import {
   CHAIN_APP_CHAT,
+  CHAIN_APP_DUIDELIK,
   CHAIN_APP_EATERY,
   CHAIN_APP_EATIN,
   CHAIN_APP_EATOUT,
@@ -62,7 +63,7 @@ export function ownerPlaceKey(place: {
   );
 }
 
-export type ShopAppId = 'eatery' | 'eatin' | 'eatout' | 'project' | 'finance' | 'trade' | 'farm' | 'reseller' | 'maker' | 'chat' | 'vault' | 'property';
+export type ShopAppId = 'eatery' | 'eatin' | 'eatout' | 'project' | 'finance' | 'trade' | 'farm' | 'reseller' | 'maker' | 'chat' | 'vault' | 'property' | 'duidelik';
 
 export const EATOUT_MODULE_KEY = 'daup-eatout';
 export const CHAT_MODULE_KEY = 'daup-chat';
@@ -70,6 +71,7 @@ export const FINANCE_MODULE_KEY = 'daup-finance';
 export const TRADE_MODULE_KEY = 'daup-trade';
 export const VAULT_MODULE_KEY = 'daup-vault';
 export const PROPERTY_MODULE_KEY = 'daup-property';
+export const DUIDELIK_MODULE_KEY = 'daup-duidelik';
 export { PROJECT_MODULE_KEY };
 
 export interface ShopApp {
@@ -155,6 +157,7 @@ export const SHOP_APPS: ShopApp[] = [
   { id: 'vault', title: CHAIN_APP_VAULT, live: true, moduleKey: VAULT_MODULE_KEY },
   { id: 'chat', title: CHAIN_APP_CHAT, live: true, moduleKey: CHAT_MODULE_KEY },
   { id: 'property', title: CHAIN_APP_PROPERTY, live: true, moduleKey: PROPERTY_MODULE_KEY },
+  { id: 'duidelik', title: CHAIN_APP_DUIDELIK, live: true, moduleKey: DUIDELIK_MODULE_KEY },
   { id: 'farm', title: CHAIN_APP_FARM, live: false, moduleKey: 'daup-farmer' },
   { id: 'reseller', title: CHAIN_APP_RESELLER, live: false, moduleKey: 'daup-reseller' },
   { id: 'maker', title: CHAIN_APP_MAKER, live: false, moduleKey: 'daup-manufacturing' }
@@ -177,6 +180,7 @@ export const SHELF_APP_IDS: ShopAppId[] = [
   'vault',
   'chat',
   'property',
+  'duidelik',
   'farm',
   'reseller',
   'maker'
@@ -228,6 +232,9 @@ export function shopAppIsHeld(app: ShopApp, held: {
   }
   if (app.id === 'property') {
     return Boolean(held.installed?.[app.moduleKey || PROPERTY_MODULE_KEY]);
+  }
+  if (app.id === 'duidelik') {
+    return Boolean(held.installed?.[app.moduleKey || DUIDELIK_MODULE_KEY]);
   }
   if (!app.moduleKey) return false;
   return Boolean(held.installed?.[app.moduleKey]);

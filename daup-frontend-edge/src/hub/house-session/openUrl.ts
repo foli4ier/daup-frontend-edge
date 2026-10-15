@@ -16,7 +16,7 @@ import {
 } from '../ownerArrival';
 import { HOUSE_REDEEM_QUERY } from './seed';
 
-export const HOUSE_REDEEM_APP_IDS = ['finance', 'trade', 'vault', 'project', 'property', 'eatery'] as const;
+export const HOUSE_REDEEM_APP_IDS = ['finance', 'trade', 'vault', 'project', 'property', 'eatery', 'duidelik'] as const;
 export type HouseRedeemAppId = (typeof HOUSE_REDEEM_APP_IDS)[number];
 
 export const FINANCE_HOME = 'https://finance.daup.co.za';
@@ -25,6 +25,7 @@ export const VAULT_HOME = 'https://vault.daup.co.za';
 export const PROJECT_HOME = 'https://project.daup.co.za';
 export const PROPERTY_HOME = 'https://property.daup.co.za';
 export const EATERY_HOME = 'https://eatery.daup.co.za';
+export const DUIDELIK_HOME = 'https://duidelik.daup.co.za';
 export const CHAT_HOME = 'https://chat.daup.co.za';
 
 export const PROJECT_HUB_PATH = '/d/hub';
@@ -35,7 +36,8 @@ const HOMES: Record<HouseRedeemAppId, string> = {
   vault: VAULT_HOME,
   project: PROJECT_HOME,
   property: PROPERTY_HOME,
-  eatery: EATERY_HOME
+  eatery: EATERY_HOME,
+  duidelik: DUIDELIK_HOME
 };
 
 const MODULE_TO_APP: Record<string, HouseRedeemAppId> = {
@@ -44,11 +46,12 @@ const MODULE_TO_APP: Record<string, HouseRedeemAppId> = {
   'daup-vault': 'vault',
   'daup-project': 'project',
   'daup-property': 'property',
-  'daup-eatery': 'eatery'
+  'daup-eatery': 'eatery',
+  'daup-duidelik': 'duidelik'
 };
 
 function opensHubDoor(app: HouseRedeemAppId): boolean {
-  return app === 'project' || app === 'eatery';
+  return app === 'project' || app === 'eatery' || app === 'duidelik';
 }
 
 const CREDENTIAL_KEYS = new Set([
