@@ -14,7 +14,7 @@ export function getModuleEndpoint(moduleKey: string): string {
     case 'daup-project':
       return (
         import.meta.env.VITE_APP_PROJECT_URL ||
-        (isDev ? 'http://localhost:3002' : 'https://project.daup.co.za')
+        (isDev ? 'http://localhost:3002' : 'https://projects.daup.co.za')
       );
     case 'daup-farmer':
       return (

@@ -21,8 +21,8 @@ import {
 } from './ownerArrival';
 
 describe('Project Open. URLs', () => {
-  it('Open. home is exactly https://project.daup.co.za without handshake', () => {
-    expect(PROJECT_HOME).toBe('https://project.daup.co.za');
+  it('Open. home is exactly https://projects.daup.co.za without handshake', () => {
+    expect(PROJECT_HOME).toBe('https://projects.daup.co.za');
     expect(PROJECT_HUB_PATH).toBe('/d/hub');
     expect(projectHomeUrl()).toBe(PROJECT_HOME);
     expect(buildProjectOpenUrl()).toBe(PROJECT_HOME);
@@ -47,7 +47,7 @@ describe('Project Open. URLs', () => {
     expect(handshake.house).toBe('The Olive');
     const href = buildProjectOpenUrl(handshake);
     const parsed = new URL(href);
-    expect(parsed.origin).toBe('https://project.daup.co.za');
+    expect(parsed.origin).toBe('https://projects.daup.co.za');
     expect(parsed.pathname).toBe('/d/hub');
     expect([...parsed.searchParams.keys()]).toEqual([
       HANDOFF_EMAIL_HINT,
@@ -95,9 +95,9 @@ describe('Project Open. URLs', () => {
     expect(buildProjectOpenUrl({ email: 'you@gmail.com', house: '' })).toBe(PROJECT_HOME);
   });
 
-  it('resolves daup-project to project.daup.co.za or localhost:3002', () => {
+  it('resolves daup-project to projects.daup.co.za or localhost:3002', () => {
     expect(PROJECT_MODULE_KEY).toBe('daup-project');
     const endpoint = getModuleEndpoint(PROJECT_MODULE_KEY);
-    expect(endpoint.includes('project.daup.co.za') || endpoint.includes('localhost:3002')).toBe(true);
+    expect(endpoint.includes('projects.daup.co.za') || endpoint.includes('localhost:3002')).toBe(true);
   });
 });

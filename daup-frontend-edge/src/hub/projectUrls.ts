@@ -46,7 +46,8 @@ export function isProjectHome(url: string): boolean {
   try {
     const parsed = new URL(url);
     const path = parsed.pathname.replace(/\/+$/, '') || '/';
-    return parsed.hostname === 'project.daup.co.za' && (path === '/' || path === '');
+    return (parsed.hostname === 'projects.daup.co.za' || parsed.hostname === 'project.daup.co.za')
+      && (path === '/' || path === '');
   } catch {
     return url === PROJECT_HOME || url === `${PROJECT_HOME}/`;
   }
