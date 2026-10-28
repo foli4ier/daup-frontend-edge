@@ -953,7 +953,7 @@ describe('hub home after email', () => {
     unmount();
   });
 
-  it('held Project shows Open. only to project.daup.co.za, never eatery /owner', () => {
+  it('held Project shows Open. only to projects.daup.co.za, never eatery /owner', () => {
     const { container, unmount } = render(
       <GetAppsSection
         hasHouse={true}
@@ -967,7 +967,7 @@ describe('hub home after email', () => {
     expect(open?.textContent).not.toContain('LIVE');
     expect(open?.textContent).not.toContain(OPEN_LABEL);
     expect(open?.tagName).toBe('A');
-    expect(open?.getAttribute('href')).toBe('https://project.daup.co.za');
+    expect(open?.getAttribute('href')).toBe('https://projects.daup.co.za');
     expect(open?.getAttribute('target')).toBe('_self');
     expect(open?.getAttribute('href') || '').not.toMatch(/eatery\.daup\.co\.za|\/owner|\/floor|app\.daup\.co\.za/i);
     expect(container.querySelector('[data-testid="get-app-project"]')).toBeNull();
@@ -1014,7 +1014,7 @@ describe('hub home after email', () => {
     unmount();
   });
 
-  it('Get. holds Project then Open. points at project.daup.co.za with hub first-run query', async () => {
+  it('Get. holds Project then Open. points at projects.daup.co.za with hub first-run query', async () => {
     const { container, unmount } = render(<App />);
     await act(async () => {
       await new Promise(resolve => setTimeout(resolve, 80));
@@ -1040,7 +1040,7 @@ describe('hub home after email', () => {
     expect(open?.tagName).toBe('A');
     const href = open?.getAttribute('href') || '';
     const parsed = new URL(href);
-    expect(parsed.origin).toBe('https://project.daup.co.za');
+    expect(parsed.origin).toBe('https://projects.daup.co.za');
     expect(parsed.pathname).toBe('/d/hub');
     expect(parsed.searchParams.get(HANDOFF_EMAIL_HINT)).toBe('owner@theolive.co.za');
     expect(parsed.searchParams.get(HANDOFF_HOUSE_HINT)).toBe('The Olive');

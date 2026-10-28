@@ -227,10 +227,10 @@ describe('Get apps. shop catalog', () => {
     expect(OPEN_LABEL).toBe('Open.');
   });
 
-  it('Open. for Project is project.daup.co.za, never the hub or eatery /owner', () => {
+  it('Open. for Project is projects.daup.co.za, never the hub or eatery /owner', () => {
     const project = SHOP_APPS.find(app => app.id === 'project')!;
     const href = shopAppOpenHref(project);
-    expect(href).toBe('https://project.daup.co.za');
+    expect(href).toBe('https://projects.daup.co.za');
     expect(href).toBe(PROJECT_HOME);
     expect(href).not.toMatch(/eatery\.daup\.co\.za|\/owner|app\.daup\.co\.za/i);
     const withHub = shopAppOpenHref(project, projectOpenHandshakeFromHub({
@@ -239,7 +239,7 @@ describe('Get apps. shop catalog', () => {
       placeIds: ['place-olive']
     }));
     const parsed = new URL(withHub || '');
-    expect(parsed.origin).toBe('https://project.daup.co.za');
+    expect(parsed.origin).toBe('https://projects.daup.co.za');
     expect(parsed.pathname).toBe('/d/hub');
     expect([...parsed.searchParams.keys()]).toEqual([
       HANDOFF_EMAIL_HINT,
@@ -250,7 +250,7 @@ describe('Get apps. shop catalog', () => {
     expect(buildProjectOpenUrl({
       email: 'owner@theolive.co.za',
       house: 'The Olive'
-    })).toMatch(/^https:\/\/project\.daup\.co\.za\/d\/hub\?emailHint=/);
+    })).toMatch(/^https:\/\/projects\.daup\.co\.za\/d\/hub\?emailHint=/);
     expect(parsed.searchParams.get(HANDOFF_EMAIL_HINT)).toBe('owner@theolive.co.za');
     expect(parsed.searchParams.get(HANDOFF_HOUSE_HINT)).toBe('The Olive');
     expect(handoffPresentsCredential(withHub || '')).toBe(false);

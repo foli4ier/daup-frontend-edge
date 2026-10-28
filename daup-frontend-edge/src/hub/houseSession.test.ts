@@ -58,7 +58,7 @@ describe('house seed origin and redeem urls', () => {
       origin: PROJECT_HOME
     });
     const parsed = new URL(href);
-    expect(parsed.origin).toBe('https://project.daup.co.za');
+    expect(parsed.origin).toBe('https://projects.daup.co.za');
     expect(parsed.pathname).toBe('/d/hub');
     expect(parsed.searchParams.get('emailHint')).toBe('owner@theolive.co.za');
     expect(parsed.searchParams.get('houseHint')).toBe('The Olive');

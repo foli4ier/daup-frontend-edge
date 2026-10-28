@@ -411,7 +411,7 @@ describe('House code door on Get apps', () => {
     };
 
     await openApp('vault', 'Vault', 'https://vault.daup.co.za', true);
-    await openApp('project', 'Project', 'https://project.daup.co.za');
+    await openApp('project', 'Project', 'https://projects.daup.co.za');
     await openApp('finance', 'Finance', 'https://finance.daup.co.za');
     await openApp('trade', 'Trade', 'https://trade.daup.co.za');
     await openApp('property', 'Property', 'https://property.daup.co.za');
@@ -529,7 +529,7 @@ describe('House code door on Get apps', () => {
 
     await openApp('finance', 'Finance', 'https://finance.daup.co.za');
     await openApp('trade', 'Trade', 'https://trade.daup.co.za');
-    await openApp('project', 'Project', 'https://project.daup.co.za');
+    await openApp('project', 'Project', 'https://projects.daup.co.za');
     await openApp('property', 'Property', 'https://property.daup.co.za');
     await openApp('vault', 'Vault', 'https://vault.daup.co.za');
     await openApp('eatery', 'Eatery', 'https://eatery.daup.co.za');

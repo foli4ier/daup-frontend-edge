@@ -386,8 +386,8 @@ export function runEdgePlatformTests(): TestResult[] {
 
     const projectUrl = getModuleEndpoint('daup-project');
     assert(
-      'Project endpoint resolves to project.daup.co.za or localhost:3002',
-      projectUrl.includes('project.daup.co.za') || projectUrl.includes('localhost:3002'),
+      'Project endpoint resolves to projects.daup.co.za or localhost:3002',
+      projectUrl.includes('projects.daup.co.za') || projectUrl.includes('localhost:3002'),
       `Resolved endpoint: "${projectUrl}"`
     );
 
@@ -399,7 +399,7 @@ export function runEdgePlatformTests(): TestResult[] {
     const projectParsed = new URL(projectLaunch);
     assert(
       'Project launch URL uses the Project origin and handshake query',
-      (projectParsed.hostname === 'project.daup.co.za' || projectParsed.origin.includes('localhost:3002')) &&
+      (projectParsed.hostname === 'projects.daup.co.za' || projectParsed.origin.includes('localhost:3002')) &&
       projectParsed.searchParams.get('instance') === 'cape-bistro-ltd.daup',
       `Constructed URL: ${projectLaunch}`
     );
