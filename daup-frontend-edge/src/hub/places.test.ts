@@ -250,7 +250,7 @@ describe('Get apps. shop catalog', () => {
     expect(buildProjectOpenUrl({
       email: 'owner@theolive.co.za',
       house: 'The Olive'
-    })).toMatch(/^https:\/\/project\.daup\.co\.za\/d\/hub\?emailHint=/);
+    })).toMatch(/^https:\/\/projects\.daup\.co\.za\/d\/hub\?emailHint=/);
     expect(parsed.searchParams.get(HANDOFF_EMAIL_HINT)).toBe('owner@theolive.co.za');
     expect(parsed.searchParams.get(HANDOFF_HOUSE_HINT)).toBe('The Olive');
     expect(handoffPresentsCredential(withHub || '')).toBe(false);
